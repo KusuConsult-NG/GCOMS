@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
@@ -38,6 +40,14 @@ import { SchedulerModule } from './scheduler/scheduler.module';
 
 @Module({
   imports: [
+    // Loads .env explicitly. Previously env vars only appeared as a side effect of
+    // Prisma Client's own .env loading, which meant JWT_SECRET could silently be
+    // undefined depending on import order.
+    ConfigModule.forRoot({
+      isGlobal: true,
+      cache: true,
+      validate: validateEnv,
+    }),
     PrismaModule,
     UsersModule,
     AuthModule,

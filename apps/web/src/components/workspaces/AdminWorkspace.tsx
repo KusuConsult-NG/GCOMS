@@ -79,10 +79,13 @@ export function AdminWorkspace({ user }: { user: any }) {
   };
 
   const handleToggleStatus = async (user: any) => {
-    const newStatus = user.status === 'INACTIVE' ? 'ACTIVE' : 'INACTIVE';
+    // The API models this as `isActive: boolean` — the old `status: 'ACTIVE'`
+    // string targeted a field that does not exist, so this could only ever
+    // deactivate and never reactivate.
+    const newIsActive = !user.isActive;
     try {
-      await api.patch(`/users/${user.id}`, { status: newStatus });
-      setUsers(users.map(u => u.id === user.id ? { ...u, status: newStatus } : u));
+      await api.patch(`/users/${user.id}/status`, { isActive: newIsActive });
+      setUsers(users.map(u => u.id === user.id ? { ...u, isActive: newIsActive } : u));
     } catch (err) {
       console.error(err);
     }
@@ -210,12 +213,12 @@ export function AdminWorkspace({ user }: { user: any }) {
                         </select>
                       </td>
                       <td className="p-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${(!u.status || u.status === 'ACTIVE') ? 'badge-low-risk bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                          {u.status || 'ACTIVE'}
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${u.isActive ? 'badge-low-risk bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {u.isActive ? 'ACTIVE' : 'INACTIVE'}
                         </span>
                       </td>
                       <td className="p-3 text-right flex justify-end gap-1">
-                        <button onClick={() => handleToggleStatus(u)} className="btn-secondary text-[10px] py-1 px-2">{(!u.status || u.status === 'ACTIVE') ? 'Deactivate' : 'Reactivate'}</button>
+                        <button onClick={() => handleToggleStatus(u)} className="btn-secondary text-[10px] py-1 px-2">{u.isActive ? 'Deactivate' : 'Reactivate'}</button>
                         <button onClick={() => handleResetPassword(u.id)} className="btn-secondary text-[10px] py-1 px-2">Reset Pwd</button>
                       </td>
                     </tr>

@@ -1,14 +1,18 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor() {
+  constructor(config: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'gcoms-fallback-secret-must-change-in-prod',
+      // No fallback by design. validateEnv() guarantees this is set and non-trivial
+      // before the app boots; a default here would mean tokens signed with a value
+      // that is readable in source control.
+      secretOrKey: config.getOrThrow<string>('JWT_SECRET'),
     });
   }
 
@@ -16,7 +20,3 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     return { id: payload.sub, email: payload.email, role: payload.role };
   }
 }
-
-export const jwtConstants = {
-  secret: process.env.JWT_SECRET || 'gcoms-fallback-secret-must-change-in-prod',
-};

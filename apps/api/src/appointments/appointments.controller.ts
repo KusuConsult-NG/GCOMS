@@ -1,25 +1,52 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { PHI_READ_ROLES } from '../auth/roles.constants';
+import { ParticipantAccessGuard } from '../phi/participant-access.guard';
+import { PhiAccessService } from '../phi/phi-access.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('appointments')
 export class AppointmentsController {
-  constructor(private readonly apptService: AppointmentsService) {}
+  constructor(
+    private readonly apptService: AppointmentsService,
+    private readonly phi: PhiAccessService,
+  ) {}
 
   @Get()
-  async getAll(@Query('status') status?: string, @Request() req?: any) {
-    const clinicianId = req.user.role === 'CLINICIAN' ? req.user.id : undefined;
-    return this.apptService.findAll(status, clinicianId);
+  @Roles(...PHI_READ_ROLES)
+  async getAll(@Request() req: any, @Query('status') status?: string) {
+    return this.apptService.findAll(
+      status,
+      this.phi.participantScope(req.user),
+    );
   }
 
   @Post()
   @Roles('CLINICIAN', 'FIELD_OFFICER', 'EXECUTIVE', 'ADMIN')
+  @UseGuards(ParticipantAccessGuard)
   async create(
-    @Body() body: { participantId: string; clinicianId?: string; scheduledAt: string; type?: string; notes?: string },
-    @Request() req: any
+    @Body()
+    body: {
+      participantId: string;
+      clinicianId?: string;
+      scheduledAt: string;
+      type?: string;
+      notes?: string;
+    },
+    @Request() req: any,
   ) {
     return this.apptService.create({
       ...body,
@@ -31,8 +58,9 @@ export class AppointmentsController {
   @Roles('CLINICIAN', 'FIELD_OFFICER', 'EXECUTIVE', 'ADMIN')
   async updateStatus(
     @Param('id') id: string,
-    @Body() body: { status: string; notes?: string }
+    @Body() body: { status: string; notes?: string },
+    @Request() req: any,
   ) {
-    return this.apptService.updateStatus(id, body.status, body.notes);
+    return this.apptService.updateStatus(id, body.status, body.notes, req.user);
   }
 }

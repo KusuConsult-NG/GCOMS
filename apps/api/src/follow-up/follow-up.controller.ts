@@ -1,46 +1,80 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { FollowUpService } from './follow-up.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { PHI_READ_ROLES } from '../auth/roles.constants';
+import { ParticipantAccessGuard } from '../phi/participant-access.guard';
+import { PhiAccessService } from '../phi/phi-access.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('follow-ups')
 export class FollowUpController {
-  constructor(private readonly followUpService: FollowUpService) {}
+  constructor(
+    private readonly followUpService: FollowUpService,
+    private readonly phi: PhiAccessService,
+  ) {}
 
   @Get()
-  async getAll(@Query('status') status?: string, @Request() req?: any) {
-    const isClinicianView = req.user.role === 'CLINICIAN';
-    const clinicianId = isClinicianView ? req.user.id : undefined;
-    return this.followUpService.getAll(status, clinicianId);
+  @Roles(...PHI_READ_ROLES)
+  async getAll(@Request() req: any, @Query('status') status?: string) {
+    return this.followUpService.getAll(
+      status,
+      this.phi.participantScope(req.user),
+    );
   }
 
   @Get('dashboard-stats')
-  async getDashboardStats() {
-    return this.followUpService.getDashboardStats();
+  @Roles(...PHI_READ_ROLES)
+  async getDashboardStats(@Request() req: any) {
+    return this.followUpService.getDashboardStats(
+      this.phi.participantScope(req.user),
+    );
   }
 
   @Get('upcoming')
-  async getUpcoming(@Query('days') days?: string) {
-    return this.followUpService.getUpcoming(days ? parseInt(days) : 7);
+  @Roles(...PHI_READ_ROLES)
+  async getUpcoming(@Request() req: any, @Query('days') days?: string) {
+    return this.followUpService.getUpcoming(
+      days ? parseInt(days) : 7,
+      this.phi.participantScope(req.user),
+    );
   }
 
   @Get('missed')
-  async getMissed() {
-    return this.followUpService.getMissed();
+  @Roles(...PHI_READ_ROLES)
+  async getMissed(@Request() req: any) {
+    return this.followUpService.getMissed(this.phi.participantScope(req.user));
   }
 
   @Get(':id')
-  async getOne(@Param('id') id: string) {
-    return this.followUpService.getOne(id);
+  @Roles(...PHI_READ_ROLES)
+  async getOne(@Param('id') id: string, @Request() req: any) {
+    return this.followUpService.getOne(id, this.phi.participantScope(req.user));
   }
 
   @Post()
   @Roles('CLINICIAN', 'FIELD_OFFICER', 'EXECUTIVE', 'ADMIN')
+  @UseGuards(ParticipantAccessGuard)
   async create(
-    @Body() body: { participantId: string; clinicianId: string; scheduledDate: string; notes?: string },
-    @Request() req: any
+    @Body()
+    body: {
+      participantId: string;
+      clinicianId: string;
+      scheduledDate: string;
+      notes?: string;
+    },
+    @Request() req: any,
   ) {
     return this.followUpService.create({
       ...body,
@@ -52,8 +86,14 @@ export class FollowUpController {
   @Roles('CLINICIAN', 'FIELD_OFFICER', 'EXECUTIVE', 'ADMIN')
   async updateStatus(
     @Param('id') id: string,
-    @Body() body: { status: string; notes?: string }
+    @Body() body: { status: string; notes?: string },
+    @Request() req: any,
   ) {
-    return this.followUpService.updateStatus(id, body.status, body.notes);
+    return this.followUpService.updateStatus(
+      id,
+      body.status,
+      body.notes,
+      req.user,
+    );
   }
 }

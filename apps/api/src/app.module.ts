@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
+import { PhiModule } from './phi/phi.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { ParticipantsModule } from './participants/participants.module';
@@ -49,6 +50,7 @@ import { SchedulerModule } from './scheduler/scheduler.module';
       validate: validateEnv,
     }),
     PrismaModule,
+    PhiModule,
     UsersModule,
     AuthModule,
     ParticipantsModule,

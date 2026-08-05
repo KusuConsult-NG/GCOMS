@@ -1,9 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { PhiAccessService, PhiActor } from '../phi/phi-access.service';
 
 @Injectable()
 export class AppointmentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private phi: PhiAccessService,
+  ) {}
 
   async create(data: {
     participantId: string;
@@ -22,30 +27,51 @@ export class AppointmentsService {
         status: 'SCHEDULED',
       },
       include: {
-        participant: { select: { firstName: true, lastName: true, phoneNumber: true } },
+        participant: {
+          select: { firstName: true, lastName: true, phoneNumber: true },
+        },
         clinician: { select: { firstName: true, lastName: true } },
       },
     });
   }
 
-  async findAll(status?: string, clinicianId?: string) {
-    const where: any = {};
+  /** `scope` is PhiAccessService.participantScope() — see ReferralsService. */
+  async findAll(status?: string, scope?: Prisma.ParticipantWhereInput) {
+    const where: Prisma.AppointmentWhereInput = {};
     if (status) where.status = status;
-    if (clinicianId) where.clinicianId = clinicianId;
+    if (scope) where.participant = scope;
 
     return this.prisma.appointment.findMany({
       where,
       orderBy: { scheduledAt: 'asc' },
       include: {
-        participant: { select: { firstName: true, lastName: true, nationalId: true, phoneNumber: true } },
+        participant: {
+          select: {
+            firstName: true,
+            lastName: true,
+            nationalId: true,
+            phoneNumber: true,
+          },
+        },
         clinician: { select: { firstName: true, lastName: true, role: true } },
       },
     });
   }
 
-  async updateStatus(id: string, status: string, notes?: string) {
+  async updateStatus(
+    id: string,
+    status: string,
+    notes: string | undefined,
+    actor: PhiActor,
+  ) {
     const appt = await this.prisma.appointment.findUnique({ where: { id } });
     if (!appt) throw new NotFoundException('Appointment not found');
+
+    await this.phi.assertParticipantAccess(
+      actor,
+      appt.participantId,
+      'PATCH /appointments/:id/status',
+    );
 
     return this.prisma.appointment.update({
       where: { id },

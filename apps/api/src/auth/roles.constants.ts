@@ -48,3 +48,40 @@ export const PRIVILEGED_ROLES: Role[] = ['ADMIN', 'EXECUTIVE', 'SYSTEM_ADMIN'];
 
 /** Roles allowed to assign a PRIVILEGED_ROLE to someone else. */
 export const GRANTOR_ROLES: Role[] = ['EXECUTIVE', 'SYSTEM_ADMIN'];
+
+/*
+ * Patient data (PHI) access.
+ *
+ * Every role NOT listed in PHI_READ_ROLES is denied patient data outright —
+ * FINANCE, HR, PROCUREMENT, GRANT_MANAGER, PROJECT_MANAGER, INVENTORY_MANAGER,
+ * BOARD and RESEARCH_OFFICER have no clinical need for identified records.
+ * (Research works from the research module, which holds no participant data.)
+ */
+
+/** Oversight roles: see every patient record, unfiltered. */
+export const PHI_UNSCOPED_ROLES: Role[] = [
+  'ADMIN',
+  'EXECUTIVE',
+  'SYSTEM_ADMIN',
+  'DATA_OFFICER',
+  'PROGRAMME_MANAGER',
+];
+
+/**
+ * Front-line roles: see only their own caseload — patients they registered, or
+ * patients assigned to them via PatientAssignment. They can still reach a
+ * record outside that set by id (a walk-in, a referral, a scanned ID pass),
+ * which is allowed but written to AuditLog as PHI_ACCESS_OVERRIDE.
+ */
+export const PHI_SCOPED_ROLES: Role[] = [
+  'CLINICIAN',
+  'FIELD_OFFICER',
+  'COMMUNITY_HEALTH_WORKER',
+  'VOLUNTEER',
+];
+
+/** Every role permitted to read patient data at all. */
+export const PHI_READ_ROLES: Role[] = [
+  ...PHI_UNSCOPED_ROLES,
+  ...PHI_SCOPED_ROLES,
+];

@@ -1,0 +1,537 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      String   @default("COMMUNITY_HEALTH_WORKER")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  participants        Participant[]
+  screenings          Screening[]
+  clinicalEncounters  ClinicalEncounter[]
+  referrals           Referral[]
+  followUps           FollowUp[]
+  auditLogs           AuditLog[]
+  requestedApprovals  ApprovalRequest[] @relation("RequestedApprovals")
+  approvedApprovals   ApprovalRequest[] @relation("ApprovedApprovals")
+  financeTransactions FinanceTransaction[]
+  procurementOrders   ProcurementOrder[]
+  managedStaff        StaffRecord[]     @relation("ManagedStaff")
+  staffRecord         StaffRecord?      @relation("UserStaffRecord")
+  facilityRequests    FacilityRequest[]
+  managedGrants       Grant[]           @relation("ManagedGrants")
+  managedProjects     Project[]         @relation("ManagedProjects")
+  managedInventory    InventoryItem[]   @relation("ManagedInventory")
+  uploadedDocuments   DocumentRecord[]  @relation("UploadedDocuments")
+  organizedMeetings   GovernanceMeeting[] @relation("OrganizedMeetings")
+  patientAssignments  PatientAssignment[]
+  volunteerTasks      VolunteerTask[]
+  appointments        Appointment[]     @relation("ClinicianAppointments")
+}
+
+model ApprovalRequest {
+  id            String   @id @default(uuid())
+  title         String
+  description   String?
+  status        String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  resourceType  String   // e.g. PROCUREMENT, FINANCE, HR, GRANT, USER
+  resourceId    String?
+  comments      String?
+  requestedById String
+  requestedBy   User     @relation("RequestedApprovals", fields: [requestedById], references: [id])
+  approvedById  String?
+  approvedBy    User?    @relation("ApprovedApprovals", fields: [approvedById], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model FinanceTransaction {
+  id            String   @id @default(uuid())
+  amount        Float
+  type          String   // INCOME, EXPENSE
+  category      String   // DONATION, SALARY, SUPPLIES, etc.
+  description   String
+  status        String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  requestedById String
+  requestedBy   User     @relation(fields: [requestedById], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model ProcurementOrder {
+  id            String   @id @default(uuid())
+  itemName      String
+  quantity      Int
+  estimatedCost Float
+  vendor        String
+  status        String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  requestedById String
+  requestedBy   User     @relation(fields: [requestedById], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model StaffRecord {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation("UserStaffRecord", fields: [userId], references: [id])
+  department     String
+  employmentType String   // FULL_TIME, PART_TIME, VOLUNTEER
+  status         String   @default("ACTIVE") // ACTIVE, ON_LEAVE, TERMINATED
+  managedById    String?
+  managedBy      User?    @relation("ManagedStaff", fields: [managedById], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model FacilityRequest {
+  id            String   @id @default(uuid())
+  facilityName  String
+  requestType   String   // MAINTENANCE, BOOKING, REPAIR
+  description   String
+  status        String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  requestedById String
+  requestedBy   User     @relation(fields: [requestedById], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Grant {
+  id          String   @id @default(uuid())
+  donorName   String
+  grantName   String
+  amount      Float
+  startDate   DateTime
+  endDate     DateTime
+  status      String   @default("ACTIVE") // ACTIVE, PENDING, EXHAUSTED
+  managedById String
+  managedBy   User     @relation("ManagedGrants", fields: [managedById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  milestones  GrantMilestone[]
+}
+
+model GrantMilestone {
+  id          String   @id @default(uuid())
+  grantId     String
+  grant       Grant    @relation(fields: [grantId], references: [id])
+  title       String
+  dueDate     DateTime
+  status      String   @default("PENDING") // PENDING, COMPLETED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  projectName String
+  description String
+  startDate   DateTime
+  endDate     DateTime
+  status      String   @default("PLANNING") // PLANNING, ACTIVE, COMPLETED
+  budget      Float
+  managedById String
+  managedBy   User     @relation("ManagedProjects", fields: [managedById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tasks       ProjectTask[]
+}
+
+model ProjectTask {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+  title       String
+  status      String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model InventoryItem {
+  id          String   @id @default(uuid())
+  itemName    String
+  category    String   // MEDICATION, EQUIPMENT, CONSUMABLE
+  quantity    Int
+  unit        String
+  location    String
+  status      String   @default("IN_STOCK") // IN_STOCK, LOW_STOCK, OUT_OF_STOCK
+  managedById String
+  managedBy   User     @relation("ManagedInventory", fields: [managedById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model DocumentRecord {
+  id            String   @id @default(uuid())
+  title         String
+  documentType  String   // POLICY, GUIDELINE, REPORT
+  url           String
+  version       String   @default("1.0")
+  uploadedById  String
+  uploadedBy    User     @relation("UploadedDocuments", fields: [uploadedById], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model GovernanceMeeting {
+  id            String   @id @default(uuid())
+  title         String
+  meetingDate   DateTime
+  minutesUrl    String?
+  status        String   @default("SCHEDULED") // SCHEDULED, COMPLETED, CANCELLED
+  organizedById String
+  organizedBy   User     @relation("OrganizedMeetings", fields: [organizedById], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model SystemConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model Participant {
+  id               String   @id @default(uuid())
+  nationalId       String   @unique
+  firstName        String
+  lastName         String
+  dateOfBirth      DateTime
+  gender           String
+  phoneNumber      String?
+  address          String?
+  consentGiven     Boolean  @default(true)
+  registeredById   String
+  registeredBy     User     @relation(fields: [registeredById], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  screenings         Screening[]
+  clinicalEncounters ClinicalEncounter[]
+  referrals          Referral[]
+  followUps          FollowUp[]
+  assignments        PatientAssignment[]
+  navigationEvents   NavigationEvent[]
+  vitalSigns         VitalSign[]
+  medicalHistories   MedicalHistory[]
+  appointments       Appointment[]
+}
+
+model VitalSign {
+  id            String   @id @default(uuid())
+  bpSystolic    Int?
+  bpDiastolic   Int?
+  pulseRate     Int?
+  temperature   Float?
+  weightKg      Float?
+  heightCm      Float?
+  bmi           Float?
+  oxygenSat     Float?
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id])
+  recordedAt    DateTime @default(now())
+}
+
+model MedicalHistory {
+  id            String   @id @default(uuid())
+  conditionName String
+  diagnosisDate DateTime?
+  familyHistory String?
+  lifestyleNotes String?
+  allergies     String?
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id])
+  createdAt     DateTime @default(now())
+}
+
+model Appointment {
+  id            String   @id @default(uuid())
+  scheduledAt   DateTime
+  type          String   @default("FOLLOW_UP") // SCREENING, CLINICAL, FOLLOW_UP
+  status        String   @default("SCHEDULED") // SCHEDULED, COMPLETED, MISSED, CANCELLED
+  notes         String?
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id])
+  clinicianId   String
+  clinician     User     @relation("ClinicianAppointments", fields: [clinicianId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model NotificationItem {
+  id            String   @id @default(uuid())
+  recipient     String
+  channel       String   @default("EMAIL") // EMAIL, SMS, PUSH
+  subject       String
+  body          String
+  status        String   @default("SENT") // PENDING, SENT, FAILED
+  sentAt        DateTime @default(now())
+}
+
+model Location {
+  id        String   @id @default(uuid())
+  name      String
+  address   String?
+  lga       String?
+  state     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  screenings Screening[]
+  outreaches Outreach[]
+}
+
+model Screening {
+  id             String   @id @default(uuid())
+  cancerType     String
+  result         String
+  riskScore      Float?
+  locationId     String?
+  location       Location? @relation(fields: [locationId], references: [id])
+  participantId  String
+  participant    Participant @relation(fields: [participantId], references: [id])
+  conductedById  String
+  conductedBy    User     @relation(fields: [conductedById], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ClinicalEncounter {
+  id            String   @id @default(uuid())
+  notes         String
+  prognosis     String?
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id])
+  clinicianId   String
+  clinician     User     @relation(fields: [clinicianId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  investigations Investigation[]
+  auditLogs      AuditLog[]
+}
+
+model Investigation {
+  id                  String   @id @default(uuid())
+  type                String
+  results             String?
+  clinicalEncounterId String
+  clinicalEncounter   ClinicalEncounter @relation(fields: [clinicalEncounterId], references: [id])
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Referral {
+  id             String   @id @default(uuid())
+  referredTo     String
+  reason         String
+  status         String   @default("PENDING")
+  participantId  String
+  participant    Participant @relation(fields: [participantId], references: [id])
+  referredById   String
+  referredBy     User     @relation(fields: [referredById], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model FollowUp {
+  id            String   @id @default(uuid())
+  scheduledDate DateTime
+  notes         String?
+  status        String   @default("SCHEDULED")
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id])
+  clinicianId   String
+  clinician     User     @relation(fields: [clinicianId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model AuditLog {
+  id                  String   @id @default(uuid())
+  action              String
+  oldData             String?
+  newData             String?
+  userId              String
+  user                User     @relation(fields: [userId], references: [id])
+  clinicalEncounterId String?
+  clinicalEncounter   ClinicalEncounter? @relation(fields: [clinicalEncounterId], references: [id])
+  createdAt           DateTime @default(now())
+}
+
+model PatientAssignment {
+  id            String   @id @default(uuid())
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id])
+  clinicianId   String
+  clinician     User     @relation(fields: [clinicianId], references: [id])
+  status        String   @default("ACTIVE")
+  assignedAt    DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model StrategicGoal {
+  id            String   @id @default(uuid())
+  title         String
+  targetMetric  Float
+  currentMetric Float    @default(0)
+  deadline      DateTime
+  status        String   @default("ON_TRACK")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Outreach {
+  id            String   @id @default(uuid())
+  title         String
+  locationId    String
+  location      Location @relation(fields: [locationId], references: [id])
+  date          DateTime
+  attendance    Int      @default(0)
+  status        String   @default("PLANNED")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tasks         VolunteerTask[]
+}
+
+model VolunteerTask {
+  id            String   @id @default(uuid())
+  title         String
+  outreachId    String
+  outreach      Outreach @relation(fields: [outreachId], references: [id])
+  volunteerId   String
+  volunteer     User     @relation(fields: [volunteerId], references: [id])
+  hoursLogged   Float    @default(0)
+  status        String   @default("PENDING")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model NavigationEvent {
+  id            String   @id @default(uuid())
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id])
+  eventType     String
+  date          DateTime
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model ResearchProject {
+  id            String   @id @default(uuid())
+  title         String
+  status        String   @default("ACTIVE")
+  progress      Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Community {
+  id            String   @id @default(uuid())
+  name          String
+  lga           String
+  state         String   @default("Plateau")
+  population    Int      @default(0)
+  leaderName    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Appraisal {
+  id            String   @id @default(uuid())
+  employeeId    String
+  reviewerId    String
+  period        String
+  score         Float
+  comments      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model LeaveRequest {
+  id            String   @id @default(uuid())
+  employeeId    String
+  startDate     DateTime
+  endDate       DateTime
+  type          String   @default("ANNUAL")
+  status        String   @default("PENDING")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model BankReconciliation {
+  id              String   @id @default(uuid())
+  statementDate   DateTime
+  bankBalance     Float
+  ledgerBalance   Float
+  discrepancy     Float    @default(0)
+  status          String   @default("RECONCILED") // RECONCILED, DISCREPANCY, PENDING
+  notes           String?
+  createdAt       DateTime @default(now())
+}
+
+model EquipmentServiceLog {
+  id              String   @id @default(uuid())
+  inventoryItemId String
+  serviceType     String   // CALIBRATION, PREVENTIVE_MAINTENANCE, REPAIR
+  performedBy     String
+  serviceDate     DateTime
+  nextDueDate     DateTime
+  cost            Float    @default(0)
+  status          String   @default("COMPLETED")
+  notes           String?
+  createdAt       DateTime @default(now())
+}
+
+model BoardResolution {
+  id              String   @id @default(uuid())
+  resolutionNo    String   @unique
+  title           String
+  description     String
+  votesFor        Int      @default(0)
+  votesAgainst    Int      @default(0)
+  abstentions     Int      @default(0)
+  status          String   @default("PASSED") // PASSED, REJECTED, PENDING
+  passedDate      DateTime @default(now())
+}
+
+model OnboardingChecklist {
+  id              String   @id @default(uuid())
+  employeeName    String
+  role            String
+  identityVerified Boolean @default(true)
+  contractSigned  Boolean  @default(true)
+  itProvisioned   Boolean  @default(true)
+  medicalCleared  Boolean  @default(true)
+  status          String   @default("COMPLETED")
+  createdAt       DateTime @default(now())
+}
+
+model GrantProposal {
+  id              String   @id @default(uuid())
+  title           String
+  donorName       String
+  requestedAmount Float
+  submissionDeadline DateTime
+  status          String   @default("UNDER_REVIEW") // DRAFT, UNDER_REVIEW, SUBMITTED, AWARDED, REJECTED
+  leadAuthor      String
+  createdAt       DateTime @default(now())
+}
+

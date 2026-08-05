@@ -2,7 +2,7 @@ import { DashboardService } from './dashboard.service';
 export declare class DashboardController {
     private readonly dashboardService;
     constructor(dashboardService: DashboardService);
-    getStats(): Promise<{
+    getStats(req: any): Promise<{
         totalParticipants: number;
         totalScreenings: number;
         positiveScreenings: number;
@@ -13,7 +13,7 @@ export declare class DashboardController {
         totalOutreaches: number;
         activeProjects: number;
         pendingFollowUps: number;
-        recentParticipants: {
+        recentParticipants: never[] | {
             id: string;
             firstName: string;
             lastName: string;

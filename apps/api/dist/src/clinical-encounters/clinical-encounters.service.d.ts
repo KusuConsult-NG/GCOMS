@@ -1,15 +1,17 @@
 import { PrismaService } from '../prisma/prisma.service';
+import { PhiAccessService, PhiActor } from '../phi/phi-access.service';
 export declare class ClinicalEncountersService {
     private prisma;
-    constructor(prisma: PrismaService);
+    private phi;
+    constructor(prisma: PrismaService, phi: PhiAccessService);
     createEncounter(data: any, userId: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        clinicianId: string;
         participantId: string;
         notes: string;
         prognosis: string | null;
-        clinicianId: string;
     }>;
     getEncounters(participantId: string): Promise<({
         clinician: {
@@ -20,26 +22,26 @@ export declare class ClinicalEncountersService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        clinicianId: string;
         participantId: string;
         notes: string;
         prognosis: string | null;
-        clinicianId: string;
     })[]>;
-    editEncounter(id: string, newNotes: string, userId: string): Promise<{
+    editEncounter(id: string, newNotes: string, userId: string, actor: PhiActor): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        clinicianId: string;
         participantId: string;
         notes: string;
         prognosis: string | null;
-        clinicianId: string;
     }>;
     assignPatient(data: any, assignedBy: string): Promise<{
         id: string;
         updatedAt: Date;
         status: string;
-        participantId: string;
         clinicianId: string;
+        participantId: string;
         assignedAt: Date;
     }>;
     getAssignments(clinicianId?: string): Promise<({
@@ -49,13 +51,13 @@ export declare class ClinicalEncountersService {
             lastName: string;
             createdAt: Date;
             updatedAt: Date;
+            registeredById: string;
             nationalId: string;
             dateOfBirth: Date;
             gender: string;
             phoneNumber: string | null;
             address: string | null;
             consentGiven: boolean;
-            registeredById: string;
         };
         clinician: {
             firstName: string;
@@ -66,8 +68,8 @@ export declare class ClinicalEncountersService {
         id: string;
         updatedAt: Date;
         status: string;
-        participantId: string;
         clinicianId: string;
+        participantId: string;
         assignedAt: Date;
     })[]>;
 }

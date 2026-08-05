@@ -12,10 +12,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ClinicalEncountersService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const phi_access_service_1 = require("../phi/phi-access.service");
 let ClinicalEncountersService = class ClinicalEncountersService {
     prisma;
-    constructor(prisma) {
+    phi;
+    constructor(prisma, phi) {
         this.prisma = prisma;
+        this.phi = phi;
     }
     async createEncounter(data, userId) {
         return this.prisma.clinicalEncounter.create({
@@ -24,7 +27,7 @@ let ClinicalEncountersService = class ClinicalEncountersService {
                 prognosis: data.prognosis,
                 participantId: data.participantId,
                 clinicianId: userId,
-            }
+            },
         });
     }
     async getEncounters(participantId) {
@@ -33,15 +36,18 @@ let ClinicalEncountersService = class ClinicalEncountersService {
             orderBy: { createdAt: 'desc' },
             include: {
                 clinician: {
-                    select: { firstName: true, lastName: true }
-                }
-            }
+                    select: { firstName: true, lastName: true },
+                },
+            },
         });
     }
-    async editEncounter(id, newNotes, userId) {
-        const encounter = await this.prisma.clinicalEncounter.findUnique({ where: { id } });
+    async editEncounter(id, newNotes, userId, actor) {
+        const encounter = await this.prisma.clinicalEncounter.findUnique({
+            where: { id },
+        });
         if (!encounter)
             throw new common_1.NotFoundException('Encounter not found');
+        await this.phi.assertParticipantAccess(actor, encounter.participantId, 'PATCH /clinical-encounters/:id');
         return this.prisma.$transaction(async (tx) => {
             await tx.auditLog.create({
                 data: {
@@ -50,11 +56,11 @@ let ClinicalEncountersService = class ClinicalEncountersService {
                     newData: newNotes,
                     userId,
                     clinicalEncounterId: id,
-                }
+                },
             });
             return tx.clinicalEncounter.update({
                 where: { id },
-                data: { notes: newNotes }
+                data: { notes: newNotes },
             });
         });
     }
@@ -63,8 +69,8 @@ let ClinicalEncountersService = class ClinicalEncountersService {
             data: {
                 participantId: data.participantId,
                 clinicianId: data.clinicianId,
-                status: 'ACTIVE'
-            }
+                status: 'ACTIVE',
+            },
         });
     }
     async getAssignments(clinicianId) {
@@ -74,14 +80,15 @@ let ClinicalEncountersService = class ClinicalEncountersService {
             orderBy: { assignedAt: 'desc' },
             include: {
                 participant: true,
-                clinician: { select: { firstName: true, lastName: true, role: true } }
-            }
+                clinician: { select: { firstName: true, lastName: true, role: true } },
+            },
         });
     }
 };
 exports.ClinicalEncountersService = ClinicalEncountersService;
 exports.ClinicalEncountersService = ClinicalEncountersService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        phi_access_service_1.PhiAccessService])
 ], ClinicalEncountersService);
 //# sourceMappingURL=clinical-encounters.service.js.map

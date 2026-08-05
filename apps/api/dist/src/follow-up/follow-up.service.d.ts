@@ -1,8 +1,11 @@
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { PhiAccessService, PhiActor } from '../phi/phi-access.service';
 export declare class FollowUpService {
     private prisma;
-    constructor(prisma: PrismaService);
-    getAll(status?: string, clinicianId?: string): Promise<({
+    private phi;
+    constructor(prisma: PrismaService, phi: PhiAccessService);
+    getAll(status?: string, scope?: Prisma.ParticipantWhereInput): Promise<({
         participant: {
             id: string;
             firstName: string;
@@ -22,25 +25,25 @@ export declare class FollowUpService {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        clinicianId: string;
         scheduledDate: Date;
         participantId: string;
         notes: string | null;
-        clinicianId: string;
     })[]>;
-    getOne(id: string): Promise<{
+    getOne(id: string, scope?: Prisma.ParticipantWhereInput): Promise<{
         participant: {
             id: string;
             firstName: string;
             lastName: string;
             createdAt: Date;
             updatedAt: Date;
+            registeredById: string;
             nationalId: string;
             dateOfBirth: Date;
             gender: string;
             phoneNumber: string | null;
             address: string | null;
             consentGiven: boolean;
-            registeredById: string;
         };
         clinician: {
             firstName: string;
@@ -52,10 +55,10 @@ export declare class FollowUpService {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        clinicianId: string;
         scheduledDate: Date;
         participantId: string;
         notes: string | null;
-        clinicianId: string;
     }>;
     create(data: {
         participantId: string;
@@ -76,22 +79,22 @@ export declare class FollowUpService {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        clinicianId: string;
         scheduledDate: Date;
         participantId: string;
         notes: string | null;
-        clinicianId: string;
     }>;
-    updateStatus(id: string, status: string, notes?: string): Promise<{
+    updateStatus(id: string, status: string, notes: string | undefined, actor: PhiActor): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        clinicianId: string;
         scheduledDate: Date;
         participantId: string;
         notes: string | null;
-        clinicianId: string;
     }>;
-    getUpcoming(days?: number): Promise<({
+    getUpcoming(days?: number, scope?: Prisma.ParticipantWhereInput): Promise<({
         participant: {
             firstName: string;
             lastName: string;
@@ -106,12 +109,12 @@ export declare class FollowUpService {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        clinicianId: string;
         scheduledDate: Date;
         participantId: string;
         notes: string | null;
-        clinicianId: string;
     })[]>;
-    getMissed(): Promise<({
+    getMissed(scope?: Prisma.ParticipantWhereInput): Promise<({
         participant: {
             firstName: string;
             lastName: string;
@@ -127,12 +130,12 @@ export declare class FollowUpService {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        clinicianId: string;
         scheduledDate: Date;
         participantId: string;
         notes: string | null;
-        clinicianId: string;
     })[]>;
-    getDashboardStats(): Promise<{
+    getDashboardStats(scope?: Prisma.ParticipantWhereInput): Promise<{
         scheduled: number;
         completed: number;
         missed: number;

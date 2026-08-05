@@ -12,35 +12,51 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DashboardService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const phi_access_service_1 = require("../phi/phi-access.service");
+const roles_constants_1 = require("../auth/roles.constants");
 let DashboardService = class DashboardService {
     prisma;
-    constructor(prisma) {
+    phi;
+    constructor(prisma, phi) {
         this.prisma = prisma;
+        this.phi = phi;
     }
-    async getStats() {
+    async getStats(actor) {
+        const scope = this.phi.participantScope(actor);
+        const participantWhere = scope ?? {};
+        const byParticipant = scope ? { participant: scope } : {};
+        const mayReadPhi = roles_constants_1.PHI_READ_ROLES.includes(actor.role);
         const [totalParticipants, totalScreenings, allScreenings, pendingApprovals, activeReferrals, totalCommunities, totalOutreaches, activeProjects, recentParticipants,] = await Promise.all([
-            this.prisma.participant.count(),
-            this.prisma.screening.count(),
-            this.prisma.screening.findMany({ select: { result: true } }),
+            this.prisma.participant.count({ where: participantWhere }),
+            this.prisma.screening.count({ where: byParticipant }),
+            this.prisma.screening.findMany({
+                where: byParticipant,
+                select: { result: true },
+            }),
             this.prisma.approvalRequest.count({ where: { status: 'PENDING' } }),
-            this.prisma.referral.count({ where: { status: 'PENDING' } }),
+            this.prisma.referral.count({
+                where: { status: 'PENDING', ...byParticipant },
+            }),
             this.prisma.community.count(),
             this.prisma.outreach.count(),
             this.prisma.project.count({ where: { status: 'ACTIVE' } }),
-            this.prisma.participant.findMany({
-                orderBy: { createdAt: 'desc' },
-                take: 5,
-                select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    nationalId: true,
-                    gender: true,
-                    createdAt: true,
-                },
-            }),
+            mayReadPhi
+                ? this.prisma.participant.findMany({
+                    where: participantWhere,
+                    orderBy: { createdAt: 'desc' },
+                    take: 5,
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        nationalId: true,
+                        gender: true,
+                        createdAt: true,
+                    },
+                })
+                : Promise.resolve([]),
         ]);
-        const positiveScreenings = allScreenings.filter(s => s.result && s.result.toLowerCase().includes('positive')).length;
+        const positiveScreenings = allScreenings.filter((s) => s.result && s.result.toLowerCase().includes('positive')).length;
         return {
             totalParticipants,
             totalScreenings,
@@ -59,6 +75,7 @@ let DashboardService = class DashboardService {
 exports.DashboardService = DashboardService;
 exports.DashboardService = DashboardService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        phi_access_service_1.PhiAccessService])
 ], DashboardService);
 //# sourceMappingURL=dashboard.service.js.map

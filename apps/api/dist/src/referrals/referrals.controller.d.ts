@@ -1,21 +1,23 @@
 import { ReferralsService } from './referrals.service';
+import { PhiAccessService } from '../phi/phi-access.service';
 export declare class ReferralsController {
     private readonly referralsService;
-    constructor(referralsService: ReferralsService);
-    getAll(): Promise<({
+    private readonly phi;
+    constructor(referralsService: ReferralsService, phi: PhiAccessService);
+    getAll(req: any): Promise<({
         participant: {
             id: string;
             firstName: string;
             lastName: string;
             createdAt: Date;
             updatedAt: Date;
+            registeredById: string;
             nationalId: string;
             dateOfBirth: Date;
             gender: string;
             phoneNumber: string | null;
             address: string | null;
             consentGiven: boolean;
-            registeredById: string;
         };
         referredBy: {
             id: string;
@@ -38,20 +40,20 @@ export declare class ReferralsController {
         reason: string;
         referredById: string;
     })[]>;
-    getOne(id: string): Promise<{
+    getOne(id: string, req: any): Promise<{
         participant: {
             id: string;
             firstName: string;
             lastName: string;
             createdAt: Date;
             updatedAt: Date;
+            registeredById: string;
             nationalId: string;
             dateOfBirth: Date;
             gender: string;
             phoneNumber: string | null;
             address: string | null;
             consentGiven: boolean;
-            registeredById: string;
         };
         referredBy: {
             id: string;
@@ -90,7 +92,7 @@ export declare class ReferralsController {
     }>;
     updateStatus(id: string, body: {
         status: string;
-    }): Promise<{
+    }, req: any): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;

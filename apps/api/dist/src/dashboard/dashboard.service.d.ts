@@ -1,8 +1,10 @@
 import { PrismaService } from '../prisma/prisma.service';
+import { PhiAccessService, PhiActor } from '../phi/phi-access.service';
 export declare class DashboardService {
     private prisma;
-    constructor(prisma: PrismaService);
-    getStats(): Promise<{
+    private phi;
+    constructor(prisma: PrismaService, phi: PhiAccessService);
+    getStats(actor: PhiActor): Promise<{
         totalParticipants: number;
         totalScreenings: number;
         positiveScreenings: number;
@@ -13,7 +15,7 @@ export declare class DashboardService {
         totalOutreaches: number;
         activeProjects: number;
         pendingFollowUps: number;
-        recentParticipants: {
+        recentParticipants: never[] | {
             id: string;
             firstName: string;
             lastName: string;

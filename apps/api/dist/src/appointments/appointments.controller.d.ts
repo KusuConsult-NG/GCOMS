@@ -1,8 +1,10 @@
 import { AppointmentsService } from './appointments.service';
+import { PhiAccessService } from '../phi/phi-access.service';
 export declare class AppointmentsController {
     private readonly apptService;
-    constructor(apptService: AppointmentsService);
-    getAll(status?: string, req?: any): Promise<({
+    private readonly phi;
+    constructor(apptService: AppointmentsService, phi: PhiAccessService);
+    getAll(req: any, status?: string): Promise<({
         participant: {
             firstName: string;
             lastName: string;
@@ -19,9 +21,9 @@ export declare class AppointmentsController {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        clinicianId: string;
         participantId: string;
         notes: string | null;
-        clinicianId: string;
         type: string;
         scheduledAt: Date;
     })[]>;
@@ -46,23 +48,23 @@ export declare class AppointmentsController {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        clinicianId: string;
         participantId: string;
         notes: string | null;
-        clinicianId: string;
         type: string;
         scheduledAt: Date;
     }>;
     updateStatus(id: string, body: {
         status: string;
         notes?: string;
-    }): Promise<{
+    }, req: any): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        clinicianId: string;
         participantId: string;
         notes: string | null;
-        clinicianId: string;
         type: string;
         scheduledAt: Date;
     }>;

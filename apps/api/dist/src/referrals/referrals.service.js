@@ -12,20 +12,24 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ReferralsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const phi_access_service_1 = require("../phi/phi-access.service");
 let ReferralsService = class ReferralsService {
     prisma;
-    constructor(prisma) {
+    phi;
+    constructor(prisma, phi) {
         this.prisma = prisma;
+        this.phi = phi;
     }
-    async getAll() {
+    async getAll(scope) {
         return this.prisma.referral.findMany({
+            where: scope ? { participant: scope } : {},
             include: { participant: true, referredBy: true },
             orderBy: { createdAt: 'desc' },
         });
     }
-    async getOne(id) {
-        const referral = await this.prisma.referral.findUnique({
-            where: { id },
+    async getOne(id, scope) {
+        const referral = await this.prisma.referral.findFirst({
+            where: { id, ...(scope ? { participant: scope } : {}) },
             include: { participant: true, referredBy: true },
         });
         if (!referral)
@@ -43,7 +47,11 @@ let ReferralsService = class ReferralsService {
             },
         });
     }
-    async updateStatus(id, status) {
+    async updateStatus(id, status, actor) {
+        const referral = await this.prisma.referral.findUnique({ where: { id } });
+        if (!referral)
+            throw new common_1.NotFoundException('Referral record not found');
+        await this.phi.assertParticipantAccess(actor, referral.participantId, 'PUT /referrals/:id/status');
         return this.prisma.referral.update({
             where: { id },
             data: { status },
@@ -53,6 +61,7 @@ let ReferralsService = class ReferralsService {
 exports.ReferralsService = ReferralsService;
 exports.ReferralsService = ReferralsService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        phi_access_service_1.PhiAccessService])
 ], ReferralsService);
 //# sourceMappingURL=referrals.service.js.map

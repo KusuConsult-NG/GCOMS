@@ -13,6 +13,7 @@ const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const env_validation_1 = require("./config/env.validation");
 const prisma_module_1 = require("./prisma/prisma.module");
+const phi_module_1 = require("./phi/phi.module");
 const users_module_1 = require("./users/users.module");
 const auth_module_1 = require("./auth/auth.module");
 const participants_module_1 = require("./participants/participants.module");
@@ -58,6 +59,7 @@ exports.AppModule = AppModule = __decorate([
                 validate: env_validation_1.validateEnv,
             }),
             prisma_module_1.PrismaModule,
+            phi_module_1.PhiModule,
             users_module_1.UsersModule,
             auth_module_1.AuthModule,
             participants_module_1.ParticipantsModule,

@@ -1,15 +1,17 @@
 import { ClinicalEncountersService } from './clinical-encounters.service';
+import { PhiAccessService } from '../phi/phi-access.service';
 export declare class ClinicalEncountersController {
     private readonly encountersService;
-    constructor(encountersService: ClinicalEncountersService);
+    private readonly phi;
+    constructor(encountersService: ClinicalEncountersService, phi: PhiAccessService);
     createEncounter(data: any, req: any): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        clinicianId: string;
         participantId: string;
         notes: string;
         prognosis: string | null;
-        clinicianId: string;
     }>;
     getEncounters(id: string): Promise<({
         clinician: {
@@ -20,26 +22,26 @@ export declare class ClinicalEncountersController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        clinicianId: string;
         participantId: string;
         notes: string;
         prognosis: string | null;
-        clinicianId: string;
     })[]>;
     editEncounter(id: string, data: any, req: any): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        clinicianId: string;
         participantId: string;
         notes: string;
         prognosis: string | null;
-        clinicianId: string;
     }>;
     assignPatient(data: any, req: any): Promise<{
         id: string;
         updatedAt: Date;
         status: string;
-        participantId: string;
         clinicianId: string;
+        participantId: string;
         assignedAt: Date;
     }>;
     getAssignments(req: any): Promise<({
@@ -49,13 +51,13 @@ export declare class ClinicalEncountersController {
             lastName: string;
             createdAt: Date;
             updatedAt: Date;
+            registeredById: string;
             nationalId: string;
             dateOfBirth: Date;
             gender: string;
             phoneNumber: string | null;
             address: string | null;
             consentGiven: boolean;
-            registeredById: string;
         };
         clinician: {
             firstName: string;
@@ -66,8 +68,8 @@ export declare class ClinicalEncountersController {
         id: string;
         updatedAt: Date;
         status: string;
-        participantId: string;
         clinicianId: string;
+        participantId: string;
         assignedAt: Date;
     })[]>;
 }

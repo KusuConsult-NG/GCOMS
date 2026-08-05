@@ -12,23 +12,33 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.FollowUpService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const phi_access_service_1 = require("../phi/phi-access.service");
 let FollowUpService = class FollowUpService {
     prisma;
-    constructor(prisma) {
+    phi;
+    constructor(prisma, phi) {
         this.prisma = prisma;
+        this.phi = phi;
     }
-    async getAll(status, clinicianId) {
+    async getAll(status, scope) {
         const where = {};
         if (status)
             where.status = status;
-        if (clinicianId)
-            where.clinicianId = clinicianId;
+        if (scope)
+            where.participant = scope;
         return this.prisma.followUp.findMany({
             where,
             orderBy: { scheduledDate: 'asc' },
             include: {
                 participant: {
-                    select: { id: true, firstName: true, lastName: true, nationalId: true, phoneNumber: true, gender: true },
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        nationalId: true,
+                        phoneNumber: true,
+                        gender: true,
+                    },
                 },
                 clinician: {
                     select: { id: true, firstName: true, lastName: true, role: true },
@@ -36,9 +46,9 @@ let FollowUpService = class FollowUpService {
             },
         });
     }
-    async getOne(id) {
-        const followUp = await this.prisma.followUp.findUnique({
-            where: { id },
+    async getOne(id, scope) {
+        const followUp = await this.prisma.followUp.findFirst({
+            where: { id, ...(scope ? { participant: scope } : {}) },
             include: {
                 participant: true,
                 clinician: { select: { firstName: true, lastName: true, role: true } },
@@ -63,10 +73,11 @@ let FollowUpService = class FollowUpService {
             },
         });
     }
-    async updateStatus(id, status, notes) {
+    async updateStatus(id, status, notes, actor) {
         const followUp = await this.prisma.followUp.findUnique({ where: { id } });
         if (!followUp)
             throw new common_1.NotFoundException('Follow-up not found');
+        await this.phi.assertParticipantAccess(actor, followUp.participantId, 'PATCH /follow-ups/:id/status');
         return this.prisma.followUp.update({
             where: { id },
             data: {
@@ -76,7 +87,7 @@ let FollowUpService = class FollowUpService {
             },
         });
     }
-    async getUpcoming(days = 7) {
+    async getUpcoming(days = 7, scope) {
         const now = new Date();
         const future = new Date();
         future.setDate(future.getDate() + days);
@@ -84,38 +95,68 @@ let FollowUpService = class FollowUpService {
             where: {
                 status: 'SCHEDULED',
                 scheduledDate: { gte: now, lte: future },
+                ...(scope ? { participant: scope } : {}),
             },
             orderBy: { scheduledDate: 'asc' },
             include: {
-                participant: { select: { firstName: true, lastName: true, phoneNumber: true } },
+                participant: {
+                    select: { firstName: true, lastName: true, phoneNumber: true },
+                },
                 clinician: { select: { firstName: true, lastName: true } },
             },
         });
     }
-    async getMissed() {
+    async getMissed(scope) {
         const now = new Date();
         return this.prisma.followUp.findMany({
             where: {
                 status: 'SCHEDULED',
                 scheduledDate: { lt: now },
+                ...(scope ? { participant: scope } : {}),
             },
             orderBy: { scheduledDate: 'desc' },
             include: {
-                participant: { select: { firstName: true, lastName: true, nationalId: true, phoneNumber: true } },
+                participant: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                        nationalId: true,
+                        phoneNumber: true,
+                    },
+                },
                 clinician: { select: { firstName: true, lastName: true } },
             },
         });
     }
-    async getDashboardStats() {
+    async getDashboardStats(scope) {
         const now = new Date();
         const nextWeek = new Date();
         nextWeek.setDate(nextWeek.getDate() + 7);
+        const inScope = scope ? { participant: scope } : {};
         const [scheduled, completed, missed, cancelled, upcoming] = await Promise.all([
-            this.prisma.followUp.count({ where: { status: 'SCHEDULED' } }),
-            this.prisma.followUp.count({ where: { status: 'COMPLETED' } }),
-            this.prisma.followUp.count({ where: { status: 'SCHEDULED', scheduledDate: { lt: now } } }),
-            this.prisma.followUp.count({ where: { status: 'CANCELLED' } }),
-            this.prisma.followUp.count({ where: { status: 'SCHEDULED', scheduledDate: { gte: now, lte: nextWeek } } }),
+            this.prisma.followUp.count({
+                where: { status: 'SCHEDULED', ...inScope },
+            }),
+            this.prisma.followUp.count({
+                where: { status: 'COMPLETED', ...inScope },
+            }),
+            this.prisma.followUp.count({
+                where: {
+                    status: 'SCHEDULED',
+                    scheduledDate: { lt: now },
+                    ...inScope,
+                },
+            }),
+            this.prisma.followUp.count({
+                where: { status: 'CANCELLED', ...inScope },
+            }),
+            this.prisma.followUp.count({
+                where: {
+                    status: 'SCHEDULED',
+                    scheduledDate: { gte: now, lte: nextWeek },
+                    ...inScope,
+                },
+            }),
         ]);
         return { scheduled, completed, missed, cancelled, upcoming };
     }
@@ -123,6 +164,7 @@ let FollowUpService = class FollowUpService {
 exports.FollowUpService = FollowUpService;
 exports.FollowUpService = FollowUpService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        phi_access_service_1.PhiAccessService])
 ], FollowUpService);
 //# sourceMappingURL=follow-up.service.js.map

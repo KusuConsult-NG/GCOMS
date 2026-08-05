@@ -18,6 +18,8 @@ const navigation_service_1 = require("./navigation.service");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const roles_guard_1 = require("../auth/roles.guard");
 const roles_decorator_1 = require("../auth/roles.decorator");
+const roles_constants_1 = require("../auth/roles.constants");
+const participant_access_guard_1 = require("../phi/participant-access.guard");
 let NavigationController = class NavigationController {
     navigationService;
     constructor(navigationService) {
@@ -33,6 +35,8 @@ let NavigationController = class NavigationController {
 exports.NavigationController = NavigationController;
 __decorate([
     (0, common_1.Get)('participant/:id'),
+    (0, roles_decorator_1.Roles)(...roles_constants_1.PHI_READ_ROLES),
+    (0, common_1.UseGuards)(participant_access_guard_1.ParticipantAccessGuard),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -41,6 +45,7 @@ __decorate([
 __decorate([
     (0, common_1.Post)('participant/:id/events'),
     (0, roles_decorator_1.Roles)('CLINICIAN', 'FIELD_OFFICER', 'EXECUTIVE', 'ADMIN'),
+    (0, common_1.UseGuards)(participant_access_guard_1.ParticipantAccessGuard),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),

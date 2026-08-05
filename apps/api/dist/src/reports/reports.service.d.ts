@@ -48,13 +48,13 @@ export declare class ReportsService {
         lastName: string;
         createdAt: Date;
         updatedAt: Date;
+        registeredById: string;
         nationalId: string;
         dateOfBirth: Date;
         gender: string;
         phoneNumber: string | null;
         address: string | null;
         consentGiven: boolean;
-        registeredById: string;
     })[]>;
     getFinancialReport(): Promise<{
         totalIncome: number;

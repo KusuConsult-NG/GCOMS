@@ -12,10 +12,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppointmentsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const phi_access_service_1 = require("../phi/phi-access.service");
 let AppointmentsService = class AppointmentsService {
     prisma;
-    constructor(prisma) {
+    phi;
+    constructor(prisma, phi) {
         this.prisma = prisma;
+        this.phi = phi;
     }
     async create(data) {
         return this.prisma.appointment.create({
@@ -28,30 +31,40 @@ let AppointmentsService = class AppointmentsService {
                 status: 'SCHEDULED',
             },
             include: {
-                participant: { select: { firstName: true, lastName: true, phoneNumber: true } },
+                participant: {
+                    select: { firstName: true, lastName: true, phoneNumber: true },
+                },
                 clinician: { select: { firstName: true, lastName: true } },
             },
         });
     }
-    async findAll(status, clinicianId) {
+    async findAll(status, scope) {
         const where = {};
         if (status)
             where.status = status;
-        if (clinicianId)
-            where.clinicianId = clinicianId;
+        if (scope)
+            where.participant = scope;
         return this.prisma.appointment.findMany({
             where,
             orderBy: { scheduledAt: 'asc' },
             include: {
-                participant: { select: { firstName: true, lastName: true, nationalId: true, phoneNumber: true } },
+                participant: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                        nationalId: true,
+                        phoneNumber: true,
+                    },
+                },
                 clinician: { select: { firstName: true, lastName: true, role: true } },
             },
         });
     }
-    async updateStatus(id, status, notes) {
+    async updateStatus(id, status, notes, actor) {
         const appt = await this.prisma.appointment.findUnique({ where: { id } });
         if (!appt)
             throw new common_1.NotFoundException('Appointment not found');
+        await this.phi.assertParticipantAccess(actor, appt.participantId, 'PATCH /appointments/:id/status');
         return this.prisma.appointment.update({
             where: { id },
             data: {
@@ -64,6 +77,7 @@ let AppointmentsService = class AppointmentsService {
 exports.AppointmentsService = AppointmentsService;
 exports.AppointmentsService = AppointmentsService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        phi_access_service_1.PhiAccessService])
 ], AppointmentsService);
 //# sourceMappingURL=appointments.service.js.map

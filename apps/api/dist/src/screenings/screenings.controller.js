@@ -16,6 +16,10 @@ exports.ScreeningsController = void 0;
 const common_1 = require("@nestjs/common");
 const screenings_service_1 = require("./screenings.service");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
+const roles_guard_1 = require("../auth/roles.guard");
+const roles_decorator_1 = require("../auth/roles.decorator");
+const roles_constants_1 = require("../auth/roles.constants");
+const participant_access_guard_1 = require("../phi/participant-access.guard");
 let ScreeningsController = class ScreeningsController {
     screeningsService;
     constructor(screeningsService) {
@@ -31,6 +35,8 @@ let ScreeningsController = class ScreeningsController {
 exports.ScreeningsController = ScreeningsController;
 __decorate([
     (0, common_1.Post)(),
+    (0, roles_decorator_1.Roles)('CLINICIAN', 'FIELD_OFFICER', 'COMMUNITY_HEALTH_WORKER', 'EXECUTIVE', 'ADMIN'),
+    (0, common_1.UseGuards)(participant_access_guard_1.ParticipantAccessGuard),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
@@ -39,13 +45,15 @@ __decorate([
 ], ScreeningsController.prototype, "createScreening", null);
 __decorate([
     (0, common_1.Get)('participant/:id'),
+    (0, roles_decorator_1.Roles)(...roles_constants_1.PHI_READ_ROLES),
+    (0, common_1.UseGuards)(participant_access_guard_1.ParticipantAccessGuard),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], ScreeningsController.prototype, "getScreenings", null);
 exports.ScreeningsController = ScreeningsController = __decorate([
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Controller)('screenings'),
     __metadata("design:paramtypes", [screenings_service_1.ScreeningsService])
 ], ScreeningsController);

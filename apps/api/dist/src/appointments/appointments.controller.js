@@ -18,14 +18,18 @@ const appointments_service_1 = require("./appointments.service");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const roles_guard_1 = require("../auth/roles.guard");
 const roles_decorator_1 = require("../auth/roles.decorator");
+const roles_constants_1 = require("../auth/roles.constants");
+const participant_access_guard_1 = require("../phi/participant-access.guard");
+const phi_access_service_1 = require("../phi/phi-access.service");
 let AppointmentsController = class AppointmentsController {
     apptService;
-    constructor(apptService) {
+    phi;
+    constructor(apptService, phi) {
         this.apptService = apptService;
+        this.phi = phi;
     }
-    async getAll(status, req) {
-        const clinicianId = req.user.role === 'CLINICIAN' ? req.user.id : undefined;
-        return this.apptService.findAll(status, clinicianId);
+    async getAll(req, status) {
+        return this.apptService.findAll(status, this.phi.participantScope(req.user));
     }
     async create(body, req) {
         return this.apptService.create({
@@ -33,22 +37,24 @@ let AppointmentsController = class AppointmentsController {
             clinicianId: body.clinicianId || req.user.id,
         });
     }
-    async updateStatus(id, body) {
-        return this.apptService.updateStatus(id, body.status, body.notes);
+    async updateStatus(id, body, req) {
+        return this.apptService.updateStatus(id, body.status, body.notes, req.user);
     }
 };
 exports.AppointmentsController = AppointmentsController;
 __decorate([
     (0, common_1.Get)(),
-    __param(0, (0, common_1.Query)('status')),
-    __param(1, (0, common_1.Request)()),
+    (0, roles_decorator_1.Roles)(...roles_constants_1.PHI_READ_ROLES),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Query)('status')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], AppointmentsController.prototype, "getAll", null);
 __decorate([
     (0, common_1.Post)(),
     (0, roles_decorator_1.Roles)('CLINICIAN', 'FIELD_OFFICER', 'EXECUTIVE', 'ADMIN'),
+    (0, common_1.UseGuards)(participant_access_guard_1.ParticipantAccessGuard),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
@@ -60,13 +66,15 @@ __decorate([
     (0, roles_decorator_1.Roles)('CLINICIAN', 'FIELD_OFFICER', 'EXECUTIVE', 'ADMIN'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", Promise)
 ], AppointmentsController.prototype, "updateStatus", null);
 exports.AppointmentsController = AppointmentsController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Controller)('appointments'),
-    __metadata("design:paramtypes", [appointments_service_1.AppointmentsService])
+    __metadata("design:paramtypes", [appointments_service_1.AppointmentsService,
+        phi_access_service_1.PhiAccessService])
 ], AppointmentsController);
 //# sourceMappingURL=appointments.controller.js.map

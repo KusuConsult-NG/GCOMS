@@ -1,7 +1,10 @@
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { PhiAccessService, PhiActor } from '../phi/phi-access.service';
 export declare class AppointmentsService {
     private prisma;
-    constructor(prisma: PrismaService);
+    private phi;
+    constructor(prisma: PrismaService, phi: PhiAccessService);
     create(data: {
         participantId: string;
         clinicianId: string;
@@ -23,13 +26,13 @@ export declare class AppointmentsService {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        clinicianId: string;
         participantId: string;
         notes: string | null;
-        clinicianId: string;
         type: string;
         scheduledAt: Date;
     }>;
-    findAll(status?: string, clinicianId?: string): Promise<({
+    findAll(status?: string, scope?: Prisma.ParticipantWhereInput): Promise<({
         participant: {
             firstName: string;
             lastName: string;
@@ -46,20 +49,20 @@ export declare class AppointmentsService {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        clinicianId: string;
         participantId: string;
         notes: string | null;
-        clinicianId: string;
         type: string;
         scheduledAt: Date;
     })[]>;
-    updateStatus(id: string, status: string, notes?: string): Promise<{
+    updateStatus(id: string, status: string, notes: string | undefined, actor: PhiActor): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        clinicianId: string;
         participantId: string;
         notes: string | null;
-        clinicianId: string;
         type: string;
         scheduledAt: Date;
     }>;

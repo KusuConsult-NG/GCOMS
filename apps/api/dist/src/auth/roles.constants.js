@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GRANTOR_ROLES = exports.PRIVILEGED_ROLES = exports.USER_ADMIN_ROLES = exports.DEFAULT_ROLE = exports.ROLES = void 0;
+exports.PHI_READ_ROLES = exports.PHI_SCOPED_ROLES = exports.PHI_UNSCOPED_ROLES = exports.GRANTOR_ROLES = exports.PRIVILEGED_ROLES = exports.USER_ADMIN_ROLES = exports.DEFAULT_ROLE = exports.ROLES = void 0;
 exports.ROLES = [
     'ADMIN',
     'BOARD',
@@ -29,4 +29,21 @@ exports.USER_ADMIN_ROLES = [
 ];
 exports.PRIVILEGED_ROLES = ['ADMIN', 'EXECUTIVE', 'SYSTEM_ADMIN'];
 exports.GRANTOR_ROLES = ['EXECUTIVE', 'SYSTEM_ADMIN'];
+exports.PHI_UNSCOPED_ROLES = [
+    'ADMIN',
+    'EXECUTIVE',
+    'SYSTEM_ADMIN',
+    'DATA_OFFICER',
+    'PROGRAMME_MANAGER',
+];
+exports.PHI_SCOPED_ROLES = [
+    'CLINICIAN',
+    'FIELD_OFFICER',
+    'COMMUNITY_HEALTH_WORKER',
+    'VOLUNTEER',
+];
+exports.PHI_READ_ROLES = [
+    ...exports.PHI_UNSCOPED_ROLES,
+    ...exports.PHI_SCOPED_ROLES,
+];
 //# sourceMappingURL=roles.constants.js.map

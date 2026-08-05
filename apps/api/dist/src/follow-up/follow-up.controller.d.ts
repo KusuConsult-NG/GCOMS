@@ -1,8 +1,10 @@
 import { FollowUpService } from './follow-up.service';
+import { PhiAccessService } from '../phi/phi-access.service';
 export declare class FollowUpController {
     private readonly followUpService;
-    constructor(followUpService: FollowUpService);
-    getAll(status?: string, req?: any): Promise<({
+    private readonly phi;
+    constructor(followUpService: FollowUpService, phi: PhiAccessService);
+    getAll(req: any, status?: string): Promise<({
         participant: {
             id: string;
             firstName: string;
@@ -22,19 +24,19 @@ export declare class FollowUpController {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        clinicianId: string;
         scheduledDate: Date;
         participantId: string;
         notes: string | null;
-        clinicianId: string;
     })[]>;
-    getDashboardStats(): Promise<{
+    getDashboardStats(req: any): Promise<{
         scheduled: number;
         completed: number;
         missed: number;
         cancelled: number;
         upcoming: number;
     }>;
-    getUpcoming(days?: string): Promise<({
+    getUpcoming(req: any, days?: string): Promise<({
         participant: {
             firstName: string;
             lastName: string;
@@ -49,12 +51,12 @@ export declare class FollowUpController {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        clinicianId: string;
         scheduledDate: Date;
         participantId: string;
         notes: string | null;
-        clinicianId: string;
     })[]>;
-    getMissed(): Promise<({
+    getMissed(req: any): Promise<({
         participant: {
             firstName: string;
             lastName: string;
@@ -70,25 +72,25 @@ export declare class FollowUpController {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        clinicianId: string;
         scheduledDate: Date;
         participantId: string;
         notes: string | null;
-        clinicianId: string;
     })[]>;
-    getOne(id: string): Promise<{
+    getOne(id: string, req: any): Promise<{
         participant: {
             id: string;
             firstName: string;
             lastName: string;
             createdAt: Date;
             updatedAt: Date;
+            registeredById: string;
             nationalId: string;
             dateOfBirth: Date;
             gender: string;
             phoneNumber: string | null;
             address: string | null;
             consentGiven: boolean;
-            registeredById: string;
         };
         clinician: {
             firstName: string;
@@ -100,10 +102,10 @@ export declare class FollowUpController {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        clinicianId: string;
         scheduledDate: Date;
         participantId: string;
         notes: string | null;
-        clinicianId: string;
     }>;
     create(body: {
         participantId: string;
@@ -124,22 +126,22 @@ export declare class FollowUpController {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        clinicianId: string;
         scheduledDate: Date;
         participantId: string;
         notes: string | null;
-        clinicianId: string;
     }>;
     updateStatus(id: string, body: {
         status: string;
         notes?: string;
-    }): Promise<{
+    }, req: any): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        clinicianId: string;
         scheduledDate: Date;
         participantId: string;
         notes: string | null;
-        clinicianId: string;
     }>;
 }

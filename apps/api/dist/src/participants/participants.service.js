@@ -13,46 +13,72 @@ exports.ParticipantsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const client_1 = require("@prisma/client");
+const phi_access_service_1 = require("../phi/phi-access.service");
 let ParticipantsService = class ParticipantsService {
     prisma;
-    constructor(prisma) {
+    phi;
+    constructor(prisma, phi) {
         this.prisma = prisma;
+        this.phi = phi;
     }
     async create(data) {
         try {
             return await this.prisma.participant.create({ data });
         }
         catch (error) {
-            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError &&
+                error.code === 'P2002') {
                 throw new common_1.ConflictException('Participant with this National ID already exists');
             }
             throw error;
         }
     }
-    async findAll(search) {
-        if (search) {
-            const query = search.toLowerCase();
-            const all = await this.prisma.participant.findMany({ orderBy: { createdAt: 'desc' } });
-            return all.filter(p => p.firstName.toLowerCase().includes(query) ||
-                p.lastName.toLowerCase().includes(query) ||
-                p.nationalId.toLowerCase().includes(query) ||
-                (p.phoneNumber && p.phoneNumber.toLowerCase().includes(query)));
+    async findAll(actor, search) {
+        const where = {
+            ...this.phi.participantScope(actor),
+        };
+        const query = search?.trim();
+        if (query) {
+            where.AND = [
+                {
+                    OR: [
+                        { firstName: { contains: query } },
+                        { lastName: { contains: query } },
+                        { nationalId: { contains: query } },
+                        { phoneNumber: { contains: query } },
+                    ],
+                },
+            ];
         }
-        return this.prisma.participant.findMany({ orderBy: { createdAt: 'desc' } });
+        return this.prisma.participant.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+        });
     }
-    async findOne(id) {
+    async findOne(id, actor) {
+        await this.phi.assertParticipantAccess(actor, id, 'GET /participants/:id');
         const p = await this.prisma.participant.findUnique({
             where: { id },
             include: {
                 screenings: { orderBy: { createdAt: 'desc' } },
-                referrals: { include: { referredBy: { select: { firstName: true, lastName: true } } } },
+                referrals: {
+                    include: {
+                        referredBy: { select: { firstName: true, lastName: true } },
+                    },
+                },
                 navigationEvents: { orderBy: { date: 'asc' } },
                 clinicalEncounters: {
                     orderBy: { createdAt: 'desc' },
-                    include: { clinician: { select: { firstName: true, lastName: true } } },
+                    include: {
+                        clinician: { select: { firstName: true, lastName: true } },
+                    },
                 },
                 followUps: { orderBy: { scheduledDate: 'asc' } },
-                assignments: { include: { clinician: { select: { firstName: true, lastName: true } } } },
+                assignments: {
+                    include: {
+                        clinician: { select: { firstName: true, lastName: true } },
+                    },
+                },
             },
         });
         if (!p)
@@ -63,6 +89,7 @@ let ParticipantsService = class ParticipantsService {
 exports.ParticipantsService = ParticipantsService;
 exports.ParticipantsService = ParticipantsService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        phi_access_service_1.PhiAccessService])
 ], ParticipantsService);
 //# sourceMappingURL=participants.service.js.map

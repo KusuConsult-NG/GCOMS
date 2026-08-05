@@ -16,6 +16,9 @@ exports.ParticipantsController = void 0;
 const common_1 = require("@nestjs/common");
 const participants_service_1 = require("./participants.service");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
+const roles_guard_1 = require("../auth/roles.guard");
+const roles_decorator_1 = require("../auth/roles.decorator");
+const roles_constants_1 = require("../auth/roles.constants");
 let ParticipantsController = class ParticipantsController {
     participantsService;
     constructor(participantsService) {
@@ -26,21 +29,22 @@ let ParticipantsController = class ParticipantsController {
             ...createParticipantDto,
             dateOfBirth: new Date(createParticipantDto.dateOfBirth),
             registeredBy: {
-                connect: { id: req.user.id }
-            }
+                connect: { id: req.user.id },
+            },
         };
         return this.participantsService.create(data);
     }
-    findAll(search) {
-        return this.participantsService.findAll(search);
+    findAll(req, search) {
+        return this.participantsService.findAll(req.user, search);
     }
-    findOne(id) {
-        return this.participantsService.findOne(id);
+    findOne(id, req) {
+        return this.participantsService.findOne(id, req.user);
     }
 };
 exports.ParticipantsController = ParticipantsController;
 __decorate([
     (0, common_1.Post)(),
+    (0, roles_decorator_1.Roles)(...roles_constants_1.PHI_READ_ROLES),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
@@ -49,20 +53,24 @@ __decorate([
 ], ParticipantsController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
-    __param(0, (0, common_1.Query)('search')),
+    (0, roles_decorator_1.Roles)(...roles_constants_1.PHI_READ_ROLES),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Query)('search')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], ParticipantsController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)(':id'),
+    (0, roles_decorator_1.Roles)(...roles_constants_1.PHI_READ_ROLES),
     __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], ParticipantsController.prototype, "findOne", null);
 exports.ParticipantsController = ParticipantsController = __decorate([
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Controller)('participants'),
     __metadata("design:paramtypes", [participants_service_1.ParticipantsService])
 ], ParticipantsController);

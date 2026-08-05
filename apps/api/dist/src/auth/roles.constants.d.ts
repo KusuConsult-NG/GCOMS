@@ -4,3 +4,6 @@ export declare const DEFAULT_ROLE: Role;
 export declare const USER_ADMIN_ROLES: Role[];
 export declare const PRIVILEGED_ROLES: Role[];
 export declare const GRANTOR_ROLES: Role[];
+export declare const PHI_UNSCOPED_ROLES: Role[];
+export declare const PHI_SCOPED_ROLES: Role[];
+export declare const PHI_READ_ROLES: Role[];

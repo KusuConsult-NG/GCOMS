@@ -12,6 +12,7 @@ export const ROLES = [
   'CLINICIAN',
   'COMMUNITY_HEALTH_WORKER',
   'DATA_OFFICER',
+  'DOCUMENT_OFFICER',
   'EXECUTIVE',
   'FIELD_OFFICER',
   'FINANCE',
@@ -84,4 +85,22 @@ export const PHI_SCOPED_ROLES: Role[] = [
 export const PHI_READ_ROLES: Role[] = [
   ...PHI_UNSCOPED_ROLES,
   ...PHI_SCOPED_ROLES,
+];
+
+/**
+ * Documents were previously readable by an explicit list of ten roles — every
+ * role except the one that should own them, because no document role existed.
+ */
+export const DOCUMENT_ROLES: Role[] = [
+  'DOCUMENT_OFFICER',
+  'ADMIN',
+  'EXECUTIVE',
+  'SYSTEM_ADMIN',
+  'BOARD',
+  'HR',
+  'FINANCE',
+  'PROCUREMENT',
+  'GRANT_MANAGER',
+  'PROJECT_MANAGER',
+  'CLINICIAN',
 ];

@@ -13,7 +13,7 @@ export class DocumentsService {
         url: data.url,
         version: data.version,
         uploadedById: userId,
-      }
+      },
     });
   }
 
@@ -22,9 +22,9 @@ export class DocumentsService {
       orderBy: { createdAt: 'desc' },
       include: {
         uploadedBy: {
-          select: { firstName: true, lastName: true }
-        }
-      }
+          select: { firstName: true, lastName: true },
+        },
+      },
     });
   }
 }

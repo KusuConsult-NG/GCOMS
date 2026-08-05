@@ -42,9 +42,14 @@ export default function Login() {
     }
   };
 
+  // Development only. These used to fill in a shared password that was hardcoded
+  // here and in prisma/seed.ts; seeded passwords are now generated at seed time,
+  // so this fills the email and leaves the password to whoever ran the seed.
+  const showDemoAccounts = process.env.NODE_ENV === 'development';
+
   const handleDemoLogin = (demoEmail: string) => {
     setEmail(demoEmail);
-    setPassword('Password123!');
+    setPassword('');
   };
 
   return (
@@ -125,72 +130,77 @@ export default function Login() {
           </button>
         </form>
 
-        {/* Fast-Fill Demo Shortcuts */}
-        <div className="mt-6 pt-5 border-t border-[#e2e8f0] text-center">
-          <p className="text-[11px] text-[#74777f] font-medium mb-2">Select a Demo Account to Fast-Fill:</p>
-          <div className="flex flex-wrap justify-center gap-1.5 text-[10px]">
-            <button
-              onClick={() => handleDemoLogin('executive@gcoms.org')}
-              className="px-2 py-1 bg-[#e5eeff] text-[#002045] font-semibold rounded hover:bg-[#dce9ff]"
-            >
-              Executive
-            </button>
-            <button
-              onClick={() => handleDemoLogin('admin@gcoms.org')}
-              className="px-2 py-1 bg-slate-100 text-slate-700 font-semibold rounded hover:bg-slate-200"
-            >
-              Admin
-            </button>
-            <button
-              onClick={() => handleDemoLogin('clinician@gcoms.org')}
-              className="px-2 py-1 bg-[#a2eded]/30 text-[#13696a] font-semibold rounded hover:bg-[#a2eded]/50"
-            >
-              Clinician
-            </button>
-            <button
-              onClick={() => handleDemoLogin('volunteer@gcoms.org')}
-              className="px-2 py-1 bg-pink-100 text-pink-700 font-semibold rounded hover:bg-pink-200"
-            >
-              Volunteer
-            </button>
-            <button
-              onClick={() => handleDemoLogin('finance@gcoms.org')}
-              className="px-2 py-1 bg-purple-100 text-purple-700 font-semibold rounded hover:bg-purple-200"
-            >
-              Finance
-            </button>
-            <button
-              onClick={() => handleDemoLogin('procurement@gcoms.org')}
-              className="px-2 py-1 bg-orange-100 text-orange-700 font-semibold rounded hover:bg-orange-200"
-            >
-              Procurement
-            </button>
-            <button
-              onClick={() => handleDemoLogin('grant_manager@gcoms.org')}
-              className="px-2 py-1 bg-yellow-100 text-yellow-700 font-semibold rounded hover:bg-yellow-200"
-            >
-              Grants
-            </button>
-            <button
-              onClick={() => handleDemoLogin('project_manager@gcoms.org')}
-              className="px-2 py-1 bg-indigo-100 text-indigo-700 font-semibold rounded hover:bg-indigo-200"
-            >
-              Projects
-            </button>
-            <button
-              onClick={() => handleDemoLogin('inventory_manager@gcoms.org')}
-              className="px-2 py-1 bg-blue-100 text-blue-700 font-semibold rounded hover:bg-blue-200"
-            >
-              Inventory
-            </button>
-            <button
-              onClick={() => handleDemoLogin('hr@gcoms.org')}
-              className="px-2 py-1 bg-amber-100 text-amber-700 font-semibold rounded hover:bg-amber-200"
-            >
-              HR
-            </button>
+        {/* Fast-Fill Demo Shortcuts — development builds only. Fills the email;
+            the password comes from whoever ran `npm run db:seed`. */}
+        {showDemoAccounts && (
+          <>
+          <div className="mt-6 pt-5 border-t border-[#e2e8f0] text-center">
+            <p className="text-[11px] text-[#74777f] font-medium mb-2">Select a Demo Account to Fast-Fill:</p>
+            <div className="flex flex-wrap justify-center gap-1.5 text-[10px]">
+              <button
+                onClick={() => handleDemoLogin('executive@gcoms.org')}
+                className="px-2 py-1 bg-[#e5eeff] text-[#002045] font-semibold rounded hover:bg-[#dce9ff]"
+              >
+                Executive
+              </button>
+              <button
+                onClick={() => handleDemoLogin('admin@gcoms.org')}
+                className="px-2 py-1 bg-slate-100 text-slate-700 font-semibold rounded hover:bg-slate-200"
+              >
+                Admin
+              </button>
+              <button
+                onClick={() => handleDemoLogin('clinician@gcoms.org')}
+                className="px-2 py-1 bg-[#a2eded]/30 text-[#13696a] font-semibold rounded hover:bg-[#a2eded]/50"
+              >
+                Clinician
+              </button>
+              <button
+                onClick={() => handleDemoLogin('volunteer@gcoms.org')}
+                className="px-2 py-1 bg-pink-100 text-pink-700 font-semibold rounded hover:bg-pink-200"
+              >
+                Volunteer
+              </button>
+              <button
+                onClick={() => handleDemoLogin('finance@gcoms.org')}
+                className="px-2 py-1 bg-purple-100 text-purple-700 font-semibold rounded hover:bg-purple-200"
+              >
+                Finance
+              </button>
+              <button
+                onClick={() => handleDemoLogin('procurement@gcoms.org')}
+                className="px-2 py-1 bg-orange-100 text-orange-700 font-semibold rounded hover:bg-orange-200"
+              >
+                Procurement
+              </button>
+              <button
+                onClick={() => handleDemoLogin('grant_manager@gcoms.org')}
+                className="px-2 py-1 bg-yellow-100 text-yellow-700 font-semibold rounded hover:bg-yellow-200"
+              >
+                Grants
+              </button>
+              <button
+                onClick={() => handleDemoLogin('project_manager@gcoms.org')}
+                className="px-2 py-1 bg-indigo-100 text-indigo-700 font-semibold rounded hover:bg-indigo-200"
+              >
+                Projects
+              </button>
+              <button
+                onClick={() => handleDemoLogin('inventory_manager@gcoms.org')}
+                className="px-2 py-1 bg-blue-100 text-blue-700 font-semibold rounded hover:bg-blue-200"
+              >
+                Inventory
+              </button>
+              <button
+                onClick={() => handleDemoLogin('hr@gcoms.org')}
+                className="px-2 py-1 bg-amber-100 text-amber-700 font-semibold rounded hover:bg-amber-200"
+              >
+                HR
+              </button>
+            </div>
           </div>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -1,12 +1,42 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 
 const prisma = new PrismaClient();
 
+const BCRYPT_ROUNDS = 12;
+
+/**
+ * Every seeded account previously shared the hardcoded password 'Password123!',
+ * which the login page also offered as one-click buttons. If that seed ever ran
+ * against a deployed environment, the whole system was open.
+ *
+ * Now: set SEED_PASSWORD to choose one (useful for demos), or leave it unset and
+ * a random password is generated and printed once.
+ */
+function resolveSeedPassword(): { password: string; generated: boolean } {
+  const fromEnv = process.env.SEED_PASSWORD?.trim();
+  if (fromEnv) {
+    if (fromEnv.length < 12) {
+      throw new Error('SEED_PASSWORD must be at least 12 characters.');
+    }
+    return { password: fromEnv, generated: false };
+  }
+  return { password: `${randomBytes(12).toString('base64url')}Aa1!`, generated: true };
+}
+
 async function main() {
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_PRODUCTION_SEED !== 'true') {
+    throw new Error(
+      'Refusing to seed demo data with NODE_ENV=production. ' +
+        'Set ALLOW_PRODUCTION_SEED=true only if you really mean it.',
+    );
+  }
+
   console.log('🌱 Seeding database with rich enterprise operational records...');
 
-  const passwordHash = await bcrypt.hash('Password123!', 10);
+  const { password, generated } = resolveSeedPassword();
+  const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
   // 1. Create Users for all key roles
   const users = [
@@ -127,6 +157,20 @@ async function main() {
   });
 
   console.log('✅ Database successfully seeded with full enterprise operational records!');
+
+  if (generated) {
+    console.log(
+      `\n🔑 Seeded accounts share this generated password — it is shown once:\n\n    ${password}\n\n` +
+        '   Set SEED_PASSWORD to choose your own instead.\n',
+    );
+  } else {
+    console.log('\n🔑 Seeded accounts use the password from SEED_PASSWORD.\n');
+  }
 }
 
-main().catch(console.error).finally(() => prisma.$disconnect());
+main()
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(() => prisma.$disconnect());

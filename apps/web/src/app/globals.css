@@ -1,0 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  --background: #f8f9ff;
+  --on-background: #0d1c2e;
+  --primary: #002045;
+  --primary-container: #1a365d;
+  --secondary: #13696a;
+  --secondary-container: #a2eded;
+  --surface: #ffffff;
+  --surface-dim: #ccdbf4;
+  --surface-variant: #d4e4fc;
+  --outline: #e2e8f0;
+  
+  --risk-low-bg: #c6f6d5;
+  --risk-low-text: #22543d;
+  --risk-mod-bg: #fef3c7;
+  --risk-mod-text: #92400e;
+  --risk-high-bg: #ffdad6;
+  --risk-high-text: #ba1a1a;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--on-background);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular nums for medical data & tables */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Clinical Trust Card */
+.clinical-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+}
+
+/* Clinical Trust Buttons */
+.btn-primary {
+  background-color: #13696a;
+  color: #ffffff;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.15s ease;
+}
+.btn-primary:hover {
+  background-color: #0f5455;
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: #002045;
+  border: 1px solid #002045;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+}
+.btn-secondary:hover {
+  background-color: #e5eeff;
+}
+
+/* Clinical Trust Risk Badges */
+.badge-low-risk {
+  background-color: #c6f6d5;
+  color: #22543d;
+  font-weight: 600;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+}
+
+.badge-mod-risk {
+  background-color: #fef3c7;
+  color: #92400e;
+  font-weight: 600;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+}
+
+.badge-high-risk {
+  background-color: #ffdad6;
+  color: #ba1a1a;
+  font-weight: 600;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+}

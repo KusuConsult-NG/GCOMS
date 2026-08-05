@@ -208,13 +208,24 @@ model SystemConfig {
 
 model Participant {
   id               String   @id @default(uuid())
-  nationalId       String   @unique
+  // System-assigned at registration. Previously the client generated this and
+  // wrote it into nationalId, which both collided and made it impossible to
+  // record a patient's actual National Identification Number.
+  registrationId   String   @unique
+  nationalId       String?  @unique
   firstName        String
   lastName         String
   dateOfBirth      DateTime
   gender           String
   phoneNumber      String?
   address          String?
+  // Structured outreach location. These were collected by the volunteer intake
+  // form and then flattened into `address` before ever reaching the database.
+  lga              String?
+  ward             String?
+  gpsCoordinates   String?
+  communityId      String?
+  community        Community? @relation(fields: [communityId], references: [id])
   consentGiven     Boolean  @default(true)
   registeredById   String
   registeredBy     User     @relation(fields: [registeredById], references: [id])
@@ -452,6 +463,8 @@ model Community {
   leaderName    String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  participants  Participant[]
 }
 
 model Appraisal {

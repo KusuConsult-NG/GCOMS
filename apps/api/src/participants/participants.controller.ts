@@ -13,7 +13,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { PHI_READ_ROLES } from '../auth/roles.constants';
-import { Prisma } from '@prisma/client';
+import { CreateParticipantDto } from './dto/create-participant.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('participants')
@@ -22,15 +22,8 @@ export class ParticipantsController {
 
   @Post()
   @Roles(...PHI_READ_ROLES)
-  create(@Body() createParticipantDto: any, @Request() req: any) {
-    const data: Prisma.ParticipantCreateInput = {
-      ...createParticipantDto,
-      dateOfBirth: new Date(createParticipantDto.dateOfBirth),
-      registeredBy: {
-        connect: { id: req.user.id },
-      },
-    };
-    return this.participantsService.create(data);
+  create(@Body() dto: CreateParticipantDto, @Request() req: any) {
+    return this.participantsService.create(dto, req.user.id);
   }
 
   /**

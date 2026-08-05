@@ -48,6 +48,7 @@ export function VolunteerWorkspace({ user }: { user: any }) {
 
   const [regSuccess, setRegSuccess] = useState<any>(null);
   const [regError, setRegError] = useState('');
+  const [regSubmitting, setRegSubmitting] = useState(false);
 
   useEffect(() => {
     api.get('/outreach')
@@ -91,45 +92,39 @@ export function VolunteerWorkspace({ user }: { user: any }) {
       return;
     }
 
-    const regId = `GC-PAT-${Date.now().toString().slice(-6)}`;
-    const fullAddress = `${regForm.address || 'Central Community'}, Ward: ${regForm.ward || 'General Ward'}, ${regForm.lga}`;
+    setRegSubmitting(true);
 
     try {
+      // The registration ID is assigned by the server. LGA, ward and GPS are
+      // sent as their own fields — they used to be concatenated into `address`,
+      // which meant the structured location never reached the database.
       const res = await api.post('/participants', {
-        nationalId: regId,
         firstName: regForm.firstName,
         lastName: regForm.lastName,
         dateOfBirth: regForm.dateOfBirth,
         gender: regForm.gender,
         phoneNumber: regForm.phoneNumber,
-        address: fullAddress,
+        address: regForm.address,
+        lga: regForm.lga,
+        ward: regForm.ward,
+        gpsCoordinates: regForm.gpsCoordinates,
         consentGiven: regForm.consentGiven,
       });
 
+      const registrationId = res.data.registrationId;
+
       setRegSuccess({
-        id: res.data?.id || Date.now(),
-        regId,
-        name: `${regForm.firstName} ${regForm.lastName}`,
-        lga: regForm.lga,
-        ward: regForm.ward || 'Central Ward',
-        address: regForm.address || 'LGA Health Centre',
-        gps: regForm.gpsCoordinates || '9.8965° N, 8.8583° E',
-        qrPassId: `QR-${regId}`,
+        id: res.data.id,
+        regId: registrationId,
+        name: `${res.data.firstName} ${res.data.lastName}`,
+        lga: res.data.lga || regForm.lga,
+        ward: res.data.ward || 'Central Ward',
+        address: res.data.address || 'LGA Health Centre',
+        gps: res.data.gpsCoordinates || '',
+        qrPassId: `QR-${registrationId}`,
       });
-    } catch (err: any) {
-      // Fallback preview
-      setRegSuccess({
-        id: Date.now(),
-        regId,
-        name: `${regForm.firstName} ${regForm.lastName}`,
-        lga: regForm.lga,
-        ward: regForm.ward || 'Central Ward',
-        address: regForm.address || 'LGA Health Centre',
-        gps: regForm.gpsCoordinates || '9.8965° N, 8.8583° E',
-        qrPassId: `QR-${regId}`,
-      });
-    } finally {
-      // Reset form
+
+      // Only clear the form once the registration is actually saved.
       setRegForm({
         firstName: '',
         lastName: '',
@@ -142,6 +137,20 @@ export function VolunteerWorkspace({ user }: { user: any }) {
         gpsCoordinates: '',
         consentGiven: false,
       });
+    } catch (err: any) {
+      // This used to render the success screen and a QR identity pass on
+      // failure, then wipe the form — so a volunteer in the field got a
+      // confirmation for a patient that was never saved, with no way to recover
+      // what they had typed.
+      const message =
+        err.response?.data?.message ||
+        err.message ||
+        'Registration could not be saved.';
+      setRegError(
+        `${Array.isArray(message) ? message.join('; ') : message} — the patient was NOT registered. Your entries have been kept; check your connection and try again.`,
+      );
+    } finally {
+      setRegSubmitting(false);
     }
   };
 
@@ -439,8 +448,12 @@ export function VolunteerWorkspace({ user }: { user: any }) {
             </div>
 
             <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
-              <button type="submit" className="btn-primary text-xs bg-[#13696a] hover:bg-[#0f5455]">
-                Save & Generate Patient QR Pass
+              <button
+                type="submit"
+                disabled={regSubmitting}
+                className="btn-primary text-xs bg-[#13696a] hover:bg-[#0f5455] disabled:opacity-50"
+              >
+                {regSubmitting ? 'Saving…' : 'Save & Generate Patient QR Pass'}
               </button>
             </div>
           </form>

@@ -9,9 +9,9 @@ export declare class VolunteersController {
                 createdAt: Date;
                 updatedAt: Date;
                 status: string;
+                date: Date;
                 locationId: string;
                 title: string;
-                date: Date;
                 attendance: number;
             };
         } & {

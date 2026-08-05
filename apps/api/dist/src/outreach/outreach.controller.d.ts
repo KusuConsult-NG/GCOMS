@@ -32,9 +32,9 @@ export declare class OutreachController {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        date: Date;
         locationId: string;
         title: string;
-        date: Date;
         attendance: number;
     })[]>;
     getOutreach(id: string): Promise<{
@@ -67,9 +67,9 @@ export declare class OutreachController {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        date: Date;
         locationId: string;
         title: string;
-        date: Date;
         attendance: number;
     }>;
     createOutreach(body: {
@@ -92,9 +92,9 @@ export declare class OutreachController {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        date: Date;
         locationId: string;
         title: string;
-        date: Date;
         attendance: number;
     }>;
     assignVolunteerTask(outreachId: string, body: {

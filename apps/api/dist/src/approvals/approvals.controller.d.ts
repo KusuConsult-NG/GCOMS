@@ -12,8 +12,8 @@ export declare class ApprovalsController {
         resourceType: string;
         resourceId: string | null;
         comments: string | null;
-        approvedById: string | null;
         requestedById: string;
+        approvedById: string | null;
     }>;
     getRequests(req: any): Promise<({
         requestedBy: {
@@ -31,8 +31,8 @@ export declare class ApprovalsController {
         resourceType: string;
         resourceId: string | null;
         comments: string | null;
-        approvedById: string | null;
         requestedById: string;
+        approvedById: string | null;
     })[]>;
     getPendingRequests(req: any): Promise<({
         requestedBy: {
@@ -50,8 +50,8 @@ export declare class ApprovalsController {
         resourceType: string;
         resourceId: string | null;
         comments: string | null;
-        approvedById: string | null;
         requestedById: string;
+        approvedById: string | null;
     })[]>;
     resolveRequest(id: string, data: {
         status: string;
@@ -65,7 +65,7 @@ export declare class ApprovalsController {
         resourceType: string;
         resourceId: string | null;
         comments: string | null;
-        approvedById: string | null;
         requestedById: string;
+        approvedById: string | null;
     }>;
 }

@@ -6,9 +6,9 @@ export declare class NavigationController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        date: Date;
         participantId: string;
         notes: string | null;
-        date: Date;
         eventType: string;
     }[]>;
     addEvent(participantId: string, body: {
@@ -18,9 +18,9 @@ export declare class NavigationController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        date: Date;
         participantId: string;
         notes: string | null;
-        date: Date;
         eventType: string;
     }>;
 }

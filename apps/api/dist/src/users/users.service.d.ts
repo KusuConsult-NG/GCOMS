@@ -1,5 +1,8 @@
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, User } from '@prisma/client';
+import { User } from '@prisma/client';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserRoleDto } from './dto/update-user-role.dto';
+import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 export declare const userSelect: {
     readonly id: true;
     readonly email: true;
@@ -32,5 +35,37 @@ export declare class UsersService {
         isActive: boolean;
         createdAt: Date;
     } | null>;
-    create(data: Prisma.UserCreateInput): Promise<User>;
+    createUser(dto: CreateUserDto, actorRole: string): Promise<{
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        role: string;
+        isActive: boolean;
+        createdAt: Date;
+    }>;
+    updateRole(id: string, dto: UpdateUserRoleDto, actor: {
+        id: string;
+        role: string;
+    }): Promise<{
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        role: string;
+        isActive: boolean;
+        createdAt: Date;
+    } | null>;
+    updateStatus(id: string, dto: UpdateUserStatusDto, actor: {
+        id: string;
+        role: string;
+    }): Promise<{
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        role: string;
+        isActive: boolean;
+        createdAt: Date;
+    } | null>;
 }

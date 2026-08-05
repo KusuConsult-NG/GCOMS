@@ -6,18 +6,18 @@ export declare class NavigationService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        date: Date;
         participantId: string;
         notes: string | null;
-        date: Date;
         eventType: string;
     }[]>;
     addNavigationEvent(participantId: string, eventType: string, notes?: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        date: Date;
         participantId: string;
         notes: string | null;
-        date: Date;
         eventType: string;
     }>;
 }

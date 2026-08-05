@@ -22,10 +22,10 @@ export declare class FollowUpService {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        scheduledDate: Date;
         participantId: string;
         notes: string | null;
         clinicianId: string;
-        scheduledDate: Date;
     })[]>;
     getOne(id: string): Promise<{
         participant: {
@@ -52,10 +52,10 @@ export declare class FollowUpService {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        scheduledDate: Date;
         participantId: string;
         notes: string | null;
         clinicianId: string;
-        scheduledDate: Date;
     }>;
     create(data: {
         participantId: string;
@@ -76,20 +76,20 @@ export declare class FollowUpService {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        scheduledDate: Date;
         participantId: string;
         notes: string | null;
         clinicianId: string;
-        scheduledDate: Date;
     }>;
     updateStatus(id: string, status: string, notes?: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        scheduledDate: Date;
         participantId: string;
         notes: string | null;
         clinicianId: string;
-        scheduledDate: Date;
     }>;
     getUpcoming(days?: number): Promise<({
         participant: {
@@ -106,10 +106,10 @@ export declare class FollowUpService {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        scheduledDate: Date;
         participantId: string;
         notes: string | null;
         clinicianId: string;
-        scheduledDate: Date;
     })[]>;
     getMissed(): Promise<({
         participant: {
@@ -127,10 +127,10 @@ export declare class FollowUpService {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        scheduledDate: Date;
         participantId: string;
         notes: string | null;
         clinicianId: string;
-        scheduledDate: Date;
     })[]>;
     getDashboardStats(): Promise<{
         scheduled: number;

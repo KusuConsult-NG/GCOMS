@@ -14,8 +14,8 @@ export declare class ApprovalsService {
         resourceType: string;
         resourceId: string | null;
         comments: string | null;
-        approvedById: string | null;
         requestedById: string;
+        approvedById: string | null;
     }>;
     getPendingRequests(): Promise<({
         requestedBy: {
@@ -33,8 +33,8 @@ export declare class ApprovalsService {
         resourceType: string;
         resourceId: string | null;
         comments: string | null;
-        approvedById: string | null;
         requestedById: string;
+        approvedById: string | null;
     })[]>;
     resolveRequest(id: string, status: string, executiveId: string): Promise<{
         id: string;
@@ -46,7 +46,7 @@ export declare class ApprovalsService {
         resourceType: string;
         resourceId: string | null;
         comments: string | null;
-        approvedById: string | null;
         requestedById: string;
+        approvedById: string | null;
     }>;
 }

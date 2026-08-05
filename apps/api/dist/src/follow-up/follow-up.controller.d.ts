@@ -22,10 +22,10 @@ export declare class FollowUpController {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        scheduledDate: Date;
         participantId: string;
         notes: string | null;
         clinicianId: string;
-        scheduledDate: Date;
     })[]>;
     getDashboardStats(): Promise<{
         scheduled: number;
@@ -49,10 +49,10 @@ export declare class FollowUpController {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        scheduledDate: Date;
         participantId: string;
         notes: string | null;
         clinicianId: string;
-        scheduledDate: Date;
     })[]>;
     getMissed(): Promise<({
         participant: {
@@ -70,10 +70,10 @@ export declare class FollowUpController {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        scheduledDate: Date;
         participantId: string;
         notes: string | null;
         clinicianId: string;
-        scheduledDate: Date;
     })[]>;
     getOne(id: string): Promise<{
         participant: {
@@ -100,10 +100,10 @@ export declare class FollowUpController {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        scheduledDate: Date;
         participantId: string;
         notes: string | null;
         clinicianId: string;
-        scheduledDate: Date;
     }>;
     create(body: {
         participantId: string;
@@ -124,10 +124,10 @@ export declare class FollowUpController {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        scheduledDate: Date;
         participantId: string;
         notes: string | null;
         clinicianId: string;
-        scheduledDate: Date;
     }>;
     updateStatus(id: string, body: {
         status: string;
@@ -137,9 +137,9 @@ export declare class FollowUpController {
         createdAt: Date;
         updatedAt: Date;
         status: string;
+        scheduledDate: Date;
         participantId: string;
         notes: string | null;
         clinicianId: string;
-        scheduledDate: Date;
     }>;
 }

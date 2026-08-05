@@ -55,9 +55,15 @@ let AuthService = class AuthService {
         this.jwtService = jwtService;
     }
     async validateUser(email, pass) {
-        const cleanEmail = email ? email.trim().toLowerCase() : '';
+        if (typeof email !== 'string' || typeof pass !== 'string') {
+            return null;
+        }
+        const cleanEmail = email.trim().toLowerCase();
         const user = await this.usersService.findOne(cleanEmail);
         if (user && user.password && (await bcrypt.compare(pass, user.password))) {
+            if (!user.isActive) {
+                throw new common_1.ForbiddenException('This account has been deactivated. Contact an administrator.');
+            }
             const { password, ...result } = user;
             return result;
         }
@@ -67,23 +73,8 @@ let AuthService = class AuthService {
         const payload = { email: user.email, sub: user.id, role: user.role };
         return {
             access_token: this.jwtService.sign(payload),
-            user
+            user,
         };
-    }
-    async register(data) {
-        const cleanEmail = data.email ? data.email.trim().toLowerCase() : '';
-        const existingUser = await this.usersService.findOne(cleanEmail);
-        if (existingUser) {
-            throw new common_1.ConflictException('User already exists');
-        }
-        const hashedPassword = await bcrypt.hash(data.password, 10);
-        const newUser = await this.usersService.create({
-            ...data,
-            email: cleanEmail,
-            password: hashedPassword
-        });
-        const { password, ...result } = newUser;
-        return result;
     }
 };
 exports.AuthService = AuthService;

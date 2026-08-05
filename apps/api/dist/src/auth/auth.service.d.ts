@@ -9,14 +9,4 @@ export declare class AuthService {
         access_token: string;
         user: any;
     }>;
-    register(data: any): Promise<{
-        id: string;
-        email: string;
-        firstName: string;
-        lastName: string;
-        role: string;
-        isActive: boolean;
-        createdAt: Date;
-        updatedAt: Date;
-    }>;
 }

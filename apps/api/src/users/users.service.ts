@@ -16,6 +16,7 @@ import {
   PRIVILEGED_ROLES,
   Role,
 } from '../auth/roles.constants';
+import { PaginationQueryDto, paginate } from '../common/pagination';
 
 export const userSelect = {
   id: true,
@@ -34,11 +35,12 @@ const BCRYPT_ROUNDS = 12;
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(role?: string) {
+  async findAll(role?: string, pagination?: PaginationQueryDto) {
     return this.prisma.user.findMany({
       where: role ? { role } : undefined,
       select: userSelect,
       orderBy: { createdAt: 'desc' },
+      ...paginate(pagination),
     });
   }
 

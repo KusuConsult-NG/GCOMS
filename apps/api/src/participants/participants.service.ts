@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, Participant } from '@prisma/client';
 import { PhiAccessService, PhiActor } from '../phi/phi-access.service';
 import { CreateParticipantDto } from './dto/create-participant.dto';
+import { PaginationQueryDto, paginate } from '../common/pagination';
 
 /**
  * Crockford-style base32, minus I/L/O/U so a handwritten ID cannot be misread in
@@ -109,7 +110,11 @@ export class ParticipantsService {
    * case-insensitive on SQLite; a move to Postgres will need
    * `mode: 'insensitive'` here to preserve that.
    */
-  async findAll(actor: PhiActor, search?: string): Promise<Participant[]> {
+  async findAll(
+    actor: PhiActor,
+    search?: string,
+    pagination?: PaginationQueryDto,
+  ): Promise<Participant[]> {
     const where: Prisma.ParticipantWhereInput = {
       ...this.phi.participantScope(actor),
     };
@@ -131,6 +136,7 @@ export class ParticipantsService {
     return this.prisma.participant.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+      ...paginate(pagination),
     });
   }
 

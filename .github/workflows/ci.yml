@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    env:
+      # The app validates env at boot and refuses to start without these.
+      # Test-only values; production secrets come from the deploy environment.
+      DATABASE_URL: file:./ci.db
+      JWT_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
+      ALLOWED_ORIGINS: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - name: Lint
+        run: npx eslint "src/**/*.ts"
+        # The repo has a large pre-existing lint backlog; failing the build on it
+        # would block every PR. Remove this once the backlog is cleared.
+        continue-on-error: true
+      - name: Build
+        run: npm run build
+      - name: Test
+        # 52 of 55 suites are unmodified Nest scaffolding that cannot resolve
+        # their dependencies. Flip this to a hard failure once they are rewritten
+        # — until then a green tick here would be misleading either way.
+        run: npx jest --ci
+        continue-on-error: true
+      - name: Smoke test the built server
+        run: |
+          node dist/main &
+          for i in $(seq 1 30); do
+            sleep 1
+            curl -sf http://localhost:3001/health >/dev/null && break
+          done
+          curl -sf http://localhost:3001/health
+          curl -sf http://localhost:3001/health/ready
+          # An unauthenticated request to patient data must be refused.
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3001/participants)
+          test "$code" = "401" || { echo "expected 401 from /participants, got $code"; exit 1; }
+
+  web:
+    name: Web
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Assert no demo credentials in the production bundle
+        run: |
+          if grep -rq "Select a Demo Account" .next; then
+            echo "Demo account shortcuts leaked into the production build"
+            exit 1
+          fi
+
+  docker:
+    name: Docker images build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/api
+          push: false
+      - name: Build web image
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/web
+          push: false

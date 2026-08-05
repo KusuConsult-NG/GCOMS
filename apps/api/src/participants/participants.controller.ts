@@ -14,6 +14,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { PHI_READ_ROLES } from '../auth/roles.constants';
 import { CreateParticipantDto } from './dto/create-participant.dto';
+import { PaginationQueryDto } from '../common/pagination';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('participants')
@@ -33,8 +34,12 @@ export class ParticipantsController {
    */
   @Get()
   @Roles(...PHI_READ_ROLES)
-  findAll(@Request() req: any, @Query('search') search?: string) {
-    return this.participantsService.findAll(req.user, search);
+  findAll(
+    @Request() req: any,
+    @Query() pagination: PaginationQueryDto,
+    @Query('search') search?: string,
+  ) {
+    return this.participantsService.findAll(req.user, search, pagination);
   }
 
   /**

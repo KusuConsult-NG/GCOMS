@@ -24,7 +24,7 @@ export class DashboardService {
     const [
       totalParticipants,
       totalScreenings,
-      allScreenings,
+      positiveScreenings,
       pendingApprovals,
       activeReferrals,
       totalCommunities,
@@ -34,9 +34,11 @@ export class DashboardService {
     ] = await Promise.all([
       this.prisma.participant.count({ where: participantWhere }),
       this.prisma.screening.count({ where: byParticipant }),
-      this.prisma.screening.findMany({
-        where: byParticipant,
-        select: { result: true },
+      // Counted in the database. This previously loaded every screening row
+      // just to tally positives in JavaScript, which grows without bound and is
+      // why it could not simply be capped like the list endpoints.
+      this.prisma.screening.count({
+        where: { ...byParticipant, result: { contains: 'positive' } },
       }),
       this.prisma.approvalRequest.count({ where: { status: 'PENDING' } }),
       this.prisma.referral.count({
@@ -61,10 +63,6 @@ export class DashboardService {
           })
         : Promise.resolve([]),
     ]);
-
-    const positiveScreenings = allScreenings.filter(
-      (s) => s.result && s.result.toLowerCase().includes('positive'),
-    ).length;
 
     return {
       totalParticipants,

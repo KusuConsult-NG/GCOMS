@@ -18,6 +18,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { GRANTOR_ROLES, USER_ADMIN_ROLES } from '../auth/roles.constants';
+import { PaginationQueryDto } from '../common/pagination';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('users')
@@ -26,8 +27,11 @@ export class UsersController {
 
   @Get()
   @Roles('HR', 'EXECUTIVE', 'SYSTEM_ADMIN', 'ADMIN')
-  async getUsers(@Query('role') role?: string) {
-    return this.usersService.findAll(role);
+  async getUsers(
+    @Query() pagination: PaginationQueryDto,
+    @Query('role') role?: string,
+  ) {
+    return this.usersService.findAll(role, pagination);
   }
 
   /**

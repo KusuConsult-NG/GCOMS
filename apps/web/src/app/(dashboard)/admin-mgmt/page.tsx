@@ -146,7 +146,7 @@ export default function AdminDashboard() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-2.5 px-4 mt-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-all shadow-sm disabled:opacity-70"
+                className="w-full rounded-lg bg-[var(--secondary)] px-4 py-2.5 text-sm font-semibold text-[var(--on-secondary)] transition hover:bg-[var(--secondary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting ? 'Submitting...' : 'Submit to Executives'}
               </button>

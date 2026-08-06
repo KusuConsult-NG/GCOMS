@@ -210,13 +210,13 @@ export function ProjectWorkspace() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-[var(--outline)] pb-5">
         <div>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             Enterprise Project Management Software • GCOMS
           </span>
-          <h1 className="text-2xl font-bold mt-1 text-white">Project Lifecycles & Operational Tasks</h1>
-          <p className="text-slate-300 text-xs mt-0.5">Manage operational projects, task milestones, resource allocations, and risk logs.</p>
+          <h1 className="text-2xl font-bold mt-1 text-[var(--on-background)]">Project Lifecycles & Operational Tasks</h1>
+          <p className="text-[var(--muted)] text-xs mt-0.5">Manage operational projects, task milestones, resource allocations, and risk logs.</p>
         </div>
         <div className="mt-3 lg:mt-0 flex flex-wrap gap-2">
           <button onClick={() => setActiveModal('project')} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">
@@ -231,11 +231,11 @@ export function ProjectWorkspace() {
       {/* Sub-Tabs */}
       <div className="flex border-b border-[var(--outline)] gap-2 text-xs font-semibold overflow-x-auto">
         {[
-          { id: 'projects', label: '🏗 Project Portfolio Directory' },
-          { id: 'tasks', label: '💻 Task & Milestone Kanban Board' },
-          { id: 'risks', label: '⚠️ Risk & Issue Register' },
-          { id: 'budget', label: '💰 Budget Monitoring' },
-          { id: 'changes', label: '🔄 Change Requests' },
+          { id: 'projects', label: 'Project Portfolio Directory' },
+          { id: 'tasks', label: 'Task & Milestone Kanban Board' },
+          { id: 'risks', label: 'Risk & Issue Register' },
+          { id: 'budget', label: 'Budget Monitoring' },
+          { id: 'changes', label: 'Change Requests' },
         ].map(t => (
           <button
             key={t.id}
@@ -547,7 +547,7 @@ export function ProjectWorkspace() {
       {activeTab === 'projects' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
           <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
-            🏗 Registered Projects Roster
+            Registered Projects Roster
           </div>
           {loading ? (
             <div className="p-8 text-center text-xs text-[var(--muted)]">Loading projects...</div>
@@ -591,7 +591,7 @@ export function ProjectWorkspace() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             {['PENDING', 'IN_PROGRESS', 'COMPLETED'].map(status => {
               const colTasks = tasks.filter(t => t.status === status);
-              const headers: Record<string, string> = { PENDING: '📋 TO DO', IN_PROGRESS: '🔄 IN PROGRESS', COMPLETED: '✅ COMPLETED' };
+              const headers: Record<string, string> = { PENDING: 'TO DO', IN_PROGRESS: 'IN PROGRESS', COMPLETED: 'COMPLETED' };
               const headerColors: Record<string, string> = { PENDING: 'text-[var(--primary)]', IN_PROGRESS: 'text-[var(--secondary)]', COMPLETED: 'text-[var(--risk-low-text)]' };
               return (
                 <div key={status} className="bg-white p-4 rounded-lg border border-[var(--outline)] space-y-3">
@@ -631,7 +631,7 @@ export function ProjectWorkspace() {
       {activeTab === 'risks' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
           <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
-            <div className="font-bold text-[var(--primary)] text-sm">⚠️ Risk Register</div>
+            <div className="font-bold text-[var(--primary)] text-sm">Risk Register</div>
             <button onClick={() => setActiveModal('risk')} className="btn-primary text-xs bg-red-800 hover:bg-red-900">
               + Register Risk
             </button>
@@ -686,7 +686,7 @@ export function ProjectWorkspace() {
       {activeTab === 'budget' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
           <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
-            <div className="font-bold text-[var(--primary)] text-sm">💰 Budget Monitoring</div>
+            <div className="font-bold text-[var(--primary)] text-sm">Budget Monitoring</div>
             <button onClick={() => setActiveModal('expense')} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">
               + Record Expenditure
             </button>
@@ -739,7 +739,7 @@ export function ProjectWorkspace() {
       {activeTab === 'changes' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
           <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
-            <div className="font-bold text-[var(--primary)] text-sm">🔄 Change Requests</div>
+            <div className="font-bold text-[var(--primary)] text-sm">Change Requests</div>
             <button onClick={() => setActiveModal('change')} className="btn-primary text-xs bg-[var(--primary-dark)] text-white">
               + Raise Change Request
             </button>

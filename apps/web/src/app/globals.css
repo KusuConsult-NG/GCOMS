@@ -114,12 +114,14 @@ body {
 }
 
 /* Clinical Trust Card */
+/* Matches StatCard, so a row of cards and a row of figures agree. Flat rather
+   than shadowed: a 2% shadow reads as a rendering artefact in light mode and as
+   nothing at all in dark, which is two ways of not being a design decision. */
 .clinical-card {
   background-color: var(--surface);
   border: 1px solid var(--outline);
   border-radius: 0.5rem;
-  padding: 1.25rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+  padding: 1rem;
 }
 
 /* Clinical Trust Buttons */

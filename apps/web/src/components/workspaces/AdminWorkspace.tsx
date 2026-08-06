@@ -155,21 +155,21 @@ export function AdminWorkspace() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[var(--outline)] pb-5">
         <div>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase">System Administration</span>
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">System Administration</span>
           <h1 className="text-2xl font-bold mt-1">Admin Officer Workspace</h1>
-          <p className="text-xs text-slate-300">User management, RBAC role permissions, department structures, and system audit logs.</p>
+          <p className="text-xs text-[var(--muted)]">User management, RBAC role permissions, department structures, and system audit logs.</p>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex border-b border-[var(--outline)] gap-2 text-xs font-semibold overflow-x-auto">
         {[
-          { id: 'users', label: '👤 User & Staff Roster' },
-          { id: 'roles', label: '🔒 Role & Permission Matrix' },
-          { id: 'audit', label: '📋 System Audit Logs' },
-          { id: 'config', label: '⚙️ Global Configuration' },
+          { id: 'users', label: 'User & Staff Roster' },
+          { id: 'roles', label: 'Role & Permission Matrix' },
+          { id: 'audit', label: 'System Audit Logs' },
+          { id: 'config', label: 'Global Configuration' },
         ].map(t => (
           <button
             key={t.id}
@@ -275,7 +275,7 @@ export function AdminWorkspace() {
                     {r.p.map((val, idx) => (
                       <td key={idx} className="p-3 text-center">
                         {val === 'YES' && <span className="badge-low-risk bg-green-100 text-green-800 text-[10px] px-1.5 py-0.5 rounded">✓ YES</span>}
-                        {val === 'VIEW' && <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-1.5 py-0.5 rounded">👁 VIEW</span>}
+                        {val === 'VIEW' && <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-1.5 py-0.5 rounded">VIEW</span>}
                         {val === '-' && <span className="text-gray-400">–</span>}
                       </td>
                     ))}
@@ -304,7 +304,7 @@ export function AdminWorkspace() {
                 <option value="Projects">Projects</option>
                 <option value="Governance">Governance</option>
               </select>
-              <button onClick={handleRefreshAudit} className="btn-secondary text-xs px-3 py-1.5">🔄 Refresh</button>
+              <button onClick={handleRefreshAudit} className="btn-secondary text-xs px-3 py-1.5">Refresh</button>
             </div>
           </div>
           <div className="overflow-x-auto">

@@ -93,13 +93,13 @@ export default function VolunteersPage() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)]">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[var(--outline)] pb-5">
         <div>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             Field Volunteer & CHW Data Collection
           </span>
-          <h1 className="text-2xl font-bold mt-1 text-white">Volunteer Operations & LGA Registry</h1>
-          <p className="text-slate-300 text-xs mt-0.5">Mandatory LGA, Ward, and Address registration for field health workers.</p>
+          <h1 className="text-2xl font-bold mt-1 text-[var(--on-background)]">Volunteer Operations & LGA Registry</h1>
+          <p className="text-[var(--muted)] text-xs mt-0.5">Mandatory LGA, Ward, and Address registration for field health workers.</p>
         </div>
         <button onClick={() => setShowModal(true)} className="btn-primary text-xs mt-3 md:mt-0 bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">
           + Register New Field Volunteer
@@ -192,7 +192,7 @@ export default function VolunteersPage() {
       {/* Roster Table */}
       <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
         <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
-          🩺 Registered Volunteers with Mandatory LGA & Location Identifiers
+          Registered Volunteers with Mandatory LGA & Location Identifiers
         </div>
         <table className="w-full text-left text-xs">
           <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">

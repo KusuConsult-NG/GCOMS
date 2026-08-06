@@ -104,7 +104,7 @@ export default function DocumentsDashboard() {
         {canUpload && (
           <div className="lg:col-span-1">
             <div className="clinical-card space-y-4">
-              <h2 className="text-base font-bold text-[var(--primary)] border-b border-[var(--outline)] pb-2">📂 Upload / Register Document</h2>
+              <h2 className="text-base font-bold text-[var(--primary)] border-b border-[var(--outline)] pb-2">Upload / Register Document</h2>
 
               {error && (
                 <div className="p-3 rounded bg-[var(--risk-high-bg)] text-[var(--risk-high-text)] text-xs font-semibold">
@@ -183,7 +183,7 @@ export default function DocumentsDashboard() {
         <div className={canUpload ? "lg:col-span-2" : "lg:col-span-3"}>
           <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden flex flex-col h-full">
             <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
-              <h2 className="font-bold text-[var(--primary)] text-sm">📁 Document Directory</h2>
+              <h2 className="font-bold text-[var(--primary)] text-sm">Document Directory</h2>
               <input
                 type="text"
                 placeholder="Search by title or category..."

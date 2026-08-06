@@ -250,13 +250,13 @@ export function InventoryWorkspace() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-[var(--outline)] pb-5">
         <div>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             Enterprise Inventory & Logistics Software • GCOMS
           </span>
-          <h1 className="text-2xl font-bold mt-1 text-white">Inventory & Fixed Asset Management</h1>
-          <p className="text-slate-300 text-xs mt-0.5">Track medical reagents, field consumables, reorder alerts, and barcode-tagged equipment.</p>
+          <h1 className="text-2xl font-bold mt-1 text-[var(--on-background)]">Inventory & Fixed Asset Management</h1>
+          <p className="text-[var(--muted)] text-xs mt-0.5">Track medical reagents, field consumables, reorder alerts, and barcode-tagged equipment.</p>
         </div>
         <div className="mt-3 lg:mt-0 flex flex-wrap gap-2">
           <button onClick={() => setActiveModal('stock')} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">
@@ -274,11 +274,11 @@ export function InventoryWorkspace() {
       {/* Sub-Tabs */}
       <div className="flex border-b border-[var(--outline)] gap-2 text-xs font-semibold overflow-x-auto">
         {[
-          { id: 'consumables', label: '🧪 Medical Consumables & Reagents' },
-          { id: 'assets', label: '🏷 Equipment Asset Register' },
-          { id: 'movements', label: '📦 Stock Movement Log' },
-          { id: 'reorder', label: '⚠️ Reorder Threshold Alerts' },
-          { id: 'maintenance', label: '🔧 Maintenance & Service Schedule' }
+          { id: 'consumables', label: 'Medical Consumables & Reagents' },
+          { id: 'assets', label: 'Equipment Asset Register' },
+          { id: 'movements', label: 'Stock Movement Log' },
+          { id: 'reorder', label: 'Reorder Threshold Alerts' },
+          { id: 'maintenance', label: 'Maintenance & Service Schedule' }
         ].map(t => (
           <button
             key={t.id}
@@ -316,7 +316,7 @@ export function InventoryWorkspace() {
       {activeTab === 'consumables' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
           <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
-            🧪 Medical Consumables & Reagent Inventory
+            Medical Consumables & Reagent Inventory
           </div>
           {loading ? (
             <div className="p-8 text-center text-xs text-[var(--muted)]">Loading inventory items...</div>
@@ -359,7 +359,7 @@ export function InventoryWorkspace() {
       {activeTab === 'assets' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
           <div className="flex justify-between items-center p-4 border-b border-[var(--outline)] bg-[var(--background)]">
-            <h2 className="font-bold text-[var(--primary)] text-sm">🏷 Equipment Asset Register</h2>
+            <h2 className="font-bold text-[var(--primary)] text-sm">Equipment Asset Register</h2>
             <button onClick={() => setActiveModal('asset')} className="btn-primary text-xs bg-cyan-700 hover:bg-cyan-800">+ Register Asset</button>
           </div>
           <div className="overflow-x-auto">
@@ -404,7 +404,7 @@ export function InventoryWorkspace() {
       {activeTab === 'movements' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
           <div className="flex justify-between items-center p-4 border-b border-[var(--outline)] bg-[var(--background)]">
-            <h2 className="font-bold text-[var(--primary)] text-sm">📦 Stock Movement Log</h2>
+            <h2 className="font-bold text-[var(--primary)] text-sm">Stock Movement Log</h2>
             <button onClick={() => setActiveModal('issue')} className="btn-primary text-xs bg-emerald-700 hover:bg-emerald-800">+ Record Movement</button>
           </div>
           <div className="overflow-x-auto">
@@ -463,11 +463,11 @@ export function InventoryWorkspace() {
           </div>
           <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
             <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-red-50 text-red-900">
-              ⚠️ Automated Reorder Threshold Alerts
+              Automated Reorder Threshold Alerts
             </div>
             {lowStockItems.length === 0 ? (
               <div className="p-8 text-center text-sm font-semibold text-green-700 bg-green-50">
-                ✅ All stock levels are above reorder thresholds
+                All stock levels are above reorder thresholds
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
@@ -512,7 +512,7 @@ export function InventoryWorkspace() {
       {activeTab === 'maintenance' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
           <div className="flex justify-between items-center p-4 border-b border-[var(--outline)] bg-[var(--background)]">
-            <h2 className="font-bold text-[var(--primary)] text-sm">🔧 Maintenance & Service Schedule</h2>
+            <h2 className="font-bold text-[var(--primary)] text-sm">Maintenance & Service Schedule</h2>
             <button onClick={() => setActiveModal('maintenance')} className="btn-primary text-xs bg-indigo-700 hover:bg-indigo-800">+ Schedule Maintenance</button>
           </div>
           <div className="overflow-x-auto">

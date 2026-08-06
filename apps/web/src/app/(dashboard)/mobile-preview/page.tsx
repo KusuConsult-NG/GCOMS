@@ -92,7 +92,7 @@ export default function MobilePreviewPage() {
                 <div className="space-y-4">
                   <div className="bg-gradient-to-r from-teal-600 to-blue-600 text-white p-4 rounded-2xl shadow-sm">
                     <p className="text-xs text-teal-200">Welcome Back,</p>
-                    <h3 className="text-lg font-bold">Hello, Retsum 👋</h3>
+                    <h3 className="text-lg font-bold">Hello, Retsum </h3>
                     <p className="text-[11px] text-teal-100 mt-1">Field Officer • Barkin Ladi</p>
                   </div>
 

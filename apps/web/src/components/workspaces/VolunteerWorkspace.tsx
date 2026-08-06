@@ -331,22 +331,22 @@ type RegistrationConfirmation = {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Workspace Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[var(--outline)] pb-5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight mt-1 text-white">Field Patient Intake & Patient Consent</h1>
-          <p className="text-slate-300 text-xs mt-0.5">Welcome back, {user?.firstName || 'Volunteer'} {user?.lastName || ''} • Community Health Worker ID: {user?.id?.slice(0, 8) || 'VOL-001'}</p>
+          <h1 className="text-2xl font-bold tracking-tight mt-1 text-[var(--on-background)]">Field Patient Intake & Patient Consent</h1>
+          <p className="text-[var(--muted)] text-xs mt-0.5">Welcome back, {user?.firstName || 'Volunteer'} {user?.lastName || ''} • Community Health Worker ID: {user?.id?.slice(0, 8) || 'VOL-001'}</p>
         </div>
 
         <div className="mt-4 md:mt-0 flex items-center gap-3 text-xs">
           <div className="text-right hidden sm:block">
             <p className="text-[10px] text-[var(--secondary-container)]">Last Synchronization</p>
-            <p className="font-mono font-semibold text-white">{lastSync || 'Never'}</p>
+            <p className="font-mono font-semibold text-[var(--on-background)]">{lastSync || 'Never'}</p>
           </div>
           <button
             onClick={() => setLastSync(new Date().toLocaleTimeString())}
-            className="px-3 py-2 bg-[var(--secondary)] hover:bg-[var(--secondary-hover)] text-white font-semibold rounded text-xs transition-colors"
+            className="px-3 py-2 bg-[var(--secondary)] hover:bg-[var(--secondary-hover)] text-[var(--on-background)] font-semibold rounded text-xs transition-colors"
           >
-            🔄 Sync Data Now
+            Sync Data Now
           </button>
         </div>
       </div>
@@ -354,10 +354,10 @@ type RegistrationConfirmation = {
       {/* Navigation Sub-Tabs */}
       <div className="flex border-b border-[var(--outline)] gap-2 text-xs font-semibold overflow-x-auto">
         {[
-          { id: 'dashboard', label: '📊 Field Dashboard' },
-          { id: 'register', label: '📝 Field Patient Intake & QR Identity Pass' },
-          { id: 'outreach', label: '📍 Assigned Outreach Drives' },
-          { id: 'queue', label: `📥 Offline Sync Queue (${offlineQueue.length})` },
+          { id: 'dashboard', label: 'Field Dashboard' },
+          { id: 'register', label: 'Field Patient Intake & QR Identity Pass' },
+          { id: 'outreach', label: 'Assigned Outreach Drives' },
+          { id: 'queue', label: `Offline Sync Queue (${offlineQueue.length})` },
         ].map(tab => (
           <button
             key={tab.id}
@@ -401,7 +401,7 @@ type RegistrationConfirmation = {
 
           <div className="bg-white p-5 rounded-lg border border-[var(--outline)] shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
-              <h3 className="font-bold text-[var(--primary)] text-sm">📍 Today&apos;s Active Outreach Campaign</h3>
+              <h3 className="font-bold text-[var(--primary)] text-sm">Today&apos;s Active Outreach Campaign</h3>
               <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">Barkin Ladi Primary Health Center • Community Cervical Screening Drive</p>
             </div>
             <div className="flex gap-2 w-full md:w-auto">
@@ -432,7 +432,7 @@ type RegistrationConfirmation = {
 
           {queuedNotice && (
             <div role="status" className="bg-[var(--warning-bg,var(--background))] border border-[var(--outline)] text-[var(--on-background)] p-3 rounded text-xs font-semibold">
-              📥 {queuedNotice}
+              {queuedNotice}
             </div>
           )}
 
@@ -486,7 +486,7 @@ type RegistrationConfirmation = {
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <button onClick={() => window.print()} className="btn-secondary text-xs">🖨 Print QR Pass</button>
+                <button onClick={() => window.print()} className="btn-secondary text-xs">Print QR Pass</button>
                 <button onClick={() => setRegSuccess(null)} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">
                   + Register Next Patient
                 </button>
@@ -592,7 +592,7 @@ type RegistrationConfirmation = {
 
             {/* 3. GPS Geolocation */}
             <div className="p-4 bg-[var(--background)] border border-[var(--outline)] rounded space-y-3">
-              <h3 className="font-bold text-[var(--primary)]">📡 Live Field GPS Location Capture</h3>
+              <h3 className="font-bold text-[var(--primary)]">Live Field GPS Location Capture</h3>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -600,7 +600,7 @@ type RegistrationConfirmation = {
                   disabled={gpsLoading}
                   className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]"
                 >
-                  {gpsLoading ? 'Capturing GPS...' : '📡 Capture Live Field GPS Coordinates'}
+                  {gpsLoading ? 'Capturing GPS...' : 'Capture Live Field GPS Coordinates'}
                 </button>
                 <input
                   type="text"

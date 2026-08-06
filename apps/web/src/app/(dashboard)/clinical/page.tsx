@@ -89,7 +89,7 @@ export default function ClinicalDashboard() {
             className="flex-1 px-4 py-2 border rounded-lg"
             required
           />
-          <button type="submit" className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+          <button type="submit" className="rounded-lg bg-[var(--secondary)] px-4 py-2.5 text-sm font-semibold text-[var(--on-secondary)] transition hover:bg-[var(--secondary-hover)] disabled:cursor-not-allowed disabled:opacity-60">
             Assign
           </button>
         </form>
@@ -144,7 +144,7 @@ export default function ClinicalDashboard() {
           />
           <button 
             onClick={handleEditNote}
-            className="px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-medium"
+            className="rounded-lg bg-[var(--secondary)] px-4 py-2.5 text-sm font-semibold text-[var(--on-secondary)] transition hover:bg-[var(--secondary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             Submit Correction
           </button>

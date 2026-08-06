@@ -29,13 +29,13 @@ export default function NavigationPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[var(--outline)] pb-5">
         <div>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             Patient Care • Patient Navigation Engine
           </span>
-          <h1 className="text-2xl font-bold mt-1 text-white">Patient Navigation & Referral Support</h1>
-          <p className="text-slate-300 text-xs mt-0.5">Track patient journeys from initial screening through tertiary referral and ongoing cancer treatment.</p>
+          <h1 className="text-2xl font-bold mt-1 text-[var(--on-background)]">Patient Navigation & Referral Support</h1>
+          <p className="text-[var(--muted)] text-xs mt-0.5">Track patient journeys from initial screening through tertiary referral and ongoing cancer treatment.</p>
         </div>
       </div>
 
@@ -62,7 +62,7 @@ export default function NavigationPage() {
       {/* Navigation Directory Table */}
       <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
         <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
-          <h2 className="font-bold text-[var(--primary)] text-sm">📍 Active Patient Navigation Trajectory Roster</h2>
+          <h2 className="font-bold text-[var(--primary)] text-sm">Active Patient Navigation Trajectory Roster</h2>
           <span className="text-xs text-[var(--muted)] font-mono tabular-nums">{events.length} Navigated Records</span>
         </div>
 

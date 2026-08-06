@@ -1,9 +1,17 @@
 'use client';
 
 import { errorMessage } from '@/lib/errors';
+import {
+  enqueue,
+  isRetryable,
+  markRejected,
+  readQueue,
+  removeFromQueue,
+  type QueuedRegistration,
+} from '@/lib/offlineQueue';
 import type { OutreachEvent, SessionUser } from '@/types/api';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 
@@ -31,10 +39,10 @@ export function VolunteerWorkspace({ user }: { user: SessionUser }) {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'register' | 'outreach' | 'queue'>('dashboard');
   const [outreaches, setOutreaches] = useState<OutreachEvent[]>([]);
   // Registrations captured while offline, replayed when the connection returns.
-  // Nothing enqueues yet, so the two counters below always read zero. Left as a
-  // constant rather than state to make that plain at the point of definition.
-  const offlineQueue: Array<Record<string, string>> = [];
-  const [lastSync, setLastSync] = useState(new Date().toLocaleTimeString());
+  const [offlineQueue, setOfflineQueue] = useState<QueuedRegistration[]>([]);
+  const [syncing, setSyncing] = useState(false);
+  const [syncNote, setSyncNote] = useState('');
+  const [lastSync, setLastSync] = useState('');
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState('');
 
@@ -71,6 +79,7 @@ type RegistrationConfirmation = {
     useState<RegistrationConfirmation | null>(null);
   const [regError, setRegError] = useState('');
   const [regSubmitting, setRegSubmitting] = useState(false);
+  const [queuedNotice, setQueuedNotice] = useState('');
 
   useEffect(() => {
     api.get('/outreach')
@@ -123,6 +132,59 @@ type RegistrationConfirmation = {
     );
   };
 
+  useEffect(() => {
+    setOfflineQueue(readQueue());
+  }, []);
+
+  /**
+   * Replays the queue oldest first.
+   *
+   * Stops at the first record that fails for a reason that would fail again —
+   * no connection means the next one has no better chance, and continuing would
+   * only spend the battery. A record the server rejects outright is kept and
+   * flagged instead, so the volunteer can correct or discard it rather than
+   * having it disappear.
+   */
+  const syncQueue = useCallback(async () => {
+    const pending = readQueue().filter((item) => !item.rejectedReason);
+    if (!pending.length || syncing) return;
+
+    setSyncing(true);
+    setSyncNote('');
+    let sent = 0;
+    let queue = readQueue();
+
+    for (const item of pending) {
+      try {
+        await api.post('/participants', item.payload);
+        queue = removeFromQueue(item.localId);
+        sent += 1;
+      } catch (err) {
+        if (isRetryable(err)) {
+          setSyncNote(
+            sent > 0
+              ? `${sent} sent. The rest are still waiting for a connection.`
+              : 'Still no connection to the server. The queue is untouched.',
+          );
+          break;
+        }
+        queue = markRejected(item.localId, errorMessage(err, 'The server rejected this record.'));
+      }
+    }
+
+    setOfflineQueue(queue);
+    if (sent > 0) setLastSync(new Date().toLocaleTimeString());
+    setSyncing(false);
+  }, [syncing]);
+
+  // The browser tells us when the connection comes back; that is the moment to
+  // try, rather than making the volunteer notice and press something.
+  useEffect(() => {
+    const onOnline = () => { void syncQueue(); };
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, [syncQueue]);
+
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegError('');
@@ -139,23 +201,39 @@ type RegistrationConfirmation = {
     }
 
     setRegSubmitting(true);
+    setQueuedNotice('');
+
+    // The registration ID is assigned by the server. LGA, ward and GPS are
+    // sent as their own fields — they used to be concatenated into `address`,
+    // which meant the structured location never reached the database.
+    const payload = {
+      firstName: regForm.firstName,
+      lastName: regForm.lastName,
+      dateOfBirth: regForm.dateOfBirth,
+      gender: regForm.gender,
+      phoneNumber: regForm.phoneNumber,
+      address: regForm.address,
+      lga: regForm.lga,
+      ward: regForm.ward,
+      gpsCoordinates: regForm.gpsCoordinates,
+      consentGiven: regForm.consentGiven,
+    };
+
+    const emptyForm = {
+      firstName: '',
+      lastName: '',
+      dateOfBirth: '',
+      gender: 'Female',
+      phoneNumber: '',
+      lga: 'Barkin Ladi LGA',
+      ward: '',
+      address: '',
+      gpsCoordinates: '',
+      consentGiven: false,
+    };
 
     try {
-      // The registration ID is assigned by the server. LGA, ward and GPS are
-      // sent as their own fields — they used to be concatenated into `address`,
-      // which meant the structured location never reached the database.
-      const res = await api.post('/participants', {
-        firstName: regForm.firstName,
-        lastName: regForm.lastName,
-        dateOfBirth: regForm.dateOfBirth,
-        gender: regForm.gender,
-        phoneNumber: regForm.phoneNumber,
-        address: regForm.address,
-        lga: regForm.lga,
-        ward: regForm.ward,
-        gpsCoordinates: regForm.gpsCoordinates,
-        consentGiven: regForm.consentGiven,
-      });
+      const res = await api.post('/participants', payload);
 
       const registrationId = res.data.registrationId;
 
@@ -171,27 +249,30 @@ type RegistrationConfirmation = {
       });
 
       // Only clear the form once the registration is actually saved.
-      setRegForm({
-        firstName: '',
-        lastName: '',
-        dateOfBirth: '',
-        gender: 'Female',
-        phoneNumber: '',
-        lga: 'Barkin Ladi LGA',
-        ward: '',
-        address: '',
-        gpsCoordinates: '',
-        consentGiven: false,
-      });
+      setRegForm(emptyForm);
     } catch (err) {
-      // This used to render the success screen and a QR identity pass on
-      // failure, then wipe the form — so a volunteer in the field got a
-      // confirmation for a patient that was never saved, with no way to recover
-      // what they had typed.
-      const message = errorMessage(err, 'Registration could not be saved.');
-      setRegError(
-        `${message} — the patient was NOT registered. Your entries have been kept; check your connection and try again.`,
-      );
+      // A registration that could not be sent is held on the device rather than
+      // refused, so the volunteer can carry on to the next patient. No identity
+      // pass is shown for it: the pass carries a registration id, and only the
+      // server issues one. Until this syncs, the patient is not registered, and
+      // the notice says so rather than implying a save.
+      if (isRetryable(err)) {
+        const queue = enqueue(payload, new Date().toISOString());
+        setOfflineQueue(queue);
+        setRegForm(emptyForm);
+        setQueuedNotice(
+          `No connection, so this registration is held on this device — ${queue.length} now waiting. ` +
+          'The patient is not registered until it syncs, and no identity pass can be issued before then.',
+        );
+      } else {
+        // The server understood the request and refused it, so holding onto it
+        // would only mean failing again later. This used to render the success
+        // screen and a QR identity pass here, then wipe the form.
+        const message = errorMessage(err, 'Registration could not be saved.');
+        setRegError(
+          `${message} — the patient was NOT registered. Your entries have been kept; correct them and try again.`,
+        );
+      }
     } finally {
       setRegSubmitting(false);
     }
@@ -209,7 +290,7 @@ type RegistrationConfirmation = {
         <div className="mt-4 md:mt-0 flex items-center gap-3 text-xs">
           <div className="text-right hidden sm:block">
             <p className="text-[10px] text-[var(--secondary-container)]">Last Synchronization</p>
-            <p className="font-mono font-semibold text-white">{lastSync}</p>
+            <p className="font-mono font-semibold text-white">{lastSync || 'Never'}</p>
           </div>
           <button
             onClick={() => setLastSync(new Date().toLocaleTimeString())}
@@ -296,6 +377,12 @@ type RegistrationConfirmation = {
           {regError && (
             <div className="bg-[var(--risk-high-bg)] text-[var(--risk-high-text)] p-3 rounded text-xs font-semibold">
               {regError}
+            </div>
+          )}
+
+          {queuedNotice && (
+            <div role="status" className="bg-[var(--warning-bg,var(--background))] border border-[var(--outline)] text-[var(--on-background)] p-3 rounded text-xs font-semibold">
+              📥 {queuedNotice}
             </div>
           )}
 
@@ -527,8 +614,69 @@ type RegistrationConfirmation = {
       {/* TAB 4: OFFLINE QUEUE */}
       {activeTab === 'queue' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] p-6 space-y-4">
-          <h2 className="text-lg font-bold text-[var(--primary)]">Local Offline Synchronization Queue</h2>
-          <p className="text-xs text-[var(--on-surface-variant)]">Records captured while disconnected from internet are held securely in local storage.</p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold text-[var(--primary)]">Local Offline Synchronization Queue</h2>
+              <p className="text-xs text-[var(--on-surface-variant)]">
+                Registrations captured while the server was unreachable. They are stored on this
+                device, unencrypted, until they sync — treat the device as holding patient data.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => { void syncQueue(); }}
+              disabled={syncing || !offlineQueue.some((item) => !item.rejectedReason)}
+              className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)] disabled:opacity-50"
+            >
+              {syncing ? 'Syncing…' : 'Sync now'}
+            </button>
+          </div>
+
+          {syncNote && (
+            <p role="status" className="text-xs font-semibold text-[var(--on-surface-variant)]">{syncNote}</p>
+          )}
+
+          {!offlineQueue.length && (
+            <p className="text-xs text-[var(--on-surface-variant)] py-6 text-center">
+              Nothing waiting. Every registration captured on this device has reached the server.
+            </p>
+          )}
+
+          <div className="space-y-2">
+            {offlineQueue.map((item) => (
+              <div
+                key={item.localId}
+                className="border border-[var(--outline)] rounded p-3 flex flex-wrap items-start justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <p className="font-semibold text-xs text-[var(--on-background)]">
+                    {item.payload.firstName} {item.payload.lastName}
+                  </p>
+                  <p className="text-[11px] text-[var(--on-surface-variant)]">
+                    {[item.payload.lga, item.payload.ward].filter(Boolean).join(' • ')}
+                    {' — captured '}
+                    {new Date(item.capturedAt).toLocaleString()}
+                  </p>
+                  {item.rejectedReason ? (
+                    <p className="text-[11px] font-semibold text-[var(--risk-high-text)] mt-1">
+                      Rejected by the server: {item.rejectedReason} This will not be retried.
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-[var(--on-surface-variant)] mt-1">
+                      Waiting to sync. Not registered yet.
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOfflineQueue(removeFromQueue(item.localId))}
+                  className="btn-secondary text-[11px]"
+                >
+                  Discard
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

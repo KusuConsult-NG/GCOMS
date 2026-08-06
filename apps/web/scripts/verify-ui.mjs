@@ -54,7 +54,15 @@ let current = 'startup';
 
 function watch(page) {
   page.on('console', (m) => {
-    if (m.type() === 'error') problems.push([current, `console: ${m.text().slice(0, 160)}`]);
+    if (m.type() !== 'error') return;
+    const text = m.text();
+    // A blocked script reports as an ordinary console error and nothing throws,
+    // so without singling it out a CSP that breaks the whole app still leaves a
+    // green run. This is the only check covering the nonce in proxy.ts.
+    const tag = /Content Security Policy|Refused to (execute|load|apply|connect)/i.test(text)
+      ? 'CSP'
+      : 'console';
+    problems.push([current, `${tag}: ${text.slice(0, 160)}`]);
   });
   page.on('pageerror', (e) => problems.push([current, `UNCAUGHT: ${e.message.slice(0, 160)}`]));
   page.on('response', (r) => {
@@ -160,7 +168,15 @@ async function main() {
     console.log(`\n${unique.length} problem(s):`);
     for (const [where, what] of unique.slice(0, 40)) console.log(`  [${where}] ${what}`);
   }
-  process.exitCode = unique.some(([, w]) => w.startsWith('UNCAUGHT')) ? 1 : 0;
+  // Plain console errors stay report-only: they are worth reading but too easy
+  // to trip on something transient. An uncaught exception or a CSP violation is
+  // neither transient nor survivable, so those fail the run.
+  const fatal = unique.filter(([, w]) => w.startsWith('UNCAUGHT') || w.startsWith('CSP'));
+  if (fatal.length) {
+    console.log(`\n${fatal.length} of those fail the run:`);
+    for (const [where, what] of fatal) console.log(`  [${where}] ${what}`);
+  }
+  process.exitCode = fatal.length ? 1 : 0;
 }
 
 main().catch((err) => {

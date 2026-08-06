@@ -184,8 +184,8 @@ jobs:
           test "$api" = "200" || { echo "API failed to start"; exit 1; }
           test "$web" = "200" || { echo "web failed to start"; exit 1; }
 
-      # Fails the build on any uncaught exception. Console errors and blank
-      # pages are reported too, and visible in the log.
+      # Fails the build on any uncaught exception or CSP violation. Other
+      # console errors and blank pages are reported too, and visible in the log.
       - name: Verify every route and role in a browser
         working-directory: apps/web
         run: npm run verify:ui -- /tmp/gcoms-ui

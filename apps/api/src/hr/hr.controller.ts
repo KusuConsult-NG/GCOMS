@@ -68,8 +68,8 @@ export class HrController {
 
   @Post('leave')
   @Roles(...HR_WRITE_ROLES)
-  createLeave(@Body() dto: CreateLeaveRequestDto) {
-    return this.hrService.createLeave(dto);
+  createLeave(@Body() dto: CreateLeaveRequestDto, @Request() req: any) {
+    return this.hrService.createLeave(dto, req.user.id);
   }
 
   @Patch('leave/:id')

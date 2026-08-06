@@ -45,8 +45,15 @@ export class FinanceController {
 
   @Get()
   @Roles('FINANCE')
-  getTransactions() {
-    return this.financeService.getTransactions();
+  getTransactions(@Query('status') status?: string) {
+    return this.financeService.getTransactions(status);
+  }
+
+  /** Approved-only figures. See FinanceService.getSummary. */
+  @Get('summary')
+  @Roles(...FINANCE_READ_ROLES)
+  getSummary() {
+    return this.financeService.getSummary();
   }
 
   @Get('reconciliations')

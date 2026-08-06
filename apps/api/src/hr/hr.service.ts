@@ -114,19 +114,40 @@ export class HrService {
     });
   }
 
-  async createLeave(dto: CreateLeaveRequestDto) {
+  async createLeave(dto: CreateLeaveRequestDto, requestedById: string) {
     await this.assertUserExists(dto.employeeId);
     if (new Date(dto.endDate) < new Date(dto.startDate)) {
       throw new BadRequestException('endDate cannot be before startDate');
     }
-    return this.prisma.leaveRequest.create({
-      data: {
-        employeeId: dto.employeeId,
-        startDate: new Date(dto.startDate),
-        endDate: new Date(dto.endDate),
-        type: dto.type ?? 'ANNUAL',
-        reason: dto.reason?.trim() || null,
-      },
+
+    // Leave is one of the four resources with genuine approval semantics, so it
+    // raises an ApprovalRequest alongside itself and stays PENDING until the
+    // board resolves it.
+    return this.prisma.$transaction(async (tx) => {
+      const employee = await tx.user.findUnique({
+        where: { id: dto.employeeId },
+        select: { firstName: true, lastName: true },
+      });
+      const leave = await tx.leaveRequest.create({
+        data: {
+          employeeId: dto.employeeId,
+          startDate: new Date(dto.startDate),
+          endDate: new Date(dto.endDate),
+          type: dto.type ?? 'ANNUAL',
+          reason: dto.reason?.trim() || null,
+        },
+      });
+      await tx.approvalRequest.create({
+        data: {
+          title:
+            `${dto.type ?? 'ANNUAL'} leave: ${employee?.firstName ?? ''} ${employee?.lastName ?? ''}`.trim(),
+          description: `${dto.startDate} to ${dto.endDate}${dto.reason ? ` — ${dto.reason}` : ''}`,
+          resourceType: 'HR_LEAVE',
+          resourceId: leave.id,
+          requestedById,
+        },
+      });
+      return leave;
     });
   }
 

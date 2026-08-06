@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Body, UseGuards, Request, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  UseGuards,
+  Request,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ProcurementService } from './procurement.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -10,7 +18,9 @@ export class ProcurementController {
   @Post()
   createOrder(@Body() data: any, @Request() req: any) {
     if (req.user.role !== 'PROCUREMENT' && req.user.role !== 'EXECUTIVE') {
-      throw new UnauthorizedException('Only Procurement and Executive roles can create orders');
+      throw new UnauthorizedException(
+        'Only Procurement and Executive roles can create orders',
+      );
     }
     return this.procurementService.createOrder(data, req.user.id);
   }
@@ -18,8 +28,15 @@ export class ProcurementController {
   @Get()
   getOrders(@Request() req: any) {
     if (req.user.role !== 'PROCUREMENT' && req.user.role !== 'EXECUTIVE') {
-      throw new UnauthorizedException('Only Procurement and Executive roles can view orders');
+      throw new UnauthorizedException(
+        'Only Procurement and Executive roles can view orders',
+      );
     }
     return this.procurementService.getOrders();
+  }
+
+  @Get('summary')
+  getSummary() {
+    return this.procurementService.getSummary();
   }
 }

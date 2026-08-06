@@ -43,4 +43,30 @@ export class ProcurementService {
       },
     });
   }
+
+  /** Committed spend counts approved orders only; pending is reported separately. */
+  async getSummary() {
+    const [approved, pending] = await Promise.all([
+      this.prisma.procurementOrder.aggregate({
+        _sum: { estimatedCost: true },
+        _count: true,
+        where: { status: 'APPROVED' },
+      }),
+      this.prisma.procurementOrder.aggregate({
+        _sum: { estimatedCost: true },
+        _count: true,
+        where: { status: 'PENDING' },
+      }),
+    ]);
+    return {
+      committed: {
+        count: approved._count,
+        amount: approved._sum.estimatedCost ?? 0,
+      },
+      awaitingApproval: {
+        count: pending._count,
+        amount: pending._sum.estimatedCost ?? 0,
+      },
+    };
+  }
 }

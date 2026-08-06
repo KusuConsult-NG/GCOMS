@@ -310,3 +310,16 @@ export const RFQ_STATUSES = [
   'CANCELLED',
 ] as const;
 export const QUOTE_STATUSES = ['SUBMITTED', 'RECOMMENDED', 'REJECTED'] as const;
+
+/**
+ * Who may resolve an approval. The spec says "executive board", and BOARD had no
+ * approval rights at all. ADMIN and SYSTEM_ADMIN can see the queue but not
+ * resolve it — administering the system is not the same as authorising spend.
+ */
+export const APPROVAL_VIEW_ROLES: Role[] = [
+  'EXECUTIVE',
+  'BOARD',
+  'ADMIN',
+  'SYSTEM_ADMIN',
+];
+export const APPROVER_ROLES: Role[] = ['EXECUTIVE', 'BOARD'];

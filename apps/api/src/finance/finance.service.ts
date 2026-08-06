@@ -38,8 +38,44 @@ export class FinanceService {
     });
   }
 
-  async getTransactions() {
+  /**
+   * Ledger totals. This is where "cannot be executed before approval" actually
+   * bites: a PENDING transaction is visible in its own list so the requester can
+   * see it, but it does not count here. Previously PENDING was a label on a row
+   * that every report added up regardless.
+   */
+  async getSummary() {
+    const [income, expense, pending] = await Promise.all([
+      this.prisma.financeTransaction.aggregate({
+        _sum: { amount: true },
+        where: { status: 'APPROVED', type: 'INCOME' },
+      }),
+      this.prisma.financeTransaction.aggregate({
+        _sum: { amount: true },
+        where: { status: 'APPROVED', type: 'EXPENSE' },
+      }),
+      this.prisma.financeTransaction.aggregate({
+        _sum: { amount: true },
+        _count: true,
+        where: { status: 'PENDING' },
+      }),
+    ]);
+    const totalIncome = income._sum.amount ?? 0;
+    const totalExpense = expense._sum.amount ?? 0;
+    return {
+      approvedIncome: totalIncome,
+      approvedExpense: totalExpense,
+      netPosition: totalIncome - totalExpense,
+      awaitingApproval: {
+        count: pending._count,
+        amount: pending._sum.amount ?? 0,
+      },
+    };
+  }
+
+  async getTransactions(status?: string) {
     return this.prisma.financeTransaction.findMany({
+      where: status ? { status } : {},
       orderBy: { createdAt: 'desc' },
       include: {
         requestedBy: {

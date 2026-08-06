@@ -1,10 +1,12 @@
 import {
+  ForbiddenException,
   Injectable,
-  UnauthorizedException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { APPROVER_ROLES, Role } from '../auth/roles.constants';
 
 @Injectable()
 export class ApprovalsService {
@@ -45,7 +47,24 @@ export class ApprovalsService {
     });
   }
 
-  async resolveRequest(id: string, status: string, executiveId: string) {
+  /**
+   * `actor` is the resolving user, not just their id, because the role has to be
+   * checked here rather than by the guard: RolesGuard grants EXECUTIVE and
+   * SYSTEM_ADMIN every route unconditionally, so @Roles cannot exclude a system
+   * admin. Authorising spend is not the same as administering the system, and
+   * that separation is only expressible below the guard.
+   */
+  async resolveRequest(
+    id: string,
+    status: string,
+    actor: { id: string; role: string },
+  ) {
+    if (!APPROVER_ROLES.includes(actor.role as Role)) {
+      throw new ForbiddenException(
+        `Only ${APPROVER_ROLES.join(' or ')} may resolve approvals`,
+      );
+    }
+    const executiveId = actor.id;
     if (status !== 'APPROVED' && status !== 'REJECTED') {
       throw new Error('Invalid status');
     }
@@ -79,6 +98,11 @@ export class ApprovalsService {
           });
         } else if (request.resourceType === 'ADMIN') {
           await tx.facilityRequest.update({
+            where: { id: request.resourceId },
+            data: { status },
+          });
+        } else if (request.resourceType === 'HR_LEAVE') {
+          await tx.leaveRequest.update({
             where: { id: request.resourceId },
             data: { status },
           });

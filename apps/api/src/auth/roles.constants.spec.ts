@@ -60,14 +60,25 @@ describe('role constants', () => {
     });
 
     // The original finding: any authenticated account could read patient data.
-    it.each(['FINANCE', 'HR', 'PROCUREMENT', 'GRANT_MANAGER', 'PROJECT_MANAGER', 'INVENTORY_MANAGER', 'BOARD', 'RESEARCH_OFFICER'])(
-      'denies patient data to %s',
-      (role) => {
-        expect(PHI_READ_ROLES).not.toContain(role as Role);
-      },
-    );
+    it.each([
+      'FINANCE',
+      'HR',
+      'PROCUREMENT',
+      'GRANT_MANAGER',
+      'PROJECT_MANAGER',
+      'INVENTORY_MANAGER',
+      'BOARD',
+      'RESEARCH_OFFICER',
+    ])('denies patient data to %s', (role) => {
+      expect(PHI_READ_ROLES).not.toContain(role as Role);
+    });
 
-    it.each(['CLINICIAN', 'FIELD_OFFICER', 'COMMUNITY_HEALTH_WORKER', 'VOLUNTEER'])(
+    it.each([
+      'CLINICIAN',
+      'FIELD_OFFICER',
+      'COMMUNITY_HEALTH_WORKER',
+      'VOLUNTEER',
+    ])(
       'scopes %s to its own caseload rather than denying it outright',
       (role) => {
         expect(PHI_SCOPED_ROLES).toContain(role as Role);
@@ -84,8 +95,8 @@ describe('role constants', () => {
 
     // HR onboards staff but must not be able to mint itself an executive.
     it('excludes HR from granting privileged roles', () => {
-      expect(USER_ADMIN_ROLES).toContain('HR' as Role);
-      expect(GRANTOR_ROLES).not.toContain('HR' as Role);
+      expect(USER_ADMIN_ROLES).toContain('HR');
+      expect(GRANTOR_ROLES).not.toContain('HR');
     });
 
     it('keeps every grantor able to administer users at all', () => {

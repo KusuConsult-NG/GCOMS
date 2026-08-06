@@ -16,6 +16,12 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 RUN npm run build
 
+# `.next/cache` is webpack's build cache, not build output: it holds the original
+# source of every module, so copying it into the runtime image ships the whole
+# frontend source — including the demo shortcuts the bundle is careful to strip —
+# inside the container. `next start` never reads it.
+RUN rm -rf .next/cache
+
 # ---- runtime ----
 FROM node:20-slim AS runtime
 WORKDIR /app

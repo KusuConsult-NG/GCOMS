@@ -87,11 +87,43 @@ jobs:
       - name: Build
         run: npm run build
       - name: Assert no demo credentials in the production bundle
+        # Scoped to what is actually served. The previous version grepped all of
+        # `.next`, which includes `.next/cache/webpack/*.pack` — webpack's build
+        # cache, holding the original source of every module. So it asserted the
+        # demo block was absent from the *source*, which it never is and never
+        # will be; it is gated on NODE_ENV and dead-code eliminated instead. The
+        # check could only ever have passed by deleting the feature.
+        #
+        # It failed on the runner and not locally for an unrelated reason worth
+        # knowing: a developer shell whose `grep` skips binary files, or honours
+        # .gitignore, silently searches none of `.next`.
         run: |
-          if grep -rq "Select a Demo Account" .next; then
-            echo "Demo account shortcuts leaked into the production build"
-            exit 1
+          shipped=".next/static .next/server public"
+          fail=0
+
+          # The heading is the demo block's unique marker: if the block survives
+          # the production build, this string survives with it.
+          if grep -rq "Select a Demo Account" $shipped; then
+            echo "The demo shortcut block reached the production bundle:"
+            grep -rl "Select a Demo Account" $shipped
+            fail=1
           fi
+
+          # And the addresses themselves, since a refactor could drop the heading
+          # while keeping the buttons. Two are allowed through: both render as
+          # visible example text rather than as a way in — the login field's
+          # `placeholder="e.g. executive@gcoms.org"`, and the mocked-up input on
+          # /mobile-preview.
+          leaked=$(grep -rhoE "[a-z_]+@gcoms\.org" $shipped \
+            | sort -u \
+            | grep -vxE "executive@gcoms\.org|retsum@gcoms\.org" || true)
+          if [ -n "$leaked" ]; then
+            echo "Demo account addresses reached the production bundle:"
+            echo "$leaked"
+            fail=1
+          fi
+
+          exit $fail
 
   ui:
     name: UI verification (browser)

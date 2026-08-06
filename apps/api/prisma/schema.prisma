@@ -199,7 +199,16 @@ model DocumentRecord {
   id            String   @id @default(uuid())
   title         String
   documentType  String   // POLICY, GUIDELINE, REPORT
-  url           String
+  // External link, when the document lives elsewhere. Null for uploads.
+  url           String?
+  // Upload metadata. Files are stored outside the web root under a generated
+  // name and served only through an authenticated endpoint, because documents
+  // may contain patient or financial information.
+  storedName    String?  @unique
+  originalName  String?
+  mimeType      String?
+  sizeBytes     Int?
+  checksum      String?  // sha256, so a download can be proven intact
   version       String   @default("1.0")
   uploadedById  String
   uploadedBy    User     @relation("UploadedDocuments", fields: [uploadedById], references: [id])

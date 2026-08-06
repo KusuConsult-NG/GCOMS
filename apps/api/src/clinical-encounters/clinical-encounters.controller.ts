@@ -1,4 +1,8 @@
-import { AssignPatientDto, CreateEncounterDto } from './dto/encounter.dto';
+import {
+  AssignPatientDto,
+  CreateEncounterDto,
+  EditEncounterDto,
+} from './dto/encounter.dto';
 import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Controller,
@@ -63,7 +67,7 @@ export class ClinicalEncountersController {
   @Roles(...DIAGNOSING_ROLES)
   editEncounter(
     @Param('id') id: string,
-    @Body() data: any,
+    @Body() data: EditEncounterDto,
     @Request() req: AuthenticatedRequest,
   ) {
     return this.encountersService.editEncounter(

@@ -1,4 +1,3 @@
-import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Controller,
   Post,
@@ -20,16 +19,13 @@ export class SystemAdminController {
 
   @Post()
   @Roles('EXECUTIVE', 'SYSTEM_ADMIN')
-  setConfig(
-    @Body() data: UpdateSystemConfigDto,
-    @Request() req: AuthenticatedRequest,
-  ) {
+  setConfig(@Body() data: UpdateSystemConfigDto) {
     return this.systemAdminService.setConfig(data.key, data.value);
   }
 
   @Get()
   @Roles('EXECUTIVE', 'SYSTEM_ADMIN')
-  getConfigs(@Request() req: AuthenticatedRequest) {
+  getConfigs() {
     return this.systemAdminService.getConfigs();
   }
 }

@@ -1,3 +1,4 @@
+import { callArg, dataOf } from '../testing/mock-args';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { Prisma } from '@prisma/client';
@@ -34,7 +35,12 @@ describe('ParticipantsService', () => {
       participant: {
         create: jest
           .fn()
-          .mockImplementation(({ data }) => ({ id: 'p1', ...data })),
+          .mockImplementation(
+            ({ data }: { data: Record<string, unknown> }) => ({
+              id: 'p1',
+              ...data,
+            }),
+          ),
         findMany: jest.fn().mockResolvedValue([]),
         findUnique: jest.fn(),
       },
@@ -61,7 +67,8 @@ describe('ParticipantsService', () => {
         VOLUNTEER.id,
       );
       expect(
-        prisma.participant.create.mock.calls[0][0].data.registrationId,
+        dataOf<{ registrationId: string }>(prisma.participant.create, 0)
+          .registrationId,
       ).toMatch(/^GC-\d{4}-[0-9A-HJKMNP-TV-Z]{6}$/);
     });
 
@@ -71,13 +78,14 @@ describe('ParticipantsService', () => {
         VOLUNTEER.id,
       );
       expect(
-        prisma.participant.create.mock.calls[0][0].data.registeredById,
+        dataOf<{ registeredById: string }>(prisma.participant.create, 0)
+          .registeredById,
       ).toBe(VOLUNTEER.id);
     });
 
     // The old client-side scheme used the last six digits of a timestamp, which
     // recycle every ~17 minutes and collided between concurrent field workers.
-    it('does not repeat across many registrations', async () => {
+    it('does not repeat across many registrations', () => {
       const seen = new Set<string>();
       for (let i = 0; i < 500; i++) {
         seen.add(service['generateRegistrationId']());
@@ -85,7 +93,7 @@ describe('ParticipantsService', () => {
       expect(seen.size).toBe(500);
     });
 
-    it('omits characters that are easy to misread by hand', async () => {
+    it('omits characters that are easy to misread by hand', () => {
       const ids = Array.from(
         { length: 200 },
         () => service['generateRegistrationId']().split('-')[2],
@@ -96,7 +104,12 @@ describe('ParticipantsService', () => {
     it('retries transparently when an id collides', async () => {
       prisma.participant.create
         .mockRejectedValueOnce(uniqueViolation('registrationId'))
-        .mockImplementationOnce(({ data }) => ({ id: 'p1', ...data }));
+        .mockImplementationOnce(
+          ({ data }: { data: Record<string, unknown> }) => ({
+            id: 'p1',
+            ...data,
+          }),
+        );
 
       await expect(
         service.create({ ...VALID }, VOLUNTEER.id),
@@ -139,7 +152,9 @@ describe('ParticipantsService', () => {
         },
         VOLUNTEER.id,
       );
-      expect(prisma.participant.create.mock.calls[0][0].data).toMatchObject({
+      expect(
+        dataOf<Record<string, unknown>>(prisma.participant.create, 0),
+      ).toMatchObject({
         address: 'Plot 4',
         lga: 'Barkin Ladi LGA',
         ward: 'Gwol Ward',
@@ -154,7 +169,9 @@ describe('ParticipantsService', () => {
         OR: [{ registeredById: 'vol-1' }],
       });
       await service.findAll(VOLUNTEER);
-      expect(prisma.participant.findMany.mock.calls[0][0].where).toMatchObject({
+      expect(
+        callArg<Record<string, unknown>>(prisma.participant.findMany, 0).where,
+      ).toMatchObject({
         OR: [{ registeredById: 'vol-1' }],
       });
     });
@@ -165,22 +182,28 @@ describe('ParticipantsService', () => {
         OR: [{ registeredById: 'vol-1' }],
       });
       await service.findAll(VOLUNTEER, 'grace');
-      const where = prisma.participant.findMany.mock.calls[0][0].where;
+      const where = callArg<{ where: Record<string, unknown> }>(
+        prisma.participant.findMany,
+        0,
+      ).where;
       expect(where.OR).toBeDefined();
       expect(where.AND).toBeDefined();
     });
 
     it('filters in the database rather than in memory', async () => {
       await service.findAll(VOLUNTEER, 'grace');
-      const where = prisma.participant.findMany.mock.calls[0][0].where;
+      const where = callArg<{ where: Record<string, unknown> }>(
+        prisma.participant.findMany,
+        0,
+      ).where;
       expect(JSON.stringify(where)).toContain('contains');
     });
 
     it('bounds the result set', async () => {
       await service.findAll(VOLUNTEER);
-      expect(prisma.participant.findMany.mock.calls[0][0].take).toBeGreaterThan(
-        0,
-      );
+      expect(
+        callArg<{ take: number }>(prisma.participant.findMany, 0).take,
+      ).toBeGreaterThan(0);
     });
   });
 

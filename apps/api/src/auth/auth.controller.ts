@@ -1,4 +1,7 @@
-import type { AuthenticatedRequest } from './authenticated-request';
+import type {
+  AuthenticatedRequest,
+  LoginRequest,
+} from './authenticated-request';
 import {
   Body,
   Controller,
@@ -24,7 +27,7 @@ export class AuthController {
   // cannot express.
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  async login(@Body() _dto: LoginDto, @Request() req: AuthenticatedRequest) {
+  login(@Body() _dto: LoginDto, @Request() req: LoginRequest) {
     return this.authService.login(req.user);
   }
 

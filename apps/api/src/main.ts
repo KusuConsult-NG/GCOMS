@@ -46,7 +46,11 @@ async function bootstrap() {
   // spoof the header and opt out of rate limiting entirely.
   const trustProxy = parseTrustProxy(config.get<string>('TRUST_PROXY'));
   if (trustProxy !== undefined) {
-    app.getHttpAdapter().getInstance().set('trust proxy', trustProxy);
+    // getInstance() is untyped; this is the Express app underneath.
+    const express = app.getHttpAdapter().getInstance() as {
+      set: (setting: string, value: unknown) => void;
+    };
+    express.set('trust proxy', trustProxy);
     logger.log(`trust proxy: ${JSON.stringify(trustProxy)}`);
     if (trustProxy === true) {
       logger.warn(

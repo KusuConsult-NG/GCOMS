@@ -95,8 +95,11 @@ export class BackgroundSchedulerService
           });
         }
       }
-    } catch (err: any) {
-      this.logger.error('Error running scheduler checks', err.stack);
+    } catch (err) {
+      this.logger.error(
+        'Error running scheduler checks',
+        err instanceof Error ? err.stack : String(err),
+      );
     }
   }
 }

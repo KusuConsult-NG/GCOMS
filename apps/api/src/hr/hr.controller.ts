@@ -10,7 +10,6 @@ import {
   Post,
   Query,
   Request,
-  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { HrService } from './hr.service';
@@ -60,14 +59,14 @@ export class HrController {
 
   @Get()
   @Roles(...HR_READ_ROLES)
-  getStaffRecords(@Request() req: AuthenticatedRequest) {
+  getStaffRecords() {
     return this.hrService.getStaffRecords();
   }
 
   @Get('staff')
   @Roles(...HR_READ_ROLES)
-  getStaffRecordsAlias(@Request() req: AuthenticatedRequest) {
-    return this.getStaffRecords(req);
+  getStaffRecordsAlias() {
+    return this.getStaffRecords();
   }
 
   @Get('leave')

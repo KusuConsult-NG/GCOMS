@@ -29,7 +29,7 @@ export class AdminController {
 
   @Get()
   @Roles('ADMIN', 'EXECUTIVE')
-  getFacilityRequests(@Request() req: AuthenticatedRequest) {
+  getFacilityRequests() {
     return this.adminService.getFacilityRequests();
   }
 }

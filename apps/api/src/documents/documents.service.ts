@@ -1,4 +1,4 @@
-import { CreateDocumentRecordDto } from './dto/create-document-record.dto';
+import { CreateDocumentDto } from './dto/create-document.dto';
 import {
   BadRequestException,
   Injectable,
@@ -36,7 +36,7 @@ export class DocumentsService implements OnModuleInit {
     await mkdir(this.uploadDir, { recursive: true });
   }
 
-  async createDocumentRecord(data: CreateDocumentRecordDto, userId: string) {
+  async createDocumentRecord(data: CreateDocumentDto, userId: string) {
     return this.prisma.documentRecord.create({
       data: {
         title: data.title,

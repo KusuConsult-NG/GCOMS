@@ -1,3 +1,4 @@
+import { dataOf } from '../testing/mock-args';
 import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
@@ -15,10 +16,16 @@ function prismaMock() {
       findMany: jest.fn().mockResolvedValue([]),
       create: jest
         .fn()
-        .mockImplementation(({ data }) => ({ id: 'm', ...data })),
+        .mockImplementation(({ data }: { data: Record<string, unknown> }) => ({
+          id: 'm',
+          ...data,
+        })),
       update: jest
         .fn()
-        .mockImplementation(({ data }) => ({ id: 'm1', ...data })),
+        .mockImplementation(({ data }: { data: Record<string, unknown> }) => ({
+          id: 'm1',
+          ...data,
+        })),
       delete: jest.fn().mockResolvedValue({}),
     },
   };
@@ -53,7 +60,9 @@ describe('GrantsService milestones', () => {
       title: 'M',
       dueDate: '2026-01-01',
     });
-    expect(prisma.grantMilestone.create.mock.calls[0][0].data).toMatchObject({
+    expect(
+      dataOf<Record<string, unknown>>(prisma.grantMilestone.create, 0),
+    ).toMatchObject({
       status: 'PENDING',
       progress: 0,
     });
@@ -62,7 +71,9 @@ describe('GrantsService milestones', () => {
   // Status and progress disagreeing is what makes a donor report wrong.
   it('completes a milestone when progress reaches 100', async () => {
     await service.updateMilestone('m1', { progress: 100 });
-    expect(prisma.grantMilestone.update.mock.calls[0][0].data).toMatchObject({
+    expect(
+      dataOf<Record<string, unknown>>(prisma.grantMilestone.update, 0),
+    ).toMatchObject({
       progress: 100,
       status: 'COMPLETED',
     });
@@ -70,7 +81,9 @@ describe('GrantsService milestones', () => {
 
   it('sets progress to 100 when marked COMPLETED without a figure', async () => {
     await service.updateMilestone('m1', { status: 'COMPLETED' });
-    expect(prisma.grantMilestone.update.mock.calls[0][0].data).toMatchObject({
+    expect(
+      dataOf<Record<string, unknown>>(prisma.grantMilestone.update, 0),
+    ).toMatchObject({
       status: 'COMPLETED',
       progress: 100,
     });
@@ -81,7 +94,9 @@ describe('GrantsService milestones', () => {
       status: 'IN_PROGRESS',
       progress: 60,
     });
-    expect(prisma.grantMilestone.update.mock.calls[0][0].data).toMatchObject({
+    expect(
+      dataOf<Record<string, unknown>>(prisma.grantMilestone.update, 0),
+    ).toMatchObject({
       status: 'IN_PROGRESS',
       progress: 60,
     });
@@ -90,7 +105,7 @@ describe('GrantsService milestones', () => {
   it('does not touch status for an ordinary progress bump', async () => {
     await service.updateMilestone('m1', { progress: 40 });
     expect(
-      prisma.grantMilestone.update.mock.calls[0][0].data.status,
+      dataOf<{ status: string }>(prisma.grantMilestone.update, 0).status,
     ).toBeUndefined();
   });
 

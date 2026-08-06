@@ -2,7 +2,6 @@ import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -55,7 +54,6 @@ export class InventoryController {
   updateInventoryItem(
     @Param('id') id: string,
     @Body() data: UpdateInventoryItemDto,
-    @Request() req: AuthenticatedRequest,
   ) {
     return this.inventoryService.updateInventoryItem(id, data);
   }

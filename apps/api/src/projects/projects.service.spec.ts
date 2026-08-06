@@ -1,3 +1,4 @@
+import { callArg, dataOf } from '../testing/mock-args';
 import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
@@ -15,10 +16,16 @@ function prismaMock() {
       findMany: jest.fn().mockResolvedValue([]),
       create: jest
         .fn()
-        .mockImplementation(({ data }) => ({ id: 't', ...data })),
+        .mockImplementation(({ data }: { data: Record<string, unknown> }) => ({
+          id: 't',
+          ...data,
+        })),
       update: jest
         .fn()
-        .mockImplementation(({ data }) => ({ id: 'task-1', ...data })),
+        .mockImplementation(({ data }: { data: Record<string, unknown> }) => ({
+          id: 'task-1',
+          ...data,
+        })),
       delete: jest.fn().mockResolvedValue({}),
     },
   };
@@ -41,7 +48,9 @@ describe('ProjectsService tasks', () => {
 
   it('defaults status and priority on create', async () => {
     await service.createTask({ projectId: 'proj-1', title: ' Task ' });
-    expect(prisma.projectTask.create.mock.calls[0][0].data).toMatchObject({
+    expect(
+      dataOf<Record<string, unknown>>(prisma.projectTask.create, 0),
+    ).toMatchObject({
       title: 'Task',
       status: 'PENDING',
       priority: 'MEDIUM',
@@ -60,14 +69,18 @@ describe('ProjectsService tasks', () => {
   // A status flick on the board sends only `status`; it must not blank the rest.
   it('writes only the fields supplied', async () => {
     await service.updateTask('task-1', { status: 'IN_PROGRESS' });
-    expect(prisma.projectTask.update.mock.calls[0][0].data).toEqual({
+    expect(
+      dataOf<Record<string, unknown>>(prisma.projectTask.update, 0),
+    ).toEqual({
       status: 'IN_PROGRESS',
     });
   });
 
   it('clears an assignee when explicitly blanked', async () => {
     await service.updateTask('task-1', { assignee: '   ' });
-    expect(prisma.projectTask.update.mock.calls[0][0].data).toEqual({
+    expect(
+      dataOf<Record<string, unknown>>(prisma.projectTask.update, 0),
+    ).toEqual({
       assignee: null,
     });
   });
@@ -87,7 +100,9 @@ describe('ProjectsService tasks', () => {
       projectId: 'proj-1',
       status: 'COMPLETED',
     });
-    expect(prisma.projectTask.findMany.mock.calls[0][0].where).toEqual({
+    expect(
+      callArg<Record<string, unknown>>(prisma.projectTask.findMany, 0).where,
+    ).toEqual({
       projectId: 'proj-1',
       status: 'COMPLETED',
     });

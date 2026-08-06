@@ -74,13 +74,37 @@ export class ClinicalEncountersService {
     });
   }
 
+  /**
+   * Puts a clinician on a patient's caseload.
+   *
+   * `assignedBy` used to be accepted and then dropped on the floor: the
+   * PatientAssignment row has no column for it, so there was no record of who
+   * granted the access. It is written to the audit log instead, in the same
+   * transaction, because an assignment is what widens a clinician's PHI scope.
+   */
   async assignPatient(data: AssignPatientDto, assignedBy: string) {
-    return this.prisma.patientAssignment.create({
-      data: {
-        participantId: data.participantId,
-        clinicianId: data.clinicianId,
-        status: 'ACTIVE',
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const assignment = await tx.patientAssignment.create({
+        data: {
+          participantId: data.participantId,
+          clinicianId: data.clinicianId,
+          status: 'ACTIVE',
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          action: 'ASSIGN_PATIENT',
+          userId: assignedBy,
+          newData: JSON.stringify({
+            participantId: data.participantId,
+            clinicianId: data.clinicianId,
+            assignmentId: assignment.id,
+          }),
+        },
+      });
+
+      return assignment;
     });
   }
 

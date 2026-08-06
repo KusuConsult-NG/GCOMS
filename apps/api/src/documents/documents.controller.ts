@@ -1,4 +1,3 @@
-import { CreateDocumentRecordDto } from './dto/create-document-record.dto';
 import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Controller,

@@ -1,3 +1,5 @@
+import type { User as PrismaUser } from '@prisma/client';
+
 /**
  * The request as it looks after JwtAuthGuard has run.
  *
@@ -19,6 +21,26 @@ export interface AuthUser {
   role: string;
 }
 
+/**
+ * The full account, minus the password hash.
+ *
+ * LocalStrategy attaches this on the login route, and it is what the login
+ * response returns — the web client reads firstName and lastName from it for
+ * the signed-in user's name. Narrowing it to AuthUser would compile fine and
+ * blank the name in the sidebar.
+ */
+export type SanitisedUser = Omit<PrismaUser, 'password'>;
+
 export interface AuthenticatedRequest {
   user: AuthUser;
+}
+
+/**
+ * The login route only. LocalStrategy attaches the full account there, whereas
+ * every other route is behind JwtAuthGuard and gets the three claims above.
+ * Distinguishing the two is what keeps `req.user.firstName` from type-checking
+ * on routes where it does not exist.
+ */
+export interface LoginRequest {
+  user: SanitisedUser;
 }

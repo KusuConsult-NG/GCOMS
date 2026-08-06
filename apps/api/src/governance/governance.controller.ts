@@ -1,4 +1,3 @@
-import { ScheduleMeetingDto } from './dto/schedule-meeting.dto';
 import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Controller,

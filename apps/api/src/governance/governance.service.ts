@@ -1,4 +1,4 @@
-import { ScheduleMeetingDto } from './dto/schedule-meeting.dto';
+import { CreateGovernanceMeetingDto } from './dto/create-governance-meeting.dto';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConflictException, NotFoundException } from '@nestjs/common';
@@ -12,7 +12,7 @@ import {
 export class GovernanceService {
   constructor(private prisma: PrismaService) {}
 
-  async scheduleMeeting(data: ScheduleMeetingDto, userId: string) {
+  async scheduleMeeting(data: CreateGovernanceMeetingDto, userId: string) {
     return this.prisma.governanceMeeting.create({
       data: {
         title: data.title,

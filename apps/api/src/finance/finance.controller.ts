@@ -3,7 +3,6 @@ import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   ParseUUIDPipe,

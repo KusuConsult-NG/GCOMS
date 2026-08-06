@@ -1,3 +1,4 @@
+import { dataOf } from '../testing/mock-args';
 import {
   ConflictException,
   ForbiddenException,
@@ -20,9 +21,14 @@ function prismaMock() {
       findMany: jest.fn().mockResolvedValue([]),
       create: jest
         .fn()
-        .mockImplementation(({ data }) => ({ id: 'new', ...data })),
+        .mockImplementation(({ data }: { data: Record<string, unknown> }) => ({
+          id: 'new',
+          ...data,
+        })),
     },
-    $transaction: jest.fn().mockImplementation((fn) => fn(tx)),
+    $transaction: jest
+      .fn()
+      .mockImplementation((fn: (client: unknown) => unknown) => fn(tx)),
   };
 }
 
@@ -53,7 +59,9 @@ describe('UsersService', () => {
 
     it('normalises the email and trims names', async () => {
       await service.createUser({ ...newUser, role: 'CLINICIAN' }, 'EXECUTIVE');
-      expect(prisma.user.create.mock.calls[0][0].data).toMatchObject({
+      expect(
+        dataOf<Record<string, unknown>>(prisma.user.create, 0),
+      ).toMatchObject({
         email: 'new.person@gcoms.org',
         firstName: 'Ada',
         lastName: 'Nwosu',
@@ -63,7 +71,10 @@ describe('UsersService', () => {
 
     it('hashes the password rather than storing it', async () => {
       await service.createUser({ ...newUser }, 'EXECUTIVE');
-      const stored = prisma.user.create.mock.calls[0][0].data.password;
+      const stored = dataOf<{ password: string }>(
+        prisma.user.create,
+        0,
+      ).password;
       expect(stored).not.toBe(newUser.password);
       await expect(bcrypt.compare(newUser.password, stored)).resolves.toBe(
         true,
@@ -72,7 +83,7 @@ describe('UsersService', () => {
 
     it('falls back to the default role when none is given', async () => {
       await service.createUser({ ...newUser }, 'EXECUTIVE');
-      expect(prisma.user.create.mock.calls[0][0].data.role).toBe(
+      expect(dataOf<{ role: string }>(prisma.user.create, 0).role).toBe(
         'COMMUNITY_HEALTH_WORKER',
       );
     });
@@ -143,11 +154,20 @@ describe('UsersService', () => {
       await service.updateRole('target', { role: 'CLINICIAN' }, EXEC);
       expect(prisma.$transaction).toHaveBeenCalled();
       expect(prisma.tx.user.update).toHaveBeenCalled();
-      const audit = prisma.tx.auditLog.create.mock.calls[0][0].data;
+      const audit = dataOf<{
+        action: string;
+        userId: string;
+        oldData: string;
+        newData: string;
+      }>(prisma.tx.auditLog.create, 0);
       expect(audit.action).toBe('USER_ROLE_CHANGED');
       expect(audit.userId).toBe(EXEC.id);
-      expect(JSON.parse(audit.oldData).role).toBe('VOLUNTEER');
-      expect(JSON.parse(audit.newData).role).toBe('CLINICIAN');
+      expect((JSON.parse(audit.oldData) as Record<string, unknown>).role).toBe(
+        'VOLUNTEER',
+      );
+      expect((JSON.parse(audit.newData) as Record<string, unknown>).role).toBe(
+        'CLINICIAN',
+      );
     });
 
     it('does not audit a no-op', async () => {
@@ -179,9 +199,16 @@ describe('UsersService', () => {
 
     it('audits a real change', async () => {
       await service.updateStatus('target', { isActive: false }, EXEC);
-      const audit = prisma.tx.auditLog.create.mock.calls[0][0].data;
+      const audit = dataOf<{
+        action: string;
+        userId: string;
+        oldData: string;
+        newData: string;
+      }>(prisma.tx.auditLog.create, 0);
       expect(audit.action).toBe('USER_STATUS_CHANGED');
-      expect(JSON.parse(audit.newData).isActive).toBe(false);
+      expect(
+        (JSON.parse(audit.newData) as Record<string, unknown>).isActive,
+      ).toBe(false);
     });
 
     it('does not audit a no-op', async () => {

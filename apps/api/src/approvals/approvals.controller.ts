@@ -9,7 +9,6 @@ import {
   Param,
   UseGuards,
   Request,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { ApprovalsService } from './approvals.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';

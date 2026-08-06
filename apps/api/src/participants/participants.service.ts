@@ -86,7 +86,15 @@ export class ParticipantsService {
         ) {
           throw error;
         }
-        const target = String(error.meta?.target ?? '');
+        // meta.target is string | string[] depending on the driver, so
+        // String() on the array form yields a comma-joined list and on an
+        // object form would yield "[object Object]".
+        const rawTarget = error.meta?.target;
+        const target = Array.isArray(rawTarget)
+          ? rawTarget.join(',')
+          : typeof rawTarget === 'string'
+            ? rawTarget
+            : '';
         if (target.includes('nationalId')) {
           throw new ConflictException(
             'A participant with this National ID already exists',

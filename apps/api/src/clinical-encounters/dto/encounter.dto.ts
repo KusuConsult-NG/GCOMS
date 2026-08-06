@@ -16,3 +16,7 @@ export class AssignPatientDto {
   @IsUUID() participantId: string;
   @IsUUID() clinicianId: string;
 }
+
+export class EditEncounterDto {
+  @IsString() @MinLength(1) @MaxLength(5000) notes: string;
+}

@@ -1,3 +1,5 @@
+import type { AuthUser } from './authenticated-request';
+import type { JwtPayload } from './jwt-payload';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
@@ -16,7 +18,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any) {
+  // Not async: there is nothing to await, and Passport accepts a plain value.
+  validate(payload: JwtPayload): AuthUser {
     return { id: payload.sub, email: payload.email, role: payload.role };
   }
 }

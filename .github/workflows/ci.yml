@@ -39,12 +39,10 @@ jobs:
         continue-on-error: true
       - name: Build
         run: npm run build
-      - name: Test
-        # 52 of 55 suites are unmodified Nest scaffolding that cannot resolve
-        # their dependencies. Flip this to a hard failure once they are rewritten
-        # — until then a green tick here would be misleading either way.
+      - name: Unit tests
         run: npx jest --ci
-        continue-on-error: true
+      - name: End-to-end tests
+        run: npx jest --ci --config ./test/jest-e2e.json
       - name: Smoke test the built server
         run: |
           node dist/main &

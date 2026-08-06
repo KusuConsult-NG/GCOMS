@@ -11,14 +11,14 @@ export class ResearchService {
 
   async createProject(title: string) {
     return this.prisma.researchProject.create({
-      data: { title }
+      data: { title },
     });
   }
 
   async updateProgress(id: string, progress: number) {
     return this.prisma.researchProject.update({
       where: { id },
-      data: { progress }
+      data: { progress },
     });
   }
 }

@@ -11,7 +11,7 @@ export class SystemAdminService {
     return this.prisma.systemConfig.upsert({
       where: { key },
       update: { value },
-      create: { key, value }
+      create: { key, value },
     });
   }
 
@@ -36,9 +36,16 @@ export class SystemAdminService {
       take: Math.min(query.limit ?? 100, 500),
       skip: query.offset ?? 0,
       include: {
-        user: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
       },
     });
   }
-
 }

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { money } from '../common/money';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
@@ -72,11 +73,11 @@ export class ProcurementService {
     return {
       committed: {
         count: approved._count,
-        amount: approved._sum.estimatedCost ?? 0,
+        amount: money(approved._sum.estimatedCost),
       },
       awaitingApproval: {
         count: pending._count,
-        amount: pending._sum.estimatedCost ?? 0,
+        amount: money(pending._sum.estimatedCost),
       },
     };
   }

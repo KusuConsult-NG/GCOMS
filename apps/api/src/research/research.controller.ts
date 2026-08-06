@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { ResearchService } from './research.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -22,7 +31,10 @@ export class ResearchController {
 
   @Patch('projects/:id/progress')
   @Roles('EXECUTIVE', 'RESEARCH_OFFICER', 'SYSTEM_ADMIN')
-  async updateProgress(@Param('id') id: string, @Body() body: { progress: number }) {
+  async updateProgress(
+    @Param('id') id: string,
+    @Body() body: { progress: number },
+  ) {
     return this.researchService.updateProgress(id, body.progress);
   }
 }

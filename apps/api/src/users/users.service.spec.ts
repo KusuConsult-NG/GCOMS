@@ -1,4 +1,8 @@
-import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -14,7 +18,9 @@ function prismaMock() {
     user: {
       findUnique: jest.fn(),
       findMany: jest.fn().mockResolvedValue([]),
-      create: jest.fn().mockImplementation(({ data }) => ({ id: 'new', ...data })),
+      create: jest
+        .fn()
+        .mockImplementation(({ data }) => ({ id: 'new', ...data })),
     },
     $transaction: jest.fn().mockImplementation((fn) => fn(tx)),
   };
@@ -59,7 +65,9 @@ describe('UsersService', () => {
       await service.createUser({ ...newUser }, 'EXECUTIVE');
       const stored = prisma.user.create.mock.calls[0][0].data.password;
       expect(stored).not.toBe(newUser.password);
-      await expect(bcrypt.compare(newUser.password, stored)).resolves.toBe(true);
+      await expect(bcrypt.compare(newUser.password, stored)).resolves.toBe(
+        true,
+      );
     });
 
     it('falls back to the default role when none is given', async () => {
@@ -95,9 +103,9 @@ describe('UsersService', () => {
 
     it('rejects a duplicate email', async () => {
       prisma.user.findUnique.mockResolvedValue({ id: 'existing' });
-      await expect(service.createUser({ ...newUser }, EXEC.role)).rejects.toBeInstanceOf(
-        ConflictException,
-      );
+      await expect(
+        service.createUser({ ...newUser }, EXEC.role),
+      ).rejects.toBeInstanceOf(ConflictException);
     });
   });
 

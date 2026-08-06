@@ -1,16 +1,6 @@
 import {
+  Body,
   Controller,
-  Post,
-  Get,
-  Body,
-  UseGuards,
-  Request,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { HrService } from './hr.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import {
-  Body,
   Delete,
   Get,
   Param,
@@ -18,7 +8,12 @@ import {
   Patch,
   Post,
   Query,
+  Request,
+  UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
+import { HrService } from './hr.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { HR_READ_ROLES, HR_WRITE_ROLES } from '../auth/roles.constants';

@@ -5,6 +5,6 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Module({
   providers: [OutreachService, PrismaService],
-  controllers: [OutreachController]
+  controllers: [OutreachController],
 })
 export class OutreachModule {}

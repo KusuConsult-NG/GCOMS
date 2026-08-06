@@ -20,7 +20,10 @@ describe('PhiAccessService', () => {
   beforeEach(async () => {
     prisma = prismaMock();
     const module = await Test.createTestingModule({
-      providers: [PhiAccessService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        PhiAccessService,
+        { provide: PrismaService, useValue: prisma },
+      ],
     }).compile();
     service = module.get(PhiAccessService);
   });
@@ -42,7 +45,9 @@ describe('PhiAccessService', () => {
     it('treats an unknown role as scoped rather than unrestricted', () => {
       // Fail closed: a role added to the schema but not to PHI_UNSCOPED_ROLES
       // must not accidentally see every patient.
-      expect(service.participantScope({ id: 'x', role: 'NEW_ROLE' })).toBeDefined();
+      expect(
+        service.participantScope({ id: 'x', role: 'NEW_ROLE' }),
+      ).toBeDefined();
     });
   });
 
@@ -66,7 +71,11 @@ describe('PhiAccessService', () => {
       prisma.participant.findUnique.mockResolvedValue({ id: 'p2' });
 
       await expect(
-        service.assertParticipantAccess(CLINICIAN, 'p2', 'GET /participants/:id'),
+        service.assertParticipantAccess(
+          CLINICIAN,
+          'p2',
+          'GET /participants/:id',
+        ),
       ).resolves.toBeUndefined();
 
       expect(prisma.auditLog.create).toHaveBeenCalledTimes(1);

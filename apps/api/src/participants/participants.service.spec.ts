@@ -32,7 +32,9 @@ describe('ParticipantsService', () => {
   beforeEach(async () => {
     prisma = {
       participant: {
-        create: jest.fn().mockImplementation(({ data }) => ({ id: 'p1', ...data })),
+        create: jest
+          .fn()
+          .mockImplementation(({ data }) => ({ id: 'p1', ...data })),
         findMany: jest.fn().mockResolvedValue([]),
         findUnique: jest.fn(),
       },
@@ -58,9 +60,9 @@ describe('ParticipantsService', () => {
         { ...VALID, registrationId: 'GC-HACKED' } as never,
         VOLUNTEER.id,
       );
-      expect(prisma.participant.create.mock.calls[0][0].data.registrationId).toMatch(
-        /^GC-\d{4}-[0-9A-HJKMNP-TV-Z]{6}$/,
-      );
+      expect(
+        prisma.participant.create.mock.calls[0][0].data.registrationId,
+      ).toMatch(/^GC-\d{4}-[0-9A-HJKMNP-TV-Z]{6}$/);
     });
 
     it('takes registeredById from the caller, not the body', async () => {
@@ -68,9 +70,9 @@ describe('ParticipantsService', () => {
         { ...VALID, registeredById: 'someone-else' } as never,
         VOLUNTEER.id,
       );
-      expect(prisma.participant.create.mock.calls[0][0].data.registeredById).toBe(
-        VOLUNTEER.id,
-      );
+      expect(
+        prisma.participant.create.mock.calls[0][0].data.registeredById,
+      ).toBe(VOLUNTEER.id);
     });
 
     // The old client-side scheme used the last six digits of a timestamp, which
@@ -84,8 +86,9 @@ describe('ParticipantsService', () => {
     });
 
     it('omits characters that are easy to misread by hand', async () => {
-      const ids = Array.from({ length: 200 }, () =>
-        service['generateRegistrationId']().split('-')[2],
+      const ids = Array.from(
+        { length: 200 },
+        () => service['generateRegistrationId']().split('-')[2],
       ).join('');
       expect(ids).not.toMatch(/[ILOU]/);
     });
@@ -95,12 +98,16 @@ describe('ParticipantsService', () => {
         .mockRejectedValueOnce(uniqueViolation('registrationId'))
         .mockImplementationOnce(({ data }) => ({ id: 'p1', ...data }));
 
-      await expect(service.create({ ...VALID }, VOLUNTEER.id)).resolves.toBeDefined();
+      await expect(
+        service.create({ ...VALID }, VOLUNTEER.id),
+      ).resolves.toBeDefined();
       expect(prisma.participant.create).toHaveBeenCalledTimes(2);
     });
 
     it('reports a duplicate national id as a conflict instead of retrying', async () => {
-      prisma.participant.create.mockRejectedValue(uniqueViolation('nationalId'));
+      prisma.participant.create.mockRejectedValue(
+        uniqueViolation('nationalId'),
+      );
 
       await expect(
         service.create({ ...VALID, nationalId: 'NIN-1' }, VOLUNTEER.id),
@@ -143,7 +150,9 @@ describe('ParticipantsService', () => {
 
   describe('findAll', () => {
     it('applies the caller scope so a list cannot leak other caseloads', async () => {
-      phi.participantScope.mockReturnValue({ OR: [{ registeredById: 'vol-1' }] });
+      phi.participantScope.mockReturnValue({
+        OR: [{ registeredById: 'vol-1' }],
+      });
       await service.findAll(VOLUNTEER);
       expect(prisma.participant.findMany.mock.calls[0][0].where).toMatchObject({
         OR: [{ registeredById: 'vol-1' }],
@@ -152,7 +161,9 @@ describe('ParticipantsService', () => {
 
     // Searching must not become a way around the scope.
     it('keeps the scope when a search term is supplied', async () => {
-      phi.participantScope.mockReturnValue({ OR: [{ registeredById: 'vol-1' }] });
+      phi.participantScope.mockReturnValue({
+        OR: [{ registeredById: 'vol-1' }],
+      });
       await service.findAll(VOLUNTEER, 'grace');
       const where = prisma.participant.findMany.mock.calls[0][0].where;
       expect(where.OR).toBeDefined();
@@ -167,7 +178,9 @@ describe('ParticipantsService', () => {
 
     it('bounds the result set', async () => {
       await service.findAll(VOLUNTEER);
-      expect(prisma.participant.findMany.mock.calls[0][0].take).toBeGreaterThan(0);
+      expect(prisma.participant.findMany.mock.calls[0][0].take).toBeGreaterThan(
+        0,
+      );
     });
   });
 

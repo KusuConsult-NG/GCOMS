@@ -1,8 +1,4 @@
-import {
-  DEFAULT_LIST_LIMIT,
-  MAX_LIST_LIMIT,
-  paginate,
-} from './pagination';
+import { DEFAULT_LIST_LIMIT, MAX_LIST_LIMIT, paginate } from './pagination';
 
 describe('paginate', () => {
   it('applies a default cap when nothing is requested', () => {
@@ -17,7 +13,9 @@ describe('paginate', () => {
   });
 
   it('never exceeds the hard ceiling', () => {
-    expect(paginate({ limit: MAX_LIST_LIMIT + 5000 }).take).toBe(MAX_LIST_LIMIT);
+    expect(paginate({ limit: MAX_LIST_LIMIT + 5000 }).take).toBe(
+      MAX_LIST_LIMIT,
+    );
   });
 
   it('treats a missing offset as the first page', () => {

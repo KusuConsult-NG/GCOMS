@@ -1,9 +1,20 @@
-import { Controller, Post, Get, Patch, Param, Body, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Param,
+  Body,
+  UseGuards,
+} from '@nestjs/common';
 import { StrategyService } from './strategy.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { CreateStrategicGoalDto, UpdateStrategicGoalDto } from './dto/strategy.dto';
+import {
+  CreateStrategicGoalDto,
+  UpdateStrategicGoalDto,
+} from './dto/strategy.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('strategy')

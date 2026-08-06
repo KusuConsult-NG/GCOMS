@@ -37,6 +37,12 @@ jobs:
         # The repo has a large pre-existing lint backlog; failing the build on it
         # would block every PR. Remove this once the backlog is cleared.
         continue-on-error: true
+      - name: Typecheck
+        # `npm run build` uses tsconfig.build.json, which excludes the specs.
+        # This covers the whole project. It is a hard gate: ts-jest runs with
+        # isolatedModules, so it transpiles without type-checking and a tree
+        # that does not compile can still show 169 passing tests.
+        run: npm run typecheck
       - name: Build
         run: npm run build
       - name: Unit tests

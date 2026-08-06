@@ -15,4 +15,3 @@ export class AnalyticsController {
     return this.analyticsService.getSummary();
   }
 }
-

@@ -1,4 +1,11 @@
-import { Controller, Post, Get, Body, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { SystemAdminService } from './system-admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -21,6 +28,4 @@ export class SystemAdminController {
   getConfigs(@Request() req: any) {
     return this.systemAdminService.getConfigs();
   }
-
-
 }

@@ -1,12 +1,15 @@
 import {
-  Controller,
-  Post,
-  Get,
-  Patch,
-  Param,
   Body,
-  UseGuards,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
   Request,
+  UseGuards,
 } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -16,16 +19,6 @@ import {
   CreateInventoryItemDto,
   UpdateInventoryItemDto,
 } from './dto/inventory.dto';
-import {
-  Body,
-  Delete,
-  Get,
-  Param,
-  ParseUUIDPipe,
-  Patch,
-  Post,
-  Query,
-} from '@nestjs/common';
 import {
   INVENTORY_READ_ROLES,
   INVENTORY_WRITE_ROLES,

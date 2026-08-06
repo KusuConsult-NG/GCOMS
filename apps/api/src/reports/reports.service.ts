@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { money, sumBy } from '../common/money';
 
 @Injectable()
 export class ReportsService {
@@ -26,7 +27,9 @@ export class ReportsService {
       this.prisma.community.count(),
     ]);
 
-    const positiveScreenings = allScreenings.filter(s => s.result && s.result.toLowerCase().includes('positive')).length;
+    const positiveScreenings = allScreenings.filter(
+      (s) => s.result && s.result.toLowerCase().includes('positive'),
+    ).length;
 
     return {
       generatedAt: new Date(),
@@ -49,7 +52,13 @@ export class ReportsService {
     const screenings = await this.prisma.screening.findMany({
       include: {
         participant: {
-          select: { firstName: true, lastName: true, registrationId: true, nationalId: true, gender: true },
+          select: {
+            firstName: true,
+            lastName: true,
+            registrationId: true,
+            nationalId: true,
+            gender: true,
+          },
         },
         conductedBy: {
           select: { firstName: true, lastName: true },
@@ -58,15 +67,18 @@ export class ReportsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return screenings.map(s => ({
+    return screenings.map((s) => ({
       ID: s.id,
       CancerType: s.cancerType,
       Result: s.result,
       RiskScore: s.riskScore,
-      Participant: `${s.participant?.firstName || ''} ${s.participant?.lastName || ''}`.trim(),
+      Participant:
+        `${s.participant?.firstName || ''} ${s.participant?.lastName || ''}`.trim(),
       NationalID: s.participant?.nationalId || '',
       Gender: s.participant?.gender || '',
-      ConductedBy: s.conductedBy ? `${s.conductedBy.firstName} ${s.conductedBy.lastName}` : 'N/A',
+      ConductedBy: s.conductedBy
+        ? `${s.conductedBy.firstName} ${s.conductedBy.lastName}`
+        : 'N/A',
       Date: s.createdAt,
     }));
   }
@@ -75,7 +87,9 @@ export class ReportsService {
     return this.prisma.participant.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
-        screenings: { select: { cancerType: true, result: true, createdAt: true } },
+        screenings: {
+          select: { cancerType: true, result: true, createdAt: true },
+        },
         referrals: { select: { referredTo: true, status: true } },
         navigationEvents: { select: { eventType: true, date: true } },
       },
@@ -86,20 +100,25 @@ export class ReportsService {
     const [income, expenses, grants] = await Promise.all([
       this.prisma.financeTransaction.findMany({ where: { type: 'INCOME' } }),
       this.prisma.financeTransaction.findMany({ where: { type: 'EXPENSE' } }),
-      this.prisma.grant.findMany({ select: { grantName: true, amount: true, status: true } }),
+      this.prisma.grant.findMany({
+        select: { grantName: true, amount: true, status: true },
+      }),
     ]);
 
-    const totalIncome = income.reduce((s, t) => s + t.amount, 0);
-    const totalExpenses = expenses.reduce((s, t) => s + t.amount, 0);
-    const totalGrantFunding = grants.reduce((s, g) => s + (g.amount || 0), 0);
+    const income$ = sumBy(income, (t) => t.amount);
+    const expenses$ = sumBy(expenses, (t) => t.amount);
+    const totalIncome = money(income$);
+    const totalExpenses = money(expenses$);
+    const totalGrantFunding = money(sumBy(grants, (g) => g.amount));
 
     return {
       totalIncome,
       totalExpenses,
-      netBalance: totalIncome - totalExpenses,
+      netBalance: money(income$.sub(expenses$)),
       totalGrantFunding,
-      transactions: [...income, ...expenses].sort((a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      transactions: [...income, ...expenses].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       ),
       grants,
     };

@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Put, Body, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import { VolunteersService } from './volunteers.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -16,12 +24,17 @@ export class VolunteersController {
 
   @Post('tasks')
   @Roles('EXECUTIVE', 'FIELD_OFFICER', 'ADMIN')
-  async assignTask(@Body() body: { outreachId: string; volunteerId: string; title: string }) {
+  async assignTask(
+    @Body() body: { outreachId: string; volunteerId: string; title: string },
+  ) {
     return this.volunteersService.assignTask(body);
   }
 
   @Put('tasks/:taskId/hours')
-  async logHours(@Param('taskId') taskId: string, @Body() body: { hours: number }) {
+  async logHours(
+    @Param('taskId') taskId: string,
+    @Body() body: { hours: number },
+  ) {
     return this.volunteersService.logHours(taskId, body.hours);
   }
 }

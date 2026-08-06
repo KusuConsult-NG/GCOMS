@@ -46,7 +46,11 @@ describe('validateEnv', () => {
   describe('a placeholder secret', () => {
     it('aborts startup in production', () => {
       expect(() =>
-        validateEnv({ ...base, JWT_SECRET: PLACEHOLDER, NODE_ENV: 'production' }),
+        validateEnv({
+          ...base,
+          JWT_SECRET: PLACEHOLDER,
+          NODE_ENV: 'production',
+        }),
       ).toThrow(/placeholder value/);
     });
 
@@ -61,12 +65,18 @@ describe('validateEnv', () => {
   describe('a short secret', () => {
     it('aborts startup in production', () => {
       expect(() =>
-        validateEnv({ ...base, JWT_SECRET: 'tooshort', NODE_ENV: 'production' }),
+        validateEnv({
+          ...base,
+          JWT_SECRET: 'tooshort',
+          NODE_ENV: 'production',
+        }),
       ).toThrow(/below the 32/);
     });
 
     it('only warns outside production', () => {
-      expect(() => validateEnv({ ...base, JWT_SECRET: 'tooshort' })).not.toThrow();
+      expect(() =>
+        validateEnv({ ...base, JWT_SECRET: 'tooshort' }),
+      ).not.toThrow();
       expect(warn).toHaveBeenCalled();
     });
   });

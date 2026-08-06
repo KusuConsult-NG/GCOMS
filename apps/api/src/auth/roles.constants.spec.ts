@@ -125,19 +125,19 @@ describe('role constants', () => {
     // follows up; a prognosis and an investigation recommendation are
     // diagnostic conclusions.
     it('excludes NURSE from diagnostic acts', () => {
-      expect(CLINICAL_ROLES).toContain('NURSE' as Role);
-      expect(DIAGNOSING_ROLES).not.toContain('NURSE' as Role);
+      expect(CLINICAL_ROLES).toContain('NURSE');
+      expect(DIAGNOSING_ROLES).not.toContain('NURSE');
     });
 
     it('keeps DOCTOR able to do both', () => {
-      expect(CLINICAL_ROLES).toContain('DOCTOR' as Role);
-      expect(DIAGNOSING_ROLES).toContain('DOCTOR' as Role);
+      expect(CLINICAL_ROLES).toContain('DOCTOR');
+      expect(DIAGNOSING_ROLES).toContain('DOCTOR');
     });
 
     // CLINICIAN predates the split. Narrowing it would silently strip
     // permissions from every existing clinical account.
     it('leaves the legacy CLINICIAN role doctor-equivalent', () => {
-      expect(DIAGNOSING_ROLES).toContain('CLINICIAN' as Role);
+      expect(DIAGNOSING_ROLES).toContain('CLINICIAN');
     });
 
     it('scopes every clinical role to its own caseload', () => {

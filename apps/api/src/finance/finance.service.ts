@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
 import { NotificationsService } from '../notifications/notifications.service';
+import { money, toDecimal } from '../common/money';
 import {
   CreateReconciliationDto,
   UpdateReconciliationDto,
@@ -71,15 +72,15 @@ export class FinanceService {
         where: { status: 'PENDING' },
       }),
     ]);
-    const totalIncome = income._sum.amount ?? 0;
-    const totalExpense = expense._sum.amount ?? 0;
+    const totalIncome = toDecimal(income._sum.amount);
+    const totalExpense = toDecimal(expense._sum.amount);
     return {
-      approvedIncome: totalIncome,
-      approvedExpense: totalExpense,
-      netPosition: totalIncome - totalExpense,
+      approvedIncome: money(totalIncome),
+      approvedExpense: money(totalExpense),
+      netPosition: money(totalIncome.sub(totalExpense)),
       awaitingApproval: {
         count: pending._count,
-        amount: pending._sum.amount ?? 0,
+        amount: money(pending._sum.amount),
       },
     };
   }

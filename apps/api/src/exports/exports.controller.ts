@@ -31,7 +31,12 @@ export class ExportsController {
 
     ...rest: any[]
   ) {
-    const req = res.req as { user: { id: string; role: string } };
+    // JwtAuthGuard puts the authenticated user on the request, but Express's
+    // own `Request.user` type comes from passport and does not describe our
+    // payload — so the two types do not overlap and a direct cast is rejected.
+    // Going via `unknown` is the narrowing TypeScript asks for here; the shape
+    // is guaranteed by the guard on this controller, not by the cast.
+    const req = res.req as unknown as { user: { id: string; role: string } };
     const csv = await this.exports.build(dataset, req.user, { status });
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader(

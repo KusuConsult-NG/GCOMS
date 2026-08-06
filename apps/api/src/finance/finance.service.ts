@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   CreateReconciliationDto,
   UpdateReconciliationDto,
@@ -8,10 +9,13 @@ import {
 
 @Injectable()
 export class FinanceService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async createTransaction(data: any, userId: string) {
-    return this.prisma.$transaction(async (prisma) => {
+    const created = await this.prisma.$transaction(async (prisma) => {
       // 1. Create FinanceTransaction
       const transaction = await prisma.financeTransaction.create({
         data: {
@@ -36,6 +40,13 @@ export class FinanceService {
 
       return transaction;
     });
+
+    // Reaches the people who can actually resolve it.
+    await this.notifications.notifyApprovers(
+      `Finance ${data.type}: ${data.category}`,
+      `Amount: ${data.amount} — ${data.description}`,
+    );
+    return created;
   }
 
   /**

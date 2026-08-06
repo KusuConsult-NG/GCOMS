@@ -32,6 +32,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { PhiModule } from './phi/phi.module';
 import { HealthModule } from './health/health.module';
 import { OperationsModule } from './operations/operations.module';
+import { ExportsModule } from './exports/exports.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { ParticipantsModule } from './participants/participants.module';
@@ -106,6 +107,7 @@ import { SchedulerModule } from './scheduler/scheduler.module';
     PhiModule,
     HealthModule,
     OperationsModule,
+    ExportsModule,
     UsersModule,
     AuthModule,
     ParticipantsModule,

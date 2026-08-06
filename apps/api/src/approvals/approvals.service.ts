@@ -26,11 +26,19 @@ export class ApprovalsService {
       },
     });
 
-    await this.notifications.sendEmail(
-      'executives@gcoms.org',
-      `New Approval Request: ${request.title}`,
-      `A new request requires your approval. Description: ${request.description}`,
-    );
+    // Was hardcoded to executives@gcoms.org, an address no account owns, so no
+    // approver was ever reachable. Notify the real approvers instead.
+    const approvers = await this.prisma.user.findMany({
+      where: { role: { in: [...APPROVER_ROLES] }, isActive: true },
+      select: { email: true },
+    });
+    for (const approver of approvers) {
+      await this.notifications.sendEmail(
+        approver.email,
+        `New Approval Request: ${request.title}`,
+        `A new request requires your approval. Description: ${request.description}`,
+      );
+    }
 
     return request;
   }

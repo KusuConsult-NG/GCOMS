@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ProcurementService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async createOrder(data: any, userId: string) {
-    return this.prisma.$transaction(async (prisma) => {
+    const created = await this.prisma.$transaction(async (prisma) => {
       // 1. Create ProcurementOrder
       const order = await prisma.procurementOrder.create({
         data: {
@@ -31,6 +35,13 @@ export class ProcurementService {
 
       return order;
     });
+
+    // Reaches the people who can actually resolve it.
+    await this.notifications.notifyApprovers(
+      `Procurement: ${data.itemName}`,
+      `Qty ${data.quantity} from ${data.vendor}`,
+    );
+    return created;
   }
 
   async getOrders() {

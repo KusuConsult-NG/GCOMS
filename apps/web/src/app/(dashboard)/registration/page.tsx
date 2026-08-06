@@ -67,6 +67,7 @@ type RegistrationConfirmation = {
   const [registeredPatient, setRegisteredPatient] =
     useState<RegistrationConfirmation | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsError, setGpsError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -78,25 +79,44 @@ type RegistrationConfirmation = {
     }
   };
 
+  /**
+   * A failed fix leaves the field empty and says why. It used to fill in the
+   * Barkin Ladi base coordinates instead, so declining the permission prompt
+   * produced a registration stamped with a location it was never taken at —
+   * indistinguishable downstream from a real one. The column is nullable, so no
+   * location is a supported record rather than a blocked one.
+   */
   const handleCaptureGps = () => {
-    setGpsLoading(true);
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const coords = `${position.coords.latitude.toFixed(4)}° N, ${position.coords.longitude.toFixed(4)}° E`;
-          setFormData(prev => ({ ...prev, gpsCoordinates: coords }));
-          setGpsLoading(false);
-        },
-        () => {
-          // Fallback if permission denied
-          setFormData(prev => ({ ...prev, gpsCoordinates: '9.8965° N, 8.8583° E (Barkin Ladi Field Base)' }));
-          setGpsLoading(false);
-        }
-      );
-    } else {
-      setFormData(prev => ({ ...prev, gpsCoordinates: '9.8965° N, 8.8583° E (Barkin Ladi Field Base)' }));
-      setGpsLoading(false);
+    if (!('geolocation' in navigator)) {
+      setFormData(prev => ({ ...prev, gpsCoordinates: '' }));
+      setGpsError('This device offers no location service. The registration can be saved without one.');
+      return;
     }
+
+    setGpsLoading(true);
+    setGpsError('');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coords = `${position.coords.latitude.toFixed(4)}° N, ${position.coords.longitude.toFixed(4)}° E`;
+        setFormData(prev => ({ ...prev, gpsCoordinates: coords }));
+        setGpsError('');
+        setGpsLoading(false);
+      },
+      (error) => {
+        const reason =
+          error.code === error.PERMISSION_DENIED
+            ? 'Location permission was declined.'
+            : error.code === error.TIMEOUT
+              ? 'Timed out before a fix was found.'
+              : 'No location fix available here.';
+        setFormData(prev => ({ ...prev, gpsCoordinates: '' }));
+        setGpsError(`${reason} You can save the registration without coordinates, or retry.`);
+        setGpsLoading(false);
+      },
+      // Without a timeout the request can hang indefinitely, which left the
+      // button reading "Capturing GPS Satellite Signal..." forever.
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -139,8 +159,8 @@ type RegistrationConfirmation = {
         gender: res.data.gender,
         dob: formData.dateOfBirth,
         lga: res.data.lga || formData.lga,
-        ward: res.data.ward || 'Central Ward',
-        address: res.data.address || 'LGA Health Centre',
+        ward: res.data.ward || '',
+        address: res.data.address || '',
         gps: res.data.gpsCoordinates || '',
         qrPassId: `QR-${res.data.registrationId}`,
         createdAt: new Date().toLocaleDateString(),
@@ -209,11 +229,11 @@ type RegistrationConfirmation = {
                 </div>
                 <div>
                   <p className="text-[var(--secondary-container)] text-[10px] uppercase font-semibold">Ward & Address</p>
-                  <p className="text-white text-xs">{registeredPatient.ward} • {registeredPatient.address}</p>
+                  <p className="text-white text-xs">{[registeredPatient.ward, registeredPatient.address].filter(Boolean).join(' • ') || 'Not recorded'}</p>
                 </div>
                 <div>
                   <p className="text-[var(--secondary-container)] text-[10px] uppercase font-semibold">GPS Coordinates</p>
-                  <p className="text-white font-mono text-xs">{registeredPatient.gps}</p>
+                  <p className="text-white font-mono text-xs">{registeredPatient.gps || 'Not captured'}</p>
                 </div>
               </div>
 
@@ -412,10 +432,13 @@ type RegistrationConfirmation = {
                 type="text"
                 readOnly
                 name="gpsCoordinates"
-                value={formData.gpsCoordinates || 'Click button to capture GPS location'}
+                value={formData.gpsCoordinates || (gpsError ? 'Not captured' : 'Click button to capture GPS location')}
                 className="flex-1 bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs font-mono text-[var(--on-background)]"
               />
             </div>
+            {gpsError && (
+              <p role="status" className="text-xs text-[var(--risk-high-text)] font-semibold">{gpsError}</p>
+            )}
           </div>
 
           {/* Section 4: Patient Consent Box */}

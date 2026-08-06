@@ -157,7 +157,7 @@ export function VolunteerWorkspace({ user }: { user: any }) {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Workspace Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--primary)] text-white p-5 rounded-lg border border-[var(--primary-container)] shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm">
         <div>
           <h1 className="text-2xl font-bold tracking-tight mt-1 text-white">Field Patient Intake & Patient Consent</h1>
           <p className="text-slate-300 text-xs mt-0.5">Welcome back, {user?.firstName || 'Volunteer'} {user?.lastName || ''} • Community Health Worker ID: {user?.id?.slice(0, 8) || 'VOL-001'}</p>
@@ -258,8 +258,8 @@ export function VolunteerWorkspace({ user }: { user: any }) {
 
           {/* QR IDENTITY PASS MODAL */}
           {regSuccess && (
-            <div className="p-6 bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] text-white rounded-xl border-2 border-[var(--secondary)] shadow-lg space-y-4">
-              <div className="flex justify-between items-start border-b border-[var(--primary-container)] pb-3">
+            <div className="p-6 bg-gradient-to-br from-[var(--nav-surface)] to-[var(--nav-surface)] text-white rounded-xl border-2 border-[var(--secondary)] shadow-lg space-y-4">
+              <div className="flex justify-between items-start border-b border-[var(--nav-surface-raised)] pb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white rounded flex items-center justify-center p-1">
                     <img src="/georgel-logo.png" alt="Logo" className="h-8 object-contain" />
@@ -292,7 +292,7 @@ export function VolunteerWorkspace({ user }: { user: any }) {
               </div>
 
               {/* SIMULATED HIGH-RES DIGITAL QR CODE */}
-              <div className="pt-2 border-t border-[var(--primary-container)] flex items-center justify-between">
+              <div className="pt-2 border-t border-[var(--nav-surface-raised)] flex items-center justify-between">
                 <div>
                   <p className="text-[10px] text-slate-300 font-semibold">PASS ID: <span className="font-mono text-white">{regSuccess.qrPassId}</span></p>
                   <p className="text-[9px] text-[var(--secondary-container)]">Informed Consent Verified • Scan for Clinical Record</p>

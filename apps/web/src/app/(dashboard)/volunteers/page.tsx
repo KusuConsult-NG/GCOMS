@@ -75,7 +75,7 @@ export default function VolunteersPage() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--primary)] text-white p-5 rounded-lg border border-[var(--primary-container)]">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)]">
         <div>
           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
             Field Volunteer & CHW Data Collection
@@ -90,7 +90,7 @@ export default function VolunteersPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Field Volunteer Data Collection</h2>

@@ -171,7 +171,7 @@ export function ProjectWorkspace({ user }: { user: any }) {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-[var(--primary)] text-white p-5 rounded-lg border border-[var(--primary-container)] shadow-sm">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm">
         <div>
           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
             Enterprise Project Management Software • GCOMS
@@ -212,7 +212,7 @@ export function ProjectWorkspace({ user }: { user: any }) {
 
       {/* Modals */}
       {activeModal === 'project' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Create Operational Project</h2>
@@ -247,7 +247,7 @@ export function ProjectWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'task' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4 h-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Add Task</h2>
@@ -305,7 +305,7 @@ export function ProjectWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'risk' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4 h-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Register Risk</h2>
@@ -380,7 +380,7 @@ export function ProjectWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'expense' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Record Expenditure</h2>
@@ -428,7 +428,7 @@ export function ProjectWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'change' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4 h-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Raise Change Request</h2>

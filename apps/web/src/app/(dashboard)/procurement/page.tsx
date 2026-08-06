@@ -198,7 +198,7 @@ function ProcurementPageContent() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-[var(--primary)] text-white p-5 rounded-lg border border-[var(--primary-container)] shadow-sm">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm">
         <div>
           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
             Enterprise Procurement & Supply Chain Software • GCOMS
@@ -238,7 +238,7 @@ function ProcurementPageContent() {
       {/* MODALS */}
       {/* Modal 1: Requisition */}
       {activeModal === 'requisition' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Create Purchase Requisition</h2>
@@ -276,7 +276,7 @@ function ProcurementPageContent() {
 
       {/* Modal 2: Plan */}
       {activeModal === 'plan' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Add to Annual Plan</h2>
@@ -328,7 +328,7 @@ function ProcurementPageContent() {
 
       {/* Modal 3: Vendor */}
       {activeModal === 'vendor' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Register Vendor</h2>
@@ -378,7 +378,7 @@ function ProcurementPageContent() {
 
       {/* Modal 4: Generate RFQ */}
       {activeModal === 'rfq' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Generate New RFQ</h2>
@@ -427,7 +427,7 @@ function ProcurementPageContent() {
 
       {/* Modal 5: Issue GRN */}
       {activeModal === 'grn' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Issue Goods Received Note</h2>
@@ -486,7 +486,7 @@ function ProcurementPageContent() {
 
       {/* Modal 6: Contract */}
       {activeModal === 'contract' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Add Contract</h2>

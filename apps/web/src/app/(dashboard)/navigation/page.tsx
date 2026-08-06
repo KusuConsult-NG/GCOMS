@@ -26,7 +26,7 @@ export default function NavigationPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="bg-[var(--primary)] text-white p-5 rounded-lg border border-[var(--primary-container)] shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
+      <div className="bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
         <div>
           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
             Patient Care • Patient Navigation Engine

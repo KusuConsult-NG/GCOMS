@@ -9,7 +9,7 @@ export function Topbar() {
   const userRole = user?.role || "EXECUTIVE";
 
   return (
-    <header className="h-16 bg-[var(--primary)] text-white border-b border-[var(--primary-container)] flex items-center justify-between px-6 sticky top-0 z-40 shadow-sm">
+    <header className="h-16 bg-[var(--nav-surface)] text-white border-b border-[var(--nav-surface-raised)] flex items-center justify-between px-6 sticky top-0 z-40 shadow-sm">
       <div className="flex items-center space-x-4">
         <div className="flex items-center space-x-3">
           {/* Brand Badge */}
@@ -31,7 +31,7 @@ export function Topbar() {
         <ThemeToggle className="text-white hover:text-[var(--secondary-container)] hover:bg-white/10" />
 
         {/* User Profile Info */}
-        <div className="flex items-center space-x-2 pl-3 border-l border-[var(--primary-container)]">
+        <div className="flex items-center space-x-2 pl-3 border-l border-[var(--nav-surface-raised)]">
           <div className="w-8 h-8 rounded-full bg-[var(--secondary)] flex items-center justify-center text-white text-xs font-bold border border-[var(--secondary-container)]">
             {user?.firstName ? user.firstName[0] : 'U'}
           </div>

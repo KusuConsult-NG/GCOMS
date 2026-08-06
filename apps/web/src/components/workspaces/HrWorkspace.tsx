@@ -340,7 +340,7 @@ export function HrWorkspace({ user }: { user: any }) {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* App Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-[var(--primary)] text-white p-5 rounded-lg border border-[var(--primary-container)] shadow-sm">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm">
         <div>
           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
             Enterprise HR & Talent Operations Software • GCOMS
@@ -776,7 +776,7 @@ export function HrWorkspace({ user }: { user: any }) {
       
       {/* Existing Modals ... */}
       {activeModal === 'staff' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Add Staff Member</h2>
@@ -808,7 +808,7 @@ export function HrWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'volunteer' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Register Volunteer / Field CHW</h2>
@@ -842,7 +842,7 @@ export function HrWorkspace({ user }: { user: any }) {
 
       {/* New Modals */}
       {activeModal === 'job' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <h2 className="text-base font-bold text-[var(--primary)]">Post Job Opening</h2>
             <form onSubmit={handlePostJob} className="space-y-3 text-xs">
@@ -870,7 +870,7 @@ export function HrWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'applicant' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <h2 className="text-base font-bold text-[var(--primary)]">Add Applicant</h2>
             <form onSubmit={handleAddApplicant} className="space-y-3 text-xs">
@@ -889,7 +889,7 @@ export function HrWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'interview' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg border border-[var(--outline)] space-y-4">
             <h2 className="text-base font-bold text-[var(--primary)]">Schedule Interview</h2>
             <form onSubmit={(e) => { e.preventDefault(); setActiveModal(null); }} className="space-y-3 text-xs">
@@ -912,7 +912,7 @@ export function HrWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'offer' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-lg border border-[var(--outline)] space-y-4">
             <h2 className="text-base font-bold text-[var(--primary)]">Offer Letter Generated</h2>
             <div className="bg-slate-50 p-4 border border-slate-200 rounded text-xs font-mono whitespace-pre-wrap">
@@ -932,7 +932,7 @@ export function HrWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'leave' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <h2 className="text-base font-bold text-[var(--primary)]">New Leave Request</h2>
             <form onSubmit={handleLeaveRequest} className="space-y-3 text-xs">
@@ -963,7 +963,7 @@ export function HrWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'attendance' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg border border-[var(--outline)] space-y-4">
             <h2 className="text-base font-bold text-[var(--primary)]">Log Attendance</h2>
             <form onSubmit={handleLogAttendance} className="space-y-3 text-xs">
@@ -989,7 +989,7 @@ export function HrWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'performance' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <h2 className="text-base font-bold text-[var(--primary)]">New Performance Review</h2>
             <form onSubmit={handlePerformanceReview} className="space-y-3 text-xs">
@@ -1022,7 +1022,7 @@ export function HrWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'training' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <h2 className="text-base font-bold text-[var(--primary)]">Log Training</h2>
             <form onSubmit={handleLogTraining} className="space-y-3 text-xs">

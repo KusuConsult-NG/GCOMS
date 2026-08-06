@@ -35,6 +35,12 @@
   --secondary-hover: #0f5455;
   --secondary-container: #a2eded;
 
+  /* Chrome that stays dark in both themes: top bar, sidebar, page headers.
+     These carry white text, so they must NOT follow --primary, which becomes a
+     light tint in dark mode and would leave white on pale blue. */
+  --nav-surface: #002045;
+  --nav-surface-raised: #1a365d;
+
   --outline: #e2e8f0;            /* borders and dividers */
 
   --risk-low-bg: #c6f6d5;
@@ -72,6 +78,9 @@
   --secondary: #4fd1c5;
   --secondary-hover: #7fe0d6;
   --secondary-container: #14494a;
+
+  --nav-surface: #0a1730;
+  --nav-surface-raised: #16233d;
 
   --outline: #26324b;
 

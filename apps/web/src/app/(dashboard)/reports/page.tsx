@@ -88,7 +88,7 @@ export default function ReportsPage() {
                 <span className="font-mono tabular-nums font-bold">1,045 (56%)</span>
               </div>
               <div className="w-full bg-[var(--surface-subtle)] h-2 rounded-full overflow-hidden">
-                <div className="bg-[var(--primary)] h-full rounded-full w-[56%]"></div>
+                <div className="bg-[var(--nav-surface)] h-full rounded-full w-[56%]"></div>
               </div>
             </div>
             <div>

@@ -30,9 +30,12 @@ const isDev = process.env.NODE_ENV === "development";
 const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
-  "style-src 'self' 'unsafe-inline'",
+  // globals.css imports Inter from Google Fonts. Without these the stylesheet is
+  // blocked and the whole app silently falls back to a system font — caught only
+  // by loading a page in a real browser.
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob:",
-  "font-src 'self' data:",
   `connect-src 'self' ${apiOrigin}${isDev ? " ws: http://localhost:*" : ""}`,
   "worker-src 'self'",
   "manifest-src 'self'",

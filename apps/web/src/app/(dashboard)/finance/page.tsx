@@ -285,7 +285,7 @@ function FinancePageContent() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Application Header */}
-      <div className="bg-[var(--primary)] text-white p-5 rounded-lg border border-[var(--primary-container)] shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
+      <div className="bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
         <div>
           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
             Enterprise Financial Operations Application • GCOMS
@@ -322,7 +322,7 @@ function FinancePageContent() {
 
       {/* MODAL 1: RAISE PAYMENT REQUISITION */}
       {activeModal === 'requisition' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Raise Payment Requisition (Payment Voucher)</h2>
@@ -400,7 +400,7 @@ function FinancePageContent() {
 
       {/* MODAL 2: REQUEST CASH ADVANCE */}
       {activeModal === 'advance' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Request Travel / Field Cash Advance</h2>
@@ -468,7 +468,7 @@ function FinancePageContent() {
 
       {/* MODAL 3: REGISTER GRANT INFLOW */}
       {activeModal === 'inflow' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Register Donor Grant Fund Inflow</h2>
@@ -535,7 +535,7 @@ function FinancePageContent() {
 
       {/* MODAL 4: POST JOURNAL */}
       {activeModal === 'journal' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Post Double-Entry Journal Entry</h2>
@@ -600,7 +600,7 @@ function FinancePageContent() {
 
       {/* MODAL 5: NEW BUDGET LINE */}
       {activeModal === 'budget' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">New Budget Line Request</h2>
@@ -678,7 +678,7 @@ function FinancePageContent() {
 
       {/* MODAL 6: RETIRE ADVANCE */}
       {activeModal === 'retirement' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Retire Cash Advance</h2>
@@ -928,7 +928,7 @@ function FinancePageContent() {
                 <button
                   key={f}
                   onClick={() => setVoucherFilter(f)}
-                  className={`px-3 py-1.5 rounded border ${voucherFilter === f ? 'bg-[var(--primary)] text-white' : 'bg-white text-gray-700 border-gray-300'}`}
+                  className={`px-3 py-1.5 rounded border ${voucherFilter === f ? 'bg-[var(--nav-surface)] text-white' : 'bg-white text-gray-700 border-gray-300'}`}
                 >
                   {f}
                 </button>

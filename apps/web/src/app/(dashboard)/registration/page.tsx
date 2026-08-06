@@ -138,7 +138,7 @@ export default function RegistrationPage() {
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="bg-[var(--primary)] text-white p-5 rounded-lg border border-[var(--primary-container)] shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
+      <div className="bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
         <div>
           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
             Field Volunteer Mobile Portal • GCOMS
@@ -153,7 +153,7 @@ export default function RegistrationPage() {
 
       {/* QR IDENTITY PASS SUCCESS MODAL */}
       {registeredPatient && (
-        <div className="fixed inset-0 bg-[var(--primary)]/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-2xl border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <span className="badge-low-risk text-xs">REGISTRATION COMPLETE</span>
@@ -161,8 +161,8 @@ export default function RegistrationPage() {
             </div>
 
             {/* DIGITAL QR IDENTITY PASS CARD */}
-            <div className="p-6 bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] text-white rounded-xl border-2 border-[var(--secondary)] shadow-lg space-y-4">
-              <div className="flex justify-between items-start border-b border-[var(--primary-container)] pb-3">
+            <div className="p-6 bg-gradient-to-br from-[var(--nav-surface)] to-[var(--nav-surface)] text-white rounded-xl border-2 border-[var(--secondary)] shadow-lg space-y-4">
+              <div className="flex justify-between items-start border-b border-[var(--nav-surface-raised)] pb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white rounded flex items-center justify-center p-1">
                     <img src="/georgel-logo.png" alt="Logo" className="h-8 object-contain" />
@@ -195,7 +195,7 @@ export default function RegistrationPage() {
               </div>
 
               {/* SIMULATED HIGH-RES DIGITAL QR CODE */}
-              <div className="pt-2 border-t border-[var(--primary-container)] flex items-center justify-between">
+              <div className="pt-2 border-t border-[var(--nav-surface-raised)] flex items-center justify-between">
                 <div>
                   <p className="text-[10px] text-slate-300 font-semibold">PASS ID: <span className="font-mono text-white">{registeredPatient.qrPassId}</span></p>
                   <p className="text-[9px] text-[var(--secondary-container)]">Informed Consent Verified • Scan for Clinical Record</p>

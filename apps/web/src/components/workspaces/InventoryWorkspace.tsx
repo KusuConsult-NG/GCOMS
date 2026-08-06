@@ -247,7 +247,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-[var(--primary)] text-white p-5 rounded-lg border border-[var(--primary-container)] shadow-sm">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm">
         <div>
           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
             Enterprise Inventory & Logistics Software • GCOMS
@@ -494,7 +494,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
                         setReorderItem(i);
                         setReorderForm({ reorderQty: (Number(i.minThreshold) || 10) * 2, vendor: '', urgency: isOOS ? 'URGENT' : 'STANDARD' });
                         setActiveModal('reorder');
-                      }} className="w-full btn-primary text-xs bg-[var(--primary)] hover:bg-[var(--primary-container)]">
+                      }} className="w-full btn-primary text-xs bg-[var(--nav-surface)] hover:bg-[var(--nav-surface-raised)]">
                         Raise Reorder Requisition
                       </button>
                     </div>
@@ -561,7 +561,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
       {/* MODALS */}
       {/* Add Consumable Modal */}
       {activeModal === 'stock' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Add Stock Consumable</h2>
@@ -605,7 +605,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
 
       {/* Add Asset Modal */}
       {activeModal === 'asset' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">+ Register Asset</h2>
@@ -673,7 +673,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
 
       {/* Record Movement Modal */}
       {activeModal === 'issue' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">+ Record Movement</h2>
@@ -738,7 +738,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
 
       {/* Raise Reorder Modal */}
       {activeModal === 'reorder' && reorderItem && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Raise Reorder Requisition</h2>
@@ -776,7 +776,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
 
       {/* Schedule Maintenance Modal */}
       {activeModal === 'maintenance' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">+ Schedule Maintenance</h2>
@@ -823,7 +823,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
 
       {/* Mark Maintenance Complete Modal */}
       {activeModal === 'maintenance_complete' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Mark Maintenance Complete</h2>

@@ -146,7 +146,7 @@ export function GovernanceWorkspace({ user }: { user: any }) {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-[var(--primary)] text-white p-5 rounded-lg border border-[var(--primary-container)] shadow-sm">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm">
         <div>
           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
             Enterprise Governance & Board Software • GCOMS
@@ -186,7 +186,7 @@ export function GovernanceWorkspace({ user }: { user: any }) {
 
       {/* MODALS */}
       {activeModal === 'meeting' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Schedule Board Convening</h2>
@@ -215,7 +215,7 @@ export function GovernanceWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'member' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4 h-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Add Board Member</h2>
@@ -282,7 +282,7 @@ export function GovernanceWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'resolution' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4 h-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Table New Resolution</h2>
@@ -335,7 +335,7 @@ export function GovernanceWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'action' && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Add Action Item</h2>
@@ -381,7 +381,7 @@ export function GovernanceWorkspace({ user }: { user: any }) {
       )}
 
       {activeVoteModal && (
-        <div className="fixed inset-0 bg-[var(--primary)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <h2 className="text-base font-bold text-[var(--primary)]">Open Voting: {activeVoteModal.resNum}</h2>
@@ -409,7 +409,7 @@ export function GovernanceWorkspace({ user }: { user: any }) {
               </div>
               <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setActiveVoteModal(null)} className="btn-secondary text-xs">Cancel</button>
-                <button onClick={handleCloseVoting} className="btn-primary text-xs bg-[var(--primary)]">Close Voting & Record Result</button>
+                <button onClick={handleCloseVoting} className="btn-primary text-xs bg-[var(--nav-surface)]">Close Voting & Record Result</button>
               </div>
             </div>
           </div>

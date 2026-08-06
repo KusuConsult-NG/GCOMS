@@ -89,7 +89,7 @@ export function ExecutiveWorkspace({ user }: { user: any }) {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Section 1: Enterprise Command Centre Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--primary)] text-white p-6 rounded-lg border border-[var(--primary-container)] shadow-md">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--nav-surface)] text-white p-6 rounded-lg border border-[var(--nav-surface-raised)] shadow-md">
         <div>
           <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
             Executive Command Centre • GCOMS
@@ -176,7 +176,7 @@ export function ExecutiveWorkspace({ user }: { user: any }) {
                       <tr key={a.id} className="hover:bg-[var(--primary-surface)]">
                         <td className="p-2 font-medium">{a.title || a.reference}</td>
                         <td className="p-2">{a.department}</td>
-                        <td className="p-2">{a.requestedBy}</td>
+                        <td className="p-2">{a.requestedBy ? `${a.requestedBy.firstName} ${a.requestedBy.lastName}` : '—'}</td>
                         <td className="p-2">{a.amount ? `₦${Number(a.amount).toLocaleString()}` : 'N/A'}</td>
                         <td className="p-2">{new Date(a.createdAt || a.date).toLocaleDateString()}</td>
                         <td className="p-2">

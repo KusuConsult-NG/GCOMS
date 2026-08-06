@@ -29,14 +29,10 @@ function GrantsPageContent() {
   ]);
   const [donorForm, setDonorForm] = useState({ org: '', country: '', type: 'BILATERAL', contact: '', title: '', email: '', phone: '', interests: [] as string[], lastComm: '', notes: '' });
 
-  const [milestones, setMilestones] = useState([
-    { id: 1, title: '2,500 VIA Screenings in Barkin Ladi LGA', grant: 'Global Fund Cervical Cancer Initiative 2025-2027', due: '2026-06-30', metric: '2,500 women screened', progress: 100, status: 'COMPLETED' },
-    { id: 2, title: 'Train 100 CHWs in VIA/Cryotherapy Protocol', grant: 'Global Fund Cervical Cancer Initiative 2025-2027', due: '2026-12-31', metric: '100 CHWs certified', progress: 72, status: 'IN_PROGRESS' },
-    { id: 3, title: 'Establish Tertiary Referral Pathway at JUTH', grant: 'WHO Health Systems Strengthening Grant', due: '2026-09-30', metric: 'Referral MOU signed, 50 patients referred', progress: 40, status: 'IN_PROGRESS' },
-    { id: 4, title: 'Submit Q2 Progress Report to Global Fund', grant: 'Global Fund Cervical Cancer Initiative 2025-2027', due: '2026-07-15', metric: 'Report submitted and acknowledged', progress: 100, status: 'COMPLETED' },
-    { id: 5, title: 'Community Sensitization in 8 LGAs', grant: 'USAID Community Health Initiative', due: '2026-10-31', metric: '8 LGAs, 5,000 community members reached', progress: 0, status: 'PENDING' }
-  ]);
-  const [milestoneForm, setMilestoneForm] = useState({ grant: '', title: '', description: '', due: '', metric: '' });
+  // Milestones live in the GrantMilestone table. This was a hardcoded array
+  // while six real rows sat in the database with no endpoint to read them.
+  const [milestones, setMilestones] = useState<any[]>([]);
+  const [milestoneForm, setMilestoneForm] = useState({ grantId: '', title: '', description: '', due: '', metric: '' });
   const [milestoneUpdateData, setMilestoneUpdateData] = useState({ id: 0, progress: 0, notes: '' });
 
   const [pipeline, setPipeline] = useState([
@@ -82,6 +78,7 @@ function GrantsPageContent() {
   useEffect(() => {
     if (user && allowedRoles.includes(user.role)) {
       fetchGrants();
+      fetchMilestones();
     }
   }, [user]);
 
@@ -112,27 +109,46 @@ function GrantsPageContent() {
     setDonorForm({ org: '', country: '', type: 'BILATERAL', contact: '', title: '', email: '', phone: '', interests: [], lastComm: '', notes: '' });
   };
 
-  const handleMilestoneSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setMilestones([...milestones, { id: Date.now(), title: milestoneForm.title, grant: milestoneForm.grant, due: milestoneForm.due, metric: milestoneForm.metric, progress: 0, status: 'PENDING' }]);
-    api.post('/grants', { type: 'MILESTONE', grantTitle: milestoneForm.grant || 'Milestone', donorName: 'Internal', amount: '0', startDate: milestoneForm.due || new Date().toISOString().split('T')[0], endDate: milestoneForm.due || new Date().toISOString().split('T')[0] }).catch(() => {});
-    setActiveModal(null);
-    setMilestoneForm({ grant: '', title: '', description: '', due: '', metric: '' });
+  const fetchMilestones = async () => {
+    try {
+      const res = await api.get('/grants/milestones');
+      setMilestones(res.data);
+    } catch (err) {
+      console.error('Failed to fetch milestones', err);
+    }
   };
 
-  const handleMilestoneUpdate = (e: React.FormEvent) => {
+  const handleMilestoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMilestones(milestones.map(m => {
-      if (m.id === milestoneUpdateData.id) {
-        let newStatus = 'IN_PROGRESS';
-        if (milestoneUpdateData.progress === 0) newStatus = 'PENDING';
-        if (milestoneUpdateData.progress >= 100) newStatus = 'COMPLETED';
-        else if (new Date(m.due) < new Date()) newStatus = 'OVERDUE';
-        return { ...m, progress: milestoneUpdateData.progress, status: newStatus };
-      }
-      return m;
-    }));
-    setActiveModal(null);
+    try {
+      // This used to POST a fabricated Grant row with type: 'MILESTONE',
+      // inserting junk into the grants table on every milestone created.
+      await api.post('/grants/milestones', {
+        grantId: milestoneForm.grantId,
+        title: milestoneForm.title,
+        dueDate: milestoneForm.due,
+        metric: milestoneForm.metric || undefined,
+        description: milestoneForm.description || undefined,
+      });
+      setActiveModal(null);
+      setMilestoneForm({ grantId: '', title: '', description: '', due: '', metric: '' });
+      await fetchMilestones();
+    } catch (err) {
+      console.error('Failed to create milestone', err);
+    }
+  };
+
+  const handleMilestoneUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.patch(`/grants/milestones/${milestoneUpdateData.id}`, {
+        progress: Number(milestoneUpdateData.progress),
+      });
+      setActiveModal(null);
+      await fetchMilestones();
+    } catch (err) {
+      console.error('Failed to update milestone progress', err);
+    }
   };
 
   const handlePipelineSubmit = (e: React.FormEvent) => {
@@ -374,8 +390,8 @@ function GrantsPageContent() {
                       <h3 className="font-bold text-[#002045] text-sm">{m.title}</h3>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${badgeColor}`}>{m.status}</span>
                     </div>
-                    <p className="text-[#74777f] text-[11px]">{m.grant}</p>
-                    <p className="text-[#0d1c2e] font-semibold text-[11px]">Metric: {m.metric} <span className="text-[#74777f] ml-2">Due: {m.due}</span></p>
+                    <p className="text-[#74777f] text-[11px]">{m.grant?.grantName}</p>
+                    <p className="text-[#0d1c2e] font-semibold text-[11px]">Metric: {m.metric || '—'} <span className="text-[#74777f] ml-2">Due: {m.dueDate ? String(m.dueDate).slice(0, 10) : '—'}</span></p>
                   </div>
                   <div className="w-full md:w-48 space-y-2">
                     <div className="flex justify-between text-[10px] font-bold">
@@ -582,9 +598,9 @@ function GrantsPageContent() {
             <form onSubmit={handleMilestoneSubmit} className="space-y-4 text-xs">
               <div>
                 <label className="block font-semibold text-[#0d1c2e] mb-1">Grant *</label>
-                <select required value={milestoneForm.grant} onChange={e => setMilestoneForm({ ...milestoneForm, grant: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
+                <select required value={milestoneForm.grantId} onChange={e => setMilestoneForm({ ...milestoneForm, grantId: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
                   <option value="">-- Select Grant --</option>
-                  {grants.map(g => <option key={g.id} value={g.title}>{g.title} ({g.donorName})</option>)}
+                  {grants.map((g: any) => <option key={g.id} value={g.id}>{g.grantName} ({g.donorName})</option>)}
                 </select>
               </div>
               <div>

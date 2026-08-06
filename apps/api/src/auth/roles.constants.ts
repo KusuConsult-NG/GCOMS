@@ -104,3 +104,50 @@ export const DOCUMENT_ROLES: Role[] = [
   'PROJECT_MANAGER',
   'CLINICIAN',
 ];
+
+/** Project management. Read is wider than write, so oversight can see delivery. */
+export const PROJECT_READ_ROLES: Role[] = [
+  'PROJECT_MANAGER',
+  'PROGRAMME_MANAGER',
+  'ADMIN',
+  'EXECUTIVE',
+  'SYSTEM_ADMIN',
+  'BOARD',
+];
+export const PROJECT_WRITE_ROLES: Role[] = [
+  'PROJECT_MANAGER',
+  'ADMIN',
+  'EXECUTIVE',
+  'SYSTEM_ADMIN',
+];
+
+/** Grant and donor management. */
+export const GRANT_READ_ROLES: Role[] = [
+  'GRANT_MANAGER',
+  'PROGRAMME_MANAGER',
+  'FINANCE',
+  'ADMIN',
+  'EXECUTIVE',
+  'SYSTEM_ADMIN',
+  'BOARD',
+];
+export const GRANT_WRITE_ROLES: Role[] = [
+  'GRANT_MANAGER',
+  'ADMIN',
+  'EXECUTIVE',
+  'SYSTEM_ADMIN',
+];
+
+/** Shared vocabularies, so the API and UI cannot drift apart on status strings. */
+export const TASK_STATUSES = [
+  'PENDING',
+  'IN_PROGRESS',
+  'COMPLETED',
+  'BLOCKED',
+] as const;
+export const TASK_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH'] as const;
+export const MILESTONE_STATUSES = [
+  'PENDING',
+  'IN_PROGRESS',
+  'COMPLETED',
+] as const;

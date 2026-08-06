@@ -130,9 +130,16 @@ model GrantMilestone {
   grant       Grant    @relation(fields: [grantId], references: [id])
   title       String
   dueDate     DateTime
-  status      String   @default("PENDING") // PENDING, COMPLETED
+  status      String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  // The milestone tracker already showed a target metric and percent complete,
+  // and its form collected a description; none had anywhere to live.
+  description String?
+  metric      String?
+  progress    Int      @default(0) // 0-100
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([grantId])
 }
 
 model Project {
@@ -157,8 +164,16 @@ model ProjectTask {
   project     Project  @relation(fields: [projectId], references: [id])
   title       String
   status      String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  // Added so the task board can persist what it already displayed from
+  // hardcoded browser state.
+  description String?
+  assignee    String?
+  dueDate     DateTime?
+  priority    String   @default("MEDIUM") // LOW, MEDIUM, HIGH
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
 }
 
 model InventoryItem {

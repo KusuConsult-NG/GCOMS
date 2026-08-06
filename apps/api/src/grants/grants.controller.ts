@@ -1,22 +1,69 @@
-import { Controller, Post, Get, Body, UseGuards, Request, UnauthorizedException } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { GrantsService } from './grants.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { GRANT_READ_ROLES, GRANT_WRITE_ROLES } from '../auth/roles.constants';
+import {
+  CreateGrantMilestoneDto,
+  ListGrantMilestoneQueryDto,
+  UpdateGrantMilestoneDto,
+} from './dto/grant-milestone.dto';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('grants')
 export class GrantsController {
   constructor(private readonly grantsService: GrantsService) {}
 
+  @Get('milestones')
+  @Roles(...GRANT_READ_ROLES)
+  listMilestones(@Query() query: ListGrantMilestoneQueryDto) {
+    return this.grantsService.listMilestones(query);
+  }
+
+  @Post('milestones')
+  @Roles(...GRANT_WRITE_ROLES)
+  createMilestone(@Body() dto: CreateGrantMilestoneDto) {
+    return this.grantsService.createMilestone(dto);
+  }
+
+  @Patch('milestones/:id')
+  @Roles(...GRANT_WRITE_ROLES)
+  updateMilestone(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateGrantMilestoneDto,
+  ) {
+    return this.grantsService.updateMilestone(id, dto);
+  }
+
+  @Delete('milestones/:id')
+  @Roles(...GRANT_WRITE_ROLES)
+  deleteMilestone(@Param('id', ParseUUIDPipe) id: string) {
+    return this.grantsService.deleteMilestone(id);
+  }
+
+  // Was an inline role check throwing UnauthorizedException.
   @Post()
+  @Roles(...GRANT_WRITE_ROLES)
   createGrant(@Body() data: any, @Request() req: any) {
-    if (req.user.role !== 'EXECUTIVE' && req.user.role !== 'GRANT_MANAGER') {
-      throw new UnauthorizedException('Only Executives or Grant Managers can create grants');
-    }
     return this.grantsService.createGrant(data, req.user.id);
   }
 
   @Get()
-  getGrants(@Request() req: any) {
+  @Roles(...GRANT_READ_ROLES)
+  getGrants() {
     return this.grantsService.getGrants();
   }
 }

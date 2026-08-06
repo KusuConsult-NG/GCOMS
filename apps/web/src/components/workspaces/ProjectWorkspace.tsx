@@ -20,15 +20,9 @@ export function ProjectWorkspace({ user }: { user: any }) {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  // Local Seeded States
-  const [tasks, setTasks] = useState<any[]>([
-    { id: 1, title: 'Conduct baseline community health survey - Barkin Ladi', project: 'Plateau Rural Health Initiative', assignee: 'Fatima Bello', due: '2026-08-15', priority: 'HIGH', status: 'IN_PROGRESS' },
-    { id: 2, title: 'Procure cryotherapy consumables Q3 batch', project: 'Plateau Rural Health Initiative', assignee: 'John Danladi', due: '2026-08-20', priority: 'HIGH', status: 'TODO' },
-    { id: 3, title: 'Train 50 CHWs in VIA screening protocol', project: 'Community Awareness Expansion', assignee: 'Dr. Amara Okafor', due: '2026-09-01', priority: 'MEDIUM', status: 'TODO' },
-    { id: 4, title: 'Submit Q2 donor progress report to Global Fund', project: 'Community Awareness Expansion', assignee: 'Grace Bello', due: '2026-07-31', priority: 'HIGH', status: 'COMPLETED' },
-    { id: 5, title: 'Set up patient data collection system in Mangu LGA', project: 'Plateau Rural Health Initiative', assignee: 'Ibrahim Danladi', due: '2026-08-10', priority: 'MEDIUM', status: 'IN_PROGRESS' },
-    { id: 6, title: 'Organize stakeholder engagement meeting with LGA health office', project: 'Community Awareness Expansion', assignee: 'Ngozi Adeyemi', due: '2026-08-25', priority: 'LOW', status: 'TODO' }
-  ]);
+  // Tasks live in the ProjectTask table. This used to be a hardcoded array:
+  // six real rows sat in the database with no endpoint able to read them.
+  const [tasks, setTasks] = useState<any[]>([]);
 
   const [risks, setRisks] = useState<any[]>([
     { id: 1, title: 'Reagent Supply Delay from JUTH', project: 'Plateau Rural Health Initiative', category: 'SUPPLY_CHAIN', likelihood: 'HIGH', impact: 'HIGH', mitigation: 'Maintain 3-month buffer stock, identify backup supplier', owner: 'John Danladi (Procurement)', status: 'MITIGATING', score: 9 },
@@ -40,7 +34,7 @@ export function ProjectWorkspace({ user }: { user: any }) {
   const [changeRequests, setChangeRequests] = useState<any[]>([]);
 
   // Form States
-  const [taskForm, setTaskForm] = useState({ title: '', project: '', assignee: '', due: '', priority: 'MEDIUM', description: '', status: 'TODO' });
+  const [taskForm, setTaskForm] = useState({ title: '', projectId: '', assignee: '', dueDate: '', priority: 'MEDIUM', status: 'PENDING', description: '' });
   const [riskForm, setRiskForm] = useState({ title: '', project: '', category: 'OPERATIONAL', likelihood: 'MEDIUM', impact: 'MEDIUM', mitigation: '', owner: '', status: 'OPEN' });
   const [expenseForm, setExpenseForm] = useState({ project: '', description: '', amount: '', date: '', category: 'Administration' });
   const [changeForm, setChangeForm] = useState({ project: '', title: '', type: 'SCOPE_CHANGE', currentState: '', proposedChange: '', justification: '', impact: '', requestedBy: '' });
@@ -70,8 +64,18 @@ export function ProjectWorkspace({ user }: { user: any }) {
     }
   };
 
+  const fetchTasks = async () => {
+    try {
+      const res = await api.get('/projects/tasks');
+      setTasks(res.data);
+    } catch (err) {
+      console.error('Failed to fetch tasks', err);
+    }
+  };
+
   useEffect(() => {
     fetchProjects();
+    fetchTasks();
   }, []);
 
   const handleProjectSubmit = async (e: React.FormEvent) => {
@@ -89,11 +93,39 @@ export function ProjectWorkspace({ user }: { user: any }) {
     }
   };
 
-  const handleTaskSubmit = (e: React.FormEvent) => {
+  const handleTaskSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTasks([...tasks, { ...taskForm, id: Date.now() }]);
-    setActiveModal(null);
-    setTaskForm({ title: '', project: '', assignee: '', due: '', priority: 'MEDIUM', description: '', status: 'TODO' });
+    setSubmitting(true);
+    try {
+      await api.post('/projects/tasks', {
+        projectId: taskForm.projectId,
+        title: taskForm.title,
+        assignee: taskForm.assignee || undefined,
+        dueDate: taskForm.dueDate || undefined,
+        priority: taskForm.priority,
+        status: taskForm.status,
+        description: taskForm.description || undefined,
+      });
+      setActiveModal(null);
+      setTaskForm({ title: '', projectId: '', assignee: '', dueDate: '', priority: 'MEDIUM', status: 'PENDING', description: '' });
+      await fetchTasks();
+    } catch (err) {
+      console.error('Failed to create task', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleTaskStatusChange = async (taskId: string, status: string) => {
+    // Optimistic, then reconciled with the server response.
+    setTasks(tasks.map(t => (t.id === taskId ? { ...t, status } : t)));
+    try {
+      await api.patch(`/projects/tasks/${taskId}`, { status });
+      await fetchTasks();
+    } catch (err) {
+      console.error('Failed to update task status', err);
+      await fetchTasks();
+    }
   };
 
   const handleRiskSubmit = (e: React.FormEvent) => {
@@ -227,11 +259,9 @@ export function ProjectWorkspace({ user }: { user: any }) {
               </div>
               <div>
                 <label className="block font-semibold text-[#0d1c2e] mb-1">Assigned Project *</label>
-                <select required value={taskForm.project} onChange={e => setTaskForm({ ...taskForm, project: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
+                <select required value={taskForm.projectId} onChange={e => setTaskForm({ ...taskForm, projectId: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
                   <option value="">Select Project</option>
-                  {projects.map((p, i) => <option key={i} value={p.title}>{p.title}</option>)}
-                  <option value="Plateau Rural Health Initiative">Plateau Rural Health Initiative</option>
-                  <option value="Community Awareness Expansion">Community Awareness Expansion</option>
+                  {projects.map((p: any) => <option key={p.id} value={p.id}>{p.projectName}</option>)}
                 </select>
               </div>
               <div>
@@ -241,7 +271,7 @@ export function ProjectWorkspace({ user }: { user: any }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-[#0d1c2e] mb-1">Due Date *</label>
-                  <input type="date" required value={taskForm.due} onChange={e => setTaskForm({ ...taskForm, due: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs tabular-nums" />
+                  <input type="date" required value={taskForm.dueDate} onChange={e => setTaskForm({ ...taskForm, dueDate: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs tabular-nums" />
                 </div>
                 <div>
                   <label className="block font-semibold text-[#0d1c2e] mb-1">Priority *</label>
@@ -519,10 +549,10 @@ export function ProjectWorkspace({ user }: { user: any }) {
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-            {['TODO', 'IN_PROGRESS', 'COMPLETED'].map(status => {
+            {['PENDING', 'IN_PROGRESS', 'COMPLETED'].map(status => {
               const colTasks = tasks.filter(t => t.status === status);
-              const headers: any = { TODO: '📋 TO DO', IN_PROGRESS: '🔄 IN PROGRESS', COMPLETED: '✅ COMPLETED' };
-              const headerColors: any = { TODO: 'text-[#002045]', IN_PROGRESS: 'text-[#13696a]', COMPLETED: 'text-[#22543d]' };
+              const headers: any = { PENDING: '📋 TO DO', IN_PROGRESS: '🔄 IN PROGRESS', COMPLETED: '✅ COMPLETED' };
+              const headerColors: any = { PENDING: 'text-[#002045]', IN_PROGRESS: 'text-[#13696a]', COMPLETED: 'text-[#22543d]' };
               return (
                 <div key={status} className="bg-white p-4 rounded-lg border border-[#e2e8f0] space-y-3">
                   <h3 className={`font-bold ${headerColors[status]} border-b pb-2 flex justify-between`}>
@@ -536,17 +566,15 @@ export function ProjectWorkspace({ user }: { user: any }) {
                           {task.priority}
                         </span>
                       </div>
-                      <p className="text-[10px] text-[#74777f] font-semibold">{task.project}</p>
-                      <p className="text-[10px] text-[#43474e]">Assignee: {task.assignee}</p>
-                      <p className="text-[10px] text-[#43474e]">Due: {task.due}</p>
+                      <p className="text-[10px] text-[#74777f] font-semibold">{task.project?.projectName}</p>
+                      <p className="text-[10px] text-[#43474e]">Assignee: {task.assignee || 'Unassigned'}</p>
+                      <p className="text-[10px] text-[#43474e]">Due: {task.dueDate ? String(task.dueDate).slice(0, 10) : '—'}</p>
                       <select 
                         value={task.status}
-                        onChange={(e) => {
-                          setTasks(tasks.map(t => t.id === task.id ? { ...t, status: e.target.value } : t));
-                        }}
+                        onChange={(e) => handleTaskStatusChange(task.id, e.target.value)}
                         className="mt-2 w-full text-[10px] p-1 border rounded"
                       >
-                        <option value="TODO">Move to TO DO</option>
+                        <option value="PENDING">Move to TO DO</option>
                         <option value="IN_PROGRESS">Move to IN PROGRESS</option>
                         <option value="COMPLETED">Move to COMPLETED</option>
                       </select>

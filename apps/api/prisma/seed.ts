@@ -121,9 +121,9 @@ async function main() {
 
   await prisma.grantMilestone.createMany({
     data: [
-      { grantId: grant1.id, title: 'Milestone 1: 2,500 VIA Screenings Completed in Barkin Ladi', dueDate: new Date('2025-06-30'), status: 'COMPLETED' },
-      { grantId: grant1.id, title: 'Milestone 2: Train 100 Community Health Workers in Mangu LGA', dueDate: new Date('2025-12-31'), status: 'COMPLETED' },
-      { grantId: grant1.id, title: 'Milestone 3: Establish Tertiary Referral Pipeline at JUTH', dueDate: new Date('2026-06-30'), status: 'PENDING' },
+      { grantId: grant1.id, title: 'Milestone 1: 2,500 VIA Screenings Completed in Barkin Ladi', dueDate: new Date('2025-06-30'), status: 'COMPLETED', metric: '2,500 women screened', progress: 100 },
+      { grantId: grant1.id, title: 'Milestone 2: Train 100 Community Health Workers in Mangu LGA', dueDate: new Date('2025-12-31'), status: 'COMPLETED', metric: '100 CHWs certified', progress: 100 },
+      { grantId: grant1.id, title: 'Milestone 3: Establish Tertiary Referral Pipeline at JUTH', dueDate: new Date('2026-06-30'), status: 'IN_PROGRESS', metric: 'Referral MOU signed', progress: 40 },
     ],
   });
 

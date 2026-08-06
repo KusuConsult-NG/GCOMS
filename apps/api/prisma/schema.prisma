@@ -3,7 +3,11 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  // Postgres, not SQLite. SQLite serialises writes through a single file, which
+  // no amount of API instances can get around, and its "backup" is copying a
+  // file out from under a live process. Neither is a basis for a system holding
+  // patient records for thirteen roles working concurrently.
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

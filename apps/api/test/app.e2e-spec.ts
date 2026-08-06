@@ -6,12 +6,10 @@
  * could silently mutate real development data.
  */
 import { execSync } from 'child_process';
-import { mkdtempSync, rmSync } from 'fs';
-import { tmpdir } from 'os';
+import { useThrowawaySchema, dropSchema } from './throwaway-schema';
 import { join } from 'path';
 
-const workDir = mkdtempSync(join(tmpdir(), 'gcoms-e2e-app-'));
-process.env.DATABASE_URL = `file:${join(workDir, 'e2e.db')}`;
+const schema = useThrowawaySchema('app');
 process.env.JWT_SECRET = 'e2e-only-secret-that-is-comfortably-long-enough';
 process.env.ALLOWED_ORIGINS = 'http://localhost:3000';
 process.env.NODE_ENV = 'test';
@@ -19,6 +17,7 @@ process.env.NODE_ENV = 'test';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
+import { PrismaClient } from '@prisma/client';
 import { AppModule } from './../src/app.module';
 
 describe('AppController (e2e)', () => {
@@ -41,7 +40,9 @@ describe('AppController (e2e)', () => {
 
   afterAll(async () => {
     await app?.close();
-    rmSync(workDir, { recursive: true, force: true });
+    const client = new PrismaClient();
+    await dropSchema(client, schema);
+    await client.$disconnect();
   });
 
   it('/ (GET)', () => {

@@ -1,8 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
+import { notFound } from 'next/navigation';
 
 export default function MobilePreviewPage() {
+  // A design mockup of screens that do not exist yet — no live data, nothing
+  // wired. It is linked from nowhere, but it was still a route anyone signed in
+  // could reach and mistake for the product. Development only.
+  if (process.env.NODE_ENV === 'production') notFound();
+
   const [activeTab, setActiveTab] = useState<'login' | 'dashboard' | 'patients' | 'navigation' | 'screening' | 'outreach'>('dashboard');
 
   return (

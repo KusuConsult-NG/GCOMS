@@ -17,7 +17,7 @@ const riskScore = (likelihood: string, impact: string) =>
 export class OperationsService {
   constructor(private prisma: PrismaService) {}
 
-  private async mustExist<T>(row: T | null, label: string): Promise<T> {
+  private mustExist<T>(row: T | null, label: string): T {
     if (!row) throw new NotFoundException(`${label} not found`);
     return row;
   }
@@ -47,7 +47,7 @@ export class OperationsService {
   }
 
   async updateJobOpening(id: string, d: dto.UpdateJobOpeningDto) {
-    await this.mustExist(
+    this.mustExist(
       await this.prisma.jobOpening.findUnique({ where: { id } }),
       'Job opening',
     );
@@ -68,7 +68,7 @@ export class OperationsService {
   }
 
   async createApplicant(d: dto.CreateApplicantDto) {
-    await this.mustExist(
+    this.mustExist(
       await this.prisma.jobOpening.findUnique({
         where: { id: d.jobOpeningId },
       }),
@@ -87,7 +87,7 @@ export class OperationsService {
   }
 
   async updateApplicant(id: string, d: dto.UpdateApplicantDto) {
-    await this.mustExist(
+    this.mustExist(
       await this.prisma.jobApplicant.findUnique({ where: { id } }),
       'Applicant',
     );
@@ -141,7 +141,7 @@ export class OperationsService {
   }
 
   async createVolunteerProfile(d: dto.CreateVolunteerProfileDto) {
-    await this.mustExist(
+    this.mustExist(
       await this.prisma.user.findUnique({ where: { id: d.userId } }),
       'User',
     );
@@ -209,7 +209,7 @@ export class OperationsService {
   }
 
   async updateBoardAction(id: string, d: dto.UpdateBoardActionDto) {
-    await this.mustExist(
+    this.mustExist(
       await this.prisma.boardAction.findUnique({ where: { id } }),
       'Action',
     );
@@ -237,7 +237,7 @@ export class OperationsService {
    * transaction — a stock ledger that does not move stock is decoration.
    */
   async createMovement(d: dto.CreateStockMovementDto) {
-    const item = await this.mustExist(
+    const item = this.mustExist(
       await this.prisma.inventoryItem.findUnique({
         where: { id: d.inventoryItemId },
       }),
@@ -298,7 +298,7 @@ export class OperationsService {
   }
 
   async createRisk(d: dto.CreateProjectRiskDto) {
-    await this.mustExist(
+    this.mustExist(
       await this.prisma.project.findUnique({ where: { id: d.projectId } }),
       'Project',
     );
@@ -320,7 +320,7 @@ export class OperationsService {
   }
 
   async updateRisk(id: string, d: dto.UpdateProjectRiskDto) {
-    const existing = await this.mustExist(
+    const existing = this.mustExist(
       await this.prisma.projectRisk.findUnique({ where: { id } }),
       'Risk',
     );
@@ -381,7 +381,7 @@ export class OperationsService {
   }
 
   async createReportSchedule(d: dto.CreateReportScheduleDto) {
-    await this.mustExist(
+    this.mustExist(
       await this.prisma.grant.findUnique({ where: { id: d.grantId } }),
       'Grant',
     );
@@ -400,7 +400,7 @@ export class OperationsService {
   }
 
   async updateReportSchedule(id: string, d: dto.UpdateReportScheduleDto) {
-    await this.mustExist(
+    this.mustExist(
       await this.prisma.grantReportSchedule.findUnique({ where: { id } }),
       'Report schedule',
     );
@@ -447,7 +447,7 @@ export class OperationsService {
   }
 
   async updateVendor(id: string, d: dto.UpdateVendorDto) {
-    await this.mustExist(
+    this.mustExist(
       await this.prisma.vendor.findUnique({ where: { id } }),
       'Vendor',
     );
@@ -486,11 +486,11 @@ export class OperationsService {
   }
 
   async createQuote(d: dto.CreateQuoteDto) {
-    await this.mustExist(
+    this.mustExist(
       await this.prisma.rfq.findUnique({ where: { id: d.rfqId } }),
       'RFQ',
     );
-    await this.mustExist(
+    this.mustExist(
       await this.prisma.vendor.findUnique({ where: { id: d.vendorId } }),
       'Vendor',
     );
@@ -517,7 +517,7 @@ export class OperationsService {
    * evaluation can never carry two winners.
    */
   async updateQuote(id: string, d: dto.UpdateQuoteDto) {
-    const quote = await this.mustExist(
+    const quote = this.mustExist(
       await this.prisma.rfqQuote.findUnique({ where: { id } }),
       'Quote',
     );

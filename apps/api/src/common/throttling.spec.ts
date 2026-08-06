@@ -41,7 +41,7 @@ describe('requestTracker', () => {
   });
 
   it('survives a missing ip and missing headers', () => {
-    expect(() => requestTracker({} as never)).not.toThrow();
+    expect(() => requestTracker({})).not.toThrow();
   });
 });
 
@@ -108,10 +108,7 @@ describe('clientIp', () => {
   it('prefers req.ip', () => expect(clientIp(req())).toBe('10.0.0.1'));
 
   it('falls back to the socket address', () =>
-    expect(clientIp({ socket: { remoteAddress: '5.5.5.5' } } as never)).toBe(
-      '5.5.5.5',
-    ));
+    expect(clientIp({ socket: { remoteAddress: '5.5.5.5' } })).toBe('5.5.5.5'));
 
-  it('never returns undefined', () =>
-    expect(clientIp({} as never)).toBe('unknown'));
+  it('never returns undefined', () => expect(clientIp({})).toBe('unknown'));
 });

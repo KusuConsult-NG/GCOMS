@@ -1,4 +1,12 @@
-import { Controller, Get, Param, Query, Res, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  Request,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { ExportsService } from './exports.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -28,15 +36,11 @@ export class ExportsController {
     @Param('dataset') dataset: string,
     @Query('status') status: string | undefined,
     @Res() res: Response,
-
-    ...rest: any[]
+    // Reaching the user through `res.req` needed a double cast, because
+    // Express types `req.user` from passport rather than from our payload.
+    // Nest's own @Request() decorator takes the parameter type as given.
+    @Request() req: { user: { id: string; role: string } },
   ) {
-    // JwtAuthGuard puts the authenticated user on the request, but Express's
-    // own `Request.user` type comes from passport and does not describe our
-    // payload — so the two types do not overlap and a direct cast is rejected.
-    // Going via `unknown` is the narrowing TypeScript asks for here; the shape
-    // is guaranteed by the guard on this controller, not by the cast.
-    const req = res.req as unknown as { user: { id: string; role: string } };
     const csv = await this.exports.build(dataset, req.user, { status });
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader(

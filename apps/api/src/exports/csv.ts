@@ -18,13 +18,34 @@ function cell(value: unknown): string {
   if (value instanceof Date) {
     text = value.toISOString();
   } else if (typeof value === 'object') {
-    // Prisma.Decimal and similar value objects carry a meaningful toString().
-    // JSON.stringify would wrap a money value in its own quotes, which then get
-    // escaped again and land in the file as """0.20""".
-    const asString = String(value);
-    text = asString === '[object Object]' ? JSON.stringify(value) : asString;
-  } else {
+    // Prisma.Decimal and similar value objects carry a meaningful toString(),
+    // and it is the right rendering: JSON.stringify would wrap a money value in
+    // its own quotes, which then get escaped again and land in the file as
+    // """0.20""". A plain object has no such method — only the inherited one
+    // that returns "[object Object]" — so those fall back to JSON.
+    //
+    // This used to stringify first and compare the result against the literal
+    // "[object Object]". Same outcome, but it asked the value what it was after
+    // the fact; this asks before.
+    const own = (value as { toString?: unknown }).toString;
+    text =
+      typeof own === 'function' && own !== Object.prototype.toString
+        ? (value as { toString(): string }).toString()
+        : JSON.stringify(value);
+  } else if (
+    // Narrowed positively. Ruling out `object` and `function` does not narrow
+    // `unknown` in TypeScript, so the remaining branch was still `unknown` and
+    // String() on it was no safer than it had been at the top.
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'bigint'
+  ) {
     text = String(value);
+  } else {
+    // A symbol or a function. Neither belongs in an exported row, and putting
+    // function source into a spreadsheet is worse than putting nothing.
+    text = '';
   }
 
   if (text.length > 0 && FORMULA_TRIGGERS.includes(text[0])) {

@@ -6,10 +6,21 @@ import { PhiAccessService, PhiActor } from './phi-access.service';
 const OVERSIGHT: PhiActor = { id: 'exec-1', role: 'EXECUTIVE' };
 const CLINICIAN: PhiActor = { id: 'clin-1', role: 'CLINICIAN' };
 
+/**
+ * The shape of the audit row this service writes. Typing the mock rather than
+ * reaching through `any` means an assertion against a field that no longer
+ * exists fails at compile time instead of quietly passing as undefined.
+ */
+type AuditRow = {
+  data: { action: string; userId: string; newData: string };
+};
+
 function prismaMock() {
   return {
     participant: { findFirst: jest.fn(), findUnique: jest.fn() },
-    auditLog: { create: jest.fn().mockResolvedValue({}) },
+    auditLog: {
+      create: jest.fn<Promise<unknown>, [AuditRow]>().mockResolvedValue({}),
+    },
   };
 }
 

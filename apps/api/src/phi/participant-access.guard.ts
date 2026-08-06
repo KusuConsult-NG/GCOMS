@@ -1,5 +1,16 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { PhiAccessService } from './phi-access.service';
+import type { Request } from 'express';
+import { PhiAccessService, PhiActor } from './phi-access.service';
+
+/**
+ * What this guard needs off the request. Express's own `Request` types `user`
+ * via passport's declaration merging, which does not describe our JWT payload,
+ * and `route` is not on the public type at all.
+ */
+type PhiRequest = Omit<Request, 'route'> & {
+  user?: PhiActor;
+  route?: { path?: string };
+};
 
 /**
  * Applies PhiAccessService.assertParticipantAccess to a route that names a
@@ -21,11 +32,16 @@ export class ParticipantAccessGuard implements CanActivate {
   constructor(private readonly phi: PhiAccessService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const participantId =
+    const request = context.switchToHttp().getRequest<PhiRequest>();
+    // Express types a route parameter as `string | string[]`, because a pattern
+    // can bind the same name more than once. None of these routes do, but a
+    // non-string here must not reach the access check as one — it would be
+    // compared against stored ids and silently fail to match.
+    const candidate =
       request.params?.participantId ??
       request.params?.id ??
-      request.body?.participantId;
+      (request.body as { participantId?: unknown } | undefined)?.participantId;
+    const participantId = typeof candidate === 'string' ? candidate : undefined;
 
     if (!participantId || !request.user) {
       return true;

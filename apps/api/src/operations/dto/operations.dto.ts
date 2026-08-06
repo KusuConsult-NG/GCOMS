@@ -31,8 +31,6 @@ import {
   VENDOR_STATUSES,
 } from '../../auth/roles.constants';
 
-const str = (max: number) => [IsString(), MaxLength(max)] as const;
-
 export class CreateJobOpeningDto {
   @IsString() @MinLength(1) @MaxLength(160) title: string;
   @IsString() @MinLength(1) @MaxLength(120) department: string;

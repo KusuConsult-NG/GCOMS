@@ -17,13 +17,26 @@ import { createHash } from 'crypto';
  * and bucket authenticated traffic by credential rather than by address.
  */
 
+/**
+ * The parts of a request these trackers read. `Record<string, any>` is what the
+ * throttler's own signature declares, and every property access through it is
+ * unchecked — including `req.body.email`, where a wrong guess would silently
+ * bucket every login attempt under one key and disable the per-account limit.
+ */
+export type ThrottledRequest = {
+  ip?: string;
+  socket?: { remoteAddress?: string };
+  headers?: Record<string, string | string[] | undefined>;
+  body?: unknown;
+};
+
 /** Never log or store this — it is derived directly from a bearer token. */
 function hashToken(header: string): string {
   return createHash('sha256').update(header).digest('base64url').slice(0, 32);
 }
 
-export function clientIp(req: Record<string, any>): string {
-  return (req.ip as string) ?? req.socket?.remoteAddress ?? 'unknown';
+export function clientIp(req: ThrottledRequest): string {
+  return req.ip ?? req.socket?.remoteAddress ?? 'unknown';
 }
 
 /**
@@ -34,7 +47,7 @@ export function clientIp(req: Record<string, any>): string {
  * yet — the raw Authorization header is hashed instead. Two requests bearing
  * the same token share a bucket, which is the property we actually want.
  */
-export function requestTracker(req: Record<string, any>): string {
+export function requestTracker(req: ThrottledRequest): string {
   const header = req.headers?.authorization;
   if (typeof header === 'string' && header.length > 0) {
     return `tok:${hashToken(header)}`;
@@ -43,15 +56,15 @@ export function requestTracker(req: Record<string, any>): string {
 }
 
 /** Login attempts against one account, wherever they come from. */
-export function loginAccountTracker(req: Record<string, any>): string {
-  const email = req.body?.email;
+export function loginAccountTracker(req: ThrottledRequest): string {
+  const email = (req.body as { email?: unknown } | undefined)?.email;
   const normalised =
     typeof email === 'string' ? email.trim().toLowerCase() : '<none>';
   return `acct:${normalised}`;
 }
 
 /** Login attempts from one source, whatever account they target. */
-export function loginSourceTracker(req: Record<string, any>): string {
+export function loginSourceTracker(req: ThrottledRequest): string {
   return `ip:${clientIp(req)}`;
 }
 

@@ -24,12 +24,7 @@ export function ProjectWorkspace({ user }: { user: any }) {
   // six real rows sat in the database with no endpoint able to read them.
   const [tasks, setTasks] = useState<any[]>([]);
 
-  const [risks, setRisks] = useState<any[]>([
-    { id: 1, title: 'Reagent Supply Delay from JUTH', project: 'Plateau Rural Health Initiative', category: 'SUPPLY_CHAIN', likelihood: 'HIGH', impact: 'HIGH', mitigation: 'Maintain 3-month buffer stock, identify backup supplier', owner: 'John Danladi (Procurement)', status: 'MITIGATING', score: 9 },
-    { id: 2, title: 'Rainy Season Road Access to Remote LGAs', project: 'Community Awareness Expansion', category: 'OPERATIONAL', likelihood: 'MEDIUM', impact: 'MEDIUM', mitigation: 'Pre-position field kits, hire local community vehicles', owner: 'Fatima Bello (Field Ops)', status: 'OPEN', score: 4 },
-    { id: 3, title: 'Grant Disbursement Delay from Global Fund', project: 'Plateau Rural Health Initiative', category: 'FINANCIAL', likelihood: 'LOW', impact: 'HIGH', mitigation: 'Maintain 2-month operating reserve, notify ED early', owner: 'Grace Bello (Finance)', status: 'OPEN', score: 6 },
-    { id: 4, title: 'Staff Turnover - Clinical Officers', project: 'Community Awareness Expansion', category: 'OPERATIONAL', likelihood: 'MEDIUM', impact: 'HIGH', mitigation: 'Competitive retention package, succession planning', owner: 'Ngozi Adeyemi (HR)', status: 'MITIGATING', score: 6 }
-  ]);
+  const [risks, setRisks] = useState<any[]>([]);
 
   const [changeRequests, setChangeRequests] = useState<any[]>([]);
 
@@ -64,6 +59,11 @@ export function ProjectWorkspace({ user }: { user: any }) {
     }
   };
 
+  const fetchRisks = async () => {
+    try { setRisks((await api.get('/operations/risks')).data); }
+    catch (err) { console.error('Failed to fetch risks', err); }
+  };
+
   const fetchTasks = async () => {
     try {
       const res = await api.get('/projects/tasks');
@@ -76,6 +76,7 @@ export function ProjectWorkspace({ user }: { user: any }) {
   useEffect(() => {
     fetchProjects();
     fetchTasks();
+    fetchRisks();
   }, []);
 
   const handleProjectSubmit = async (e: React.FormEvent) => {
@@ -612,7 +613,7 @@ export function ProjectWorkspace({ user }: { user: any }) {
                 {risks.map((r) => (
                   <tr key={r.id} className="hover:bg-[#e5eeff] align-top">
                     <td className="p-3 font-bold text-[#002045] w-48">{r.title}</td>
-                    <td className="p-3 text-[#74777f] w-40">{r.project}</td>
+                    <td className="p-3 text-[#74777f] w-40">{r.project?.projectName ?? '—'}</td>
                     <td className="p-3">{r.category}</td>
                     <td className="p-3 whitespace-nowrap">
                       <div>L: {r.likelihood}</div>
@@ -621,7 +622,7 @@ export function ProjectWorkspace({ user }: { user: any }) {
                     </td>
                     <td className="p-3 w-64">
                       <p>{r.mitigation}</p>
-                      <p className="mt-1 text-[#74777f] font-semibold">Owner: {r.owner}</p>
+                      <p className="mt-1 text-[#74777f] font-semibold">Owner: {r.owner ?? 'Unassigned'}</p>
                     </td>
                     <td className="p-3">
                       <select 

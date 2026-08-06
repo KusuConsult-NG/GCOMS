@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import { api } from '@/lib/api';
+import React, { useState, useEffect } from 'react';
 
 const PLATEAU_LGAS = [
   'Barkin Ladi LGA',
@@ -23,12 +24,25 @@ const PLATEAU_LGAS = [
 ];
 
 export default function VolunteersPage() {
-  const [volunteers, setVolunteers] = useState<any[]>([
-    { id: 1, firstName: 'Grace', lastName: 'Gyang', email: 'grace.gyang@gcoms.org', phone: '08031112233', lga: 'Barkin Ladi LGA', ward: 'Gwol Ward', address: 'House 14, Main Street, Barkin Ladi', status: 'Active' },
-    { id: 2, firstName: 'Blessing', lastName: 'Pam', email: 'blessing.pam@gcoms.org', phone: '08032223344', lga: 'Jos North LGA', ward: 'Tudun Wada Ward', address: 'Plot 88, Ahmadu Bello Way, Jos', status: 'Active' },
-    { id: 3, firstName: 'Emmanuel', lastName: 'Luka', email: 'emmanuel.luka@gcoms.org', phone: '08033334455', lga: 'Mangu LGA', ward: 'Panyam Ward', address: 'Panyam Central Road, Mangu', status: 'Active' },
-    { id: 4, firstName: 'Ruth', lastName: 'Danladi', email: 'ruth.danladi@gcoms.org', phone: '08034445566', lga: 'Kanke LGA', ward: 'Kwal Ward', address: 'Near LGA Secretariate, Kanke', status: 'Active' },
-  ]);
+  // Volunteer rosters live in VolunteerProfile. This page made no API calls at
+  // all — every name on it was invented.
+  const [volunteers, setVolunteers] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.get('/operations/volunteers')
+      .then(res => setVolunteers(res.data.map((v: any) => ({
+        id: v.id,
+        firstName: v.user?.firstName ?? '',
+        lastName: v.user?.lastName ?? '',
+        email: v.user?.email ?? '',
+        phone: '',
+        lga: v.lga,
+        ward: v.ward ?? '',
+        address: v.address ?? '',
+        status: v.status,
+      }))))
+      .catch(err => console.error('Failed to fetch volunteers', err));
+  }, []);
 
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({

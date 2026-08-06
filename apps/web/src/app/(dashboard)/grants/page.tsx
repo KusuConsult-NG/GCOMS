@@ -21,12 +21,7 @@ function GrantsPageContent() {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  const [donors, setDonors] = useState([
-    { id: 1, org: 'Global Fund for Health', country: 'Switzerland', type: 'MULTILATERAL', contact: 'Dr. Marcus Vance', title: 'Grant Officer', email: 'm.vance@globalfund.org', phone: '+41-22-791-1700', interests: ['Cervical Cancer', 'HIV/AIDS'], lastComm: '2026-06-15', notes: 'Key strategic partner. Q3 disbursement expected Aug 2026.' },
-    { id: 2, org: 'World Health Organization (WHO)', country: 'Switzerland', type: 'MULTILATERAL', contact: 'Dr. Amina Touré', title: 'Regional Lead', email: 'tourea@who.int', phone: '+41-22-791-2111', interests: ['Cervical Cancer', 'Health Systems'], lastComm: '2026-05-20', notes: 'Technical assistance provider. Funding review in Oct 2026.' },
-    { id: 3, org: 'USAID Global Health Initiative', country: 'USA', type: 'BILATERAL', contact: 'Ms. Jennifer Parks', title: 'Senior Grants Manager', email: 'jparks@usaid.gov', phone: '+1-202-712-4810', interests: ['Malaria', 'Cervical Cancer', 'WASH'], lastComm: '2026-04-10', notes: 'Grant application submitted Mar 2026, awaiting decision.' },
-    { id: 4, org: 'Bill & Melinda Gates Foundation', country: 'USA', type: 'FOUNDATION', contact: 'Mr. Raj Patel', title: 'Program Officer', email: 'rpatel@gatesfoundation.org', phone: '+1-206-709-3100', interests: ['Nutrition', 'Health Systems', 'Cervical Cancer'], lastComm: '2026-03-01', notes: 'LOI submitted. Follow-up meeting scheduled Sept 2026.' }
-  ]);
+  const [donors, setDonors] = useState<any[]>([]);
   const [donorForm, setDonorForm] = useState({ org: '', country: '', type: 'BILATERAL', contact: '', title: '', email: '', phone: '', interests: [] as string[], lastComm: '', notes: '' });
 
   // Milestones live in the GrantMilestone table. This was a hardcoded array
@@ -38,12 +33,7 @@ function GrantsPageContent() {
   const [pipeline, setPipeline] = useState<any[]>([]);
   const [pipelineForm, setPipelineForm] = useState({ title: '', donor: '', value: '', deadline: '', status: 'ELIGIBLE', stage: 'IDENTIFIED', notes: '' });
 
-  const [reports, setReports] = useState([
-    { id: 1, grant: 'Global Fund Cervical Cancer Initiative 2025-2027', type: 'QUARTERLY', title: 'Q3 Financial & Programmatic Report', due: '2026-10-15', officer: 'Sarah Connor', status: 'UPCOMING' },
-    { id: 2, grant: 'WHO Health Systems Strengthening Grant', type: 'SEMI_ANNUAL', title: 'Mid-Year Implementation Review', due: '2026-08-10', officer: 'Dr. James Okafor', status: 'UPCOMING' },
-    { id: 3, grant: 'USAID Community Health Initiative', type: 'SPECIAL', title: 'Baseline M&E Framework Submission', due: '2026-07-20', officer: 'M&E Team Lead', status: 'SUBMITTED' },
-    { id: 4, grant: 'Bill & Melinda Gates Foundation (Planning)', type: 'FINANCIAL_AUDIT', title: 'Pre-Award Audit Clearance', due: '2026-09-01', officer: 'Finance Director', status: 'UPCOMING' }
-  ]);
+  const [reports, setReports] = useState<any[]>([]);
   const [reportForm, setReportForm] = useState({ grant: '', type: 'QUARTERLY', title: '', due: '', officer: '' });
   const [reportSubmitData, setReportSubmitData] = useState({ id: 0, submitDate: '', ref: '' });
 
@@ -76,6 +66,8 @@ function GrantsPageContent() {
       fetchGrants();
       fetchMilestones();
       fetchProposals();
+      fetchDonors();
+      fetchReportSchedules();
     }
   }, [user]);
 
@@ -106,6 +98,15 @@ function GrantsPageContent() {
     // Kept as local state until a Donor model exists, rather than pretending.
     setActiveModal(null);
     setDonorForm({ org: '', country: '', type: 'BILATERAL', contact: '', title: '', email: '', phone: '', interests: [], lastComm: '', notes: '' });
+  };
+
+  const fetchDonors = async () => {
+    try { setDonors((await api.get('/operations/donors')).data); }
+    catch (err) { console.error('Failed to fetch donors', err); }
+  };
+  const fetchReportSchedules = async () => {
+    try { setReports((await api.get('/operations/report-schedules')).data); }
+    catch (err) { console.error('Failed to fetch report schedules', err); }
   };
 
   const fetchProposals = async () => {
@@ -366,18 +367,18 @@ function GrantsPageContent() {
               return (
                 <div key={d.id} className="p-4 bg-[#f8f9ff] border border-[#e2e8f0] rounded space-y-2">
                   <div className="flex justify-between font-bold text-[#002045]">
-                    <span>{d.org}</span>
+                    <span>{d.organisation}</span>
                     <span className="badge-low-risk">{d.type}</span>
                   </div>
                   <p className="text-[#74777f] text-[10px] uppercase">{d.country}</p>
-                  <p className="text-[#13696a] font-semibold">{d.contact} <span className="text-[#74777f] font-normal">({d.title})</span></p>
+                  <p className="text-[#13696a] font-semibold">{d.contactName} <span className="text-[#74777f] font-normal">({d.title})</span></p>
                   <p className="text-[#74777f] font-mono">{d.email} • {d.phone}</p>
                   <div className="flex flex-wrap gap-1 my-1">
-                    {d.interests.map((i, idx) => <span key={idx} className="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-[9px] rounded-full">{i}</span>)}
+                    {String(d.interests ?? '').split(',').filter(Boolean).map((i: string, idx: number) => <span key={idx} className="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-[9px] rounded-full">{i.trim()}</span>)}
                   </div>
                   <div className="flex justify-between items-end mt-2 pt-2 border-t border-[#e2e8f0]">
                     <span className="text-[#22543d] font-bold text-[10px] uppercase">{donorGrants} Active Grants</span>
-                    <span className="text-[#74777f] text-[10px]">Last Comm: {d.lastComm}</span>
+                    <span className="text-[#74777f] text-[10px]">Last Comm: {d.lastContact ? String(d.lastContact).slice(0, 10) : '—'}</span>
                   </div>
                 </div>
               );
@@ -459,11 +460,11 @@ function GrantsPageContent() {
                   const isSoon = r.status !== 'SUBMITTED' && daysToDue >= 0 && daysToDue <= 14;
                   return (
                     <tr key={r.id} className={`hover:bg-[#e5eeff] ${isOverdue ? 'bg-red-50' : isSoon ? 'bg-orange-50' : ''}`}>
-                      <td className="p-3 text-[#74777f]">{r.grant}</td>
+                      <td className="p-3 text-[#74777f]">{r.grant?.grantName}</td>
                       <td className="p-3 font-semibold">{r.type}</td>
                       <td className="p-3 font-bold text-[#002045]">{r.title}</td>
-                      <td className={`p-3 ${isOverdue ? 'text-red-700 font-bold' : isSoon ? 'text-orange-700 font-bold' : ''}`}>{r.due}</td>
-                      <td className="p-3">{r.officer}</td>
+                      <td className={`p-3 ${isOverdue ? 'text-red-700 font-bold' : isSoon ? 'text-orange-700 font-bold' : ''}`}>{r.dueDate ? String(r.dueDate).slice(0, 10) : '—'}</td>
+                      <td className="p-3">{r.officer ?? '—'}</td>
                       <td className="p-3">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${r.status === 'SUBMITTED' ? 'bg-green-100 text-green-800' : isOverdue ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
                           {isOverdue ? 'OVERDUE' : r.status}
@@ -503,7 +504,7 @@ function GrantsPageContent() {
               <div>
                 <label className="block font-semibold text-[#0d1c2e] mb-1">Donor Organization *</label>
                 <select value={formData.donorName} onChange={e => setFormData({ ...formData, donorName: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
-                  {donors.map(d => <option key={d.id} value={d.org}>{d.org}</option>)}
+                  {donors.map(d => <option key={d.id} value={d.organisation}>{d.organisation}</option>)}
                 </select>
               </div>
               <div>

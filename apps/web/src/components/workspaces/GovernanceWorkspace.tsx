@@ -20,21 +20,11 @@ export function GovernanceWorkspace({ user }: { user: any }) {
   const [submitting, setSubmitting] = useState(false);
 
   // Local Seeded States
-  const [boardMembers, setBoardMembers] = useState<any[]>([
-    { id: 1, name: 'Dr. George A. Adaeze', title: 'Medical Director, JUTH', role: 'CHAIRPERSON', committees: ['Clinical Governance', 'Programme & Strategy'], phone: '+234-803-111-2222', email: 'gadaeze@juth.gov.ng', termStart: '2024-01-01', termEnd: '2027-12-31' },
-    { id: 2, name: 'Prof. Maryam B. Bello', title: 'Professor of Public Health, UniJos', role: 'VICE_CHAIRPERSON', committees: ['Programme & Strategy', 'HR & Remuneration'], phone: '+234-803-222-3333', email: 'mbello@unijos.edu.ng', termStart: '2024-01-01', termEnd: '2027-12-31' },
-    { id: 3, name: 'Engr. Patrick K. Nwachukwu', title: 'Director, Plateau State MOH', role: 'MEMBER', committees: ['Finance & Audit', 'Risk & Compliance'], phone: '+234-805-333-4444', email: 'pnwachukwu@plateaumoh.gov.ng', termStart: '2024-01-01', termEnd: '2026-12-31' },
-    { id: 4, name: 'Mrs. Blessing O. Yakubu', title: 'Executive Director, GCOMS', role: 'SECRETARY', committees: ['Finance & Audit', 'HR & Remuneration'], phone: '+234-806-444-5555', email: 'byakubu@gcoms.org', termStart: '2024-01-01', termEnd: '2027-12-31' },
-    { id: 5, name: 'Dr. Emmanuel S. Lawal', title: 'Country Director, WHO Nigeria', role: 'PATRON', committees: ['Clinical Governance'], phone: '+234-809-555-6666', email: 'elawal@who.int', termStart: '2024-01-01', termEnd: '2025-12-31' }
-  ]);
+  const [boardMembers, setBoardMembers] = useState<any[]>([]);
 
   const [resolutions, setResolutions] = useState<any[]>([]);
 
-  const [actions, setActions] = useState<any[]>([
-    { id: 1, description: 'Circulate revised HR policy', responsible: 'Mrs. Blessing O. Yakubu', due: '2026-08-15', priority: 'HIGH', meeting: 'Q2 Executive Board', status: 'PENDING' },
-    { id: 2, description: 'Finalize JUTH MOU', responsible: 'Dr. George A. Adaeze', due: '2026-09-01', priority: 'HIGH', meeting: 'Q2 Executive Board', status: 'COMPLETED' },
-    { id: 3, description: 'Review Q3 Budget Variance', responsible: 'Engr. Patrick K. Nwachukwu', due: '2026-10-15', priority: 'MEDIUM', meeting: 'Audit Committee', status: 'PENDING' }
-  ]);
+  const [actions, setActions] = useState<any[]>([]);
 
   // Form States
   const [memberForm, setMemberForm] = useState({ name: '', title: '', role: 'MEMBER', committees: [] as string[], phone: '', email: '', termStart: '', termEnd: '' });
@@ -43,6 +33,15 @@ export function GovernanceWorkspace({ user }: { user: any }) {
 
   // Vote State for activeVoteModal
   const [currentVotes, setCurrentVotes] = useState<Record<number, string>>({});
+
+  const fetchBoardMembers = async () => {
+    try { setBoardMembers((await api.get('/operations/board-members')).data); }
+    catch (err) { console.error('Failed to fetch board members', err); }
+  };
+  const fetchActions = async () => {
+    try { setActions((await api.get('/operations/board-actions')).data); }
+    catch (err) { console.error('Failed to fetch board actions', err); }
+  };
 
   const fetchResolutions = async () => {
     try {
@@ -53,6 +52,8 @@ export function GovernanceWorkspace({ user }: { user: any }) {
 
   useEffect(() => {
     fetchResolutions();
+    fetchBoardMembers();
+    fetchActions();
   }, []);
 
   useEffect(() => {
@@ -593,13 +594,13 @@ export function GovernanceWorkspace({ user }: { user: any }) {
                 <tr key={a.id} className={`hover:bg-[#e5eeff] ${a.status === 'COMPLETED' ? 'opacity-60' : ''}`}>
                   <td className="p-3 font-bold text-[#002045] w-64">{a.description}</td>
                   <td className="p-3">{a.responsible}</td>
-                  <td className="p-3 tabular-nums">{a.due}</td>
+                  <td className="p-3 tabular-nums">{String(a.dueDate ?? '').slice(0, 10)}</td>
                   <td className="p-3">
                     <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${a.priority === 'HIGH' ? 'bg-red-100 text-red-700' : a.priority === 'MEDIUM' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
                       {a.priority}
                     </span>
                   </td>
-                  <td className="p-3 text-[#74777f]">{a.meeting}</td>
+                  <td className="p-3 text-[#74777f]">{a.meeting?.title ?? '—'}</td>
                   <td className="p-3">
                     {a.status === 'PENDING' ? (
                       <button onClick={() => setActions(actions.map(x => x.id === a.id ? { ...x, status: 'COMPLETED' } : x))} className="text-emerald-700 font-bold hover:underline border border-emerald-700 px-2 py-1 rounded">

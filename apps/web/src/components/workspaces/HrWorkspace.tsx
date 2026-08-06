@@ -14,30 +14,19 @@ export function HrWorkspace({ user }: { user: any }) {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'staff' | 'volunteers' | 'recruitment' | 'leave' | 'training'>('staff');
   const [staff, setStaff] = useState<any[]>([]);
-  const [volunteers, setVolunteers] = useState<any[]>([
-    { id: 1, name: 'Grace M. Gyang', lga: 'Barkin Ladi LGA', ward: 'Gwol Ward', address: 'House 14, Main Street, Barkin Ladi', stipend: '₦35,000 / mo', status: 'ACTIVE' },
-    { id: 2, name: 'Blessing K. Pam', lga: 'Jos North LGA', ward: 'Tudun Wada Ward', address: 'Plot 88, Ahmadu Bello Way, Jos', stipend: '₦35,000 / mo', status: 'ACTIVE' },
-    { id: 3, name: 'Emmanuel D. Luka', lga: 'Mangu LGA', ward: 'Panyam Ward', address: 'Panyam Central Road, Mangu', stipend: '₦35,000 / mo', status: 'ACTIVE' },
-    { id: 4, name: 'Ruth A. Danladi', lga: 'Kanke LGA', ward: 'Kwal Ward', address: 'Near LGA Secretariate, Kanke', stipend: '₦35,000 / mo', status: 'ACTIVE' },
-  ]);
+  const [volunteers, setVolunteers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState<null | 'staff' | 'volunteer' | 'leave' | 'job' | 'applicant' | 'interview' | 'offer' | 'attendance' | 'performance' | 'training'>(null);
 
   // States for new features
-  const [jobOpenings, setJobOpenings] = useState<any[]>([
-    { id: 1, title: 'Senior Clinical Officer', dept: 'Clinical', type: 'FULL_TIME', location: 'Jos, Plateau State', deadline: '2026-08-31', status: 'OPEN', applicants: [] },
-    { id: 2, title: 'Field Outreach Coordinator', dept: 'Field Operations', type: 'CONTRACT', location: 'Barkin Ladi LGA', deadline: '2026-09-15', status: 'OPEN', applicants: [] }
-  ]);
+  const [jobOpenings, setJobOpenings] = useState<any[]>([]);
   const [selectedJob, setSelectedJob] = useState<any>(null);
 
   const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
   const [attendanceLogs, setAttendanceLogs] = useState<any[]>([]);
   const [performanceReviews, setPerformanceReviews] = useState<any[]>([]);
   
-  const [trainings, setTrainings] = useState<any[]>([
-    { id: 1, staff: 'Dr. Amara Okafor', title: 'VIA/Cryotherapy Clinical Certification', provider: 'WHO AFRO', type: 'CLINICAL_SKILLS', date: '2025-11-15', cert: 'YES', expiry: '2026-11-15', status: 'ACTIVE' },
-    { id: 2, staff: 'John Danladi', title: 'Financial Management for NGOs', provider: 'CLEEN Foundation', type: 'GRANTS_MANAGEMENT', date: '2026-03-10', cert: 'YES', expiry: '2027-03-10', status: 'ACTIVE' }
-  ]);
+  const [trainings, setTrainings] = useState<any[]>([]);
   
   // Form State
   const [formData, setFormData] = useState({
@@ -115,7 +104,23 @@ export function HrWorkspace({ user }: { user: any }) {
     } catch (err) { console.error('Failed to fetch appraisals', err); }
   };
 
+  const fetchVolunteers = async () => {
+    try { setVolunteers((await api.get('/operations/volunteers')).data); }
+    catch (err) { console.error('Failed to fetch volunteers', err); }
+  };
+  const fetchJobOpenings = async () => {
+    try { setJobOpenings((await api.get('/operations/job-openings')).data); }
+    catch (err) { console.error('Failed to fetch job openings', err); }
+  };
+  const fetchTrainings = async () => {
+    try { setTrainings((await api.get('/operations/training')).data); }
+    catch (err) { console.error('Failed to fetch training records', err); }
+  };
+
   useEffect(() => {
+    fetchVolunteers();
+    fetchJobOpenings();
+    fetchTrainings();
     fetchStaff();
     fetchLeave();
     fetchAppraisals();
@@ -144,47 +149,65 @@ export function HrWorkspace({ user }: { user: any }) {
     if (!volunteerForm.lga) return alert('LGA is mandatory!');
     setSubmitting(true);
     try {
-      await api.post('/users', {
+      const created = await api.post('/users', {
         firstName: volunteerForm.firstName, lastName: volunteerForm.lastName,
         email: volunteerForm.email || `volunteer.${Date.now()}@gcoms.org`, role: 'VOLUNTEER', password: 'Password123!'
       });
-      setVolunteers([{
-        id: Date.now(), name: `${volunteerForm.firstName} ${volunteerForm.lastName}`, lga: volunteerForm.lga,
-        ward: volunteerForm.ward || 'General Ward', address: volunteerForm.address || 'LGA Health Centre',
-        stipend: `₦${Number(volunteerForm.stipend).toLocaleString()} / mo`, status: 'ACTIVE'
-      }, ...volunteers]);
+      // The roster fields (LGA, ward, stipend) live on VolunteerProfile, not on
+      // the user account, so this is two calls rather than local state.
+      await api.post('/operations/volunteers', {
+        userId: created.data.id,
+        lga: volunteerForm.lga,
+        ward: volunteerForm.ward || undefined,
+        address: volunteerForm.address || undefined,
+        stipend: Number(volunteerForm.stipend) || 0,
+      });
+      await fetchVolunteers();
       setActiveModal(null);
       setVolunteerForm({ firstName: '', lastName: '', email: '', phone: '', lga: 'Barkin Ladi LGA', ward: '', address: '', stipend: '35000' });
     } catch (err) { console.error('Failed to register volunteer', err); } finally { setSubmitting(false); }
   };
 
   // Job Opening Actions
-  const handlePostJob = (e: React.FormEvent) => {
+  const handlePostJob = async (e: React.FormEvent) => {
     e.preventDefault();
-    setJobOpenings([...jobOpenings, { id: Date.now(), ...jobForm, status: 'OPEN', applicants: [] }]);
-    // @ts-ignore
-    // NOT PERSISTED. This POSTed a job opening at the staff-record endpoint,
-    // which rejected it 400; the error was swallowed. Local until a JobOpening
-    // model exists.
-    setActiveModal(null);
-    setJobForm({ title: '', dept: 'Clinical', type: 'FULL_TIME', location: '', qualifications: '', deadline: '' });
+    try {
+      await api.post('/operations/job-openings', {
+        title: jobForm.title,
+        department: jobForm.dept,
+        employmentType: jobForm.type,
+        location: jobForm.location,
+        deadline: jobForm.deadline,
+      });
+      setActiveModal(null);
+      await fetchJobOpenings();
+    } catch (err) {
+      console.error('Failed to post job opening', err);
+    }
   };
   const closeJob = (id: number) => {
-    setJobOpenings(jobOpenings.map(j => j.id === id ? { ...j, status: 'CLOSED' } : j));
+    api.patch(`/operations/job-openings/${id}`, { status: 'CLOSED' })
+      .then(() => fetchJobOpenings())
+      .catch(err => console.error('Failed to close job opening', err));
   };
 
   // Applicant Actions
-  const handleAddApplicant = (e: React.FormEvent) => {
+  const handleAddApplicant = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedJob) {
-      const updatedJob = {
-        ...selectedJob, 
-        applicants: [...selectedJob.applicants, { id: Date.now(), ...applicantForm, stage: 'APPLIED' }]
-      };
-      setJobOpenings(jobOpenings.map(j => j.id === selectedJob.id ? updatedJob : j));
-      setSelectedJob(updatedJob);
+    if (!selectedJob) return;
+    try {
+      await api.post('/operations/applicants', {
+        jobOpeningId: selectedJob.id,
+        name: applicantForm.name,
+        email: applicantForm.email || undefined,
+        phone: applicantForm.phone || undefined,
+      });
       setActiveModal(null);
-      setApplicantForm({ name: '', email: '', phone: '', experience: 0, currentEmployer: '', date: new Date().toISOString().split('T')[0] });
+      const refreshed = await api.get('/operations/job-openings');
+      setJobOpenings(refreshed.data);
+      setSelectedJob(refreshed.data.find((j: any) => j.id === selectedJob.id) ?? null);
+    } catch (err) {
+      console.error('Failed to add applicant', err);
     }
   };
   const changeApplicantStage = (applicantId: number, newStage: string) => {
@@ -294,18 +317,24 @@ export function HrWorkspace({ user }: { user: any }) {
   };
 
   // Training Actions
-  const handleLogTraining = (e: React.FormEvent) => {
+  const handleLogTraining = async (e: React.FormEvent) => {
     e.preventDefault();
-    const staffMember = staff.find(s => s.id === trainingForm.staffId);
-    const staffName = staffMember ? `${staffMember.firstName} ${staffMember.lastName}` : 'Unknown Staff';
-    setTrainings([...trainings, {
-      id: Date.now(), staff: staffName, title: trainingForm.title, provider: trainingForm.provider,
-      type: trainingForm.type, date: trainingForm.date, cert: trainingForm.cert, expiry: trainingForm.expiry, status: 'ACTIVE'
-    }]);
-    // @ts-ignore
-    // NOT PERSISTED — no training-log table. See the job-opening note above.
-    setActiveModal(null);
-    setTrainingForm({ staffId: '', title: '', provider: '', type: 'CLINICAL_SKILLS', date: '', cert: 'YES', expiry: '' });
+    try {
+      await api.post('/operations/training', {
+        staffId: trainingForm.staffId || undefined,
+        staffName: staffName(trainingForm.staffId),
+        title: trainingForm.title,
+        provider: trainingForm.provider || undefined,
+        type: trainingForm.type,
+        trainingDate: trainingForm.date,
+        certified: trainingForm.cert === 'YES',
+        expiryDate: trainingForm.expiry || undefined,
+      });
+      setActiveModal(null);
+      await fetchTrainings();
+    } catch (err) {
+      console.error('Failed to log training', err);
+    }
   };
 
   return (
@@ -435,14 +464,14 @@ export function HrWorkspace({ user }: { user: any }) {
             {volunteers.map((v) => (
               <div key={v.id} className="p-4 bg-[#f8f9ff] border border-[#e2e8f0] rounded space-y-2">
                 <div className="flex justify-between font-bold text-[#002045]">
-                  <span className="text-sm">{v.name}</span>
+                  <span className="text-sm">{v.user ? `${v.user.firstName} ${v.user.lastName}` : 'Unknown'}</span>
                   <span className="badge-low-risk">{v.status}</span>
                 </div>
                 <div className="space-y-1 text-slate-700">
                   <p><strong className="text-[#002045]">LGA (Mandatory):</strong> <span className="px-2 py-0.5 rounded bg-[#13696a] text-white text-[10px] font-bold">{v.lga}</span></p>
                   <p><strong className="text-[#002045]">Ward:</strong> {v.ward}</p>
                   <p><strong className="text-[#002045]">Address:</strong> {v.address}</p>
-                  <p><strong className="text-[#002045]">Stipend:</strong> <span className="text-[#22543d] font-bold font-mono">{v.stipend}</span></p>
+                  <p><strong className="text-[#002045]">Stipend:</strong> <span className="text-[#22543d] font-bold font-mono">{`₦${Number(v.stipend || 0).toLocaleString()} / mo`}</span></p>
                 </div>
               </div>
             ))}
@@ -724,16 +753,16 @@ export function HrWorkspace({ user }: { user: any }) {
               </thead>
               <tbody className="divide-y divide-[#e2e8f0] font-medium text-[#0d1c2e]">
                 {trainings.map(t => {
-                  const isExpiringSoon = t.expiry && new Date(t.expiry).getTime() - new Date().getTime() < 90 * 24 * 60 * 60 * 1000;
+                  const isExpiringSoon = t.expiryDate && new Date(t.expiryDate).getTime() - new Date().getTime() < 90 * 24 * 60 * 60 * 1000;
                   return (
                     <tr key={t.id} className="hover:bg-[#e5eeff]">
-                      <td className="p-3 font-bold text-[#002045]">{t.staff}</td>
+                      <td className="p-3 font-bold text-[#002045]">{t.staffName}</td>
                       <td className="p-3">{t.title}</td>
                       <td className="p-3">{t.provider}</td>
                       <td className="p-3">{t.type}</td>
-                      <td className="p-3">{t.date}</td>
-                      <td className="p-3"><span className="badge-low-risk">{t.cert}</span></td>
-                      <td className={`p-3 font-bold ${isExpiringSoon ? 'text-red-600' : 'text-[#22543d]'}`}>{t.expiry || 'N/A'}</td>
+                      <td className="p-3">{String(t.trainingDate).slice(0, 10)}</td>
+                      <td className="p-3"><span className="badge-low-risk">{t.certified ? 'YES' : 'NO'}</span></td>
+                      <td className={`p-3 font-bold ${isExpiringSoon ? 'text-red-600' : 'text-[#22543d]'}`}>{t.expiryDate ? String(t.expiryDate).slice(0, 10) : 'N/A'}</td>
                     </tr>
                   );
                 })}

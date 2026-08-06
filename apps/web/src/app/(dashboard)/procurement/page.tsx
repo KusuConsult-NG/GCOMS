@@ -33,23 +33,9 @@ function ProcurementPageContent() {
   const [quoteModal, setQuoteModal] = useState<{rfqIdx: number} | null>(null);
   const [quoteForm, setQuoteForm] = useState({ vendor: '', price: '', delivery: '', warranty: '', score: '' });
   
-  const [vendors, setVendors] = useState([
-    { name: 'JUTH Reagent Supplier', category: 'Medical Reagents', rating: '5.0 ★', taxId: 'TIN-987654321', status: 'VERIFIED & PRE-QUALIFIED' },
-    { name: 'MedPharma West Africa Ltd', category: 'Oncology Equipment', rating: '4.9 ★', taxId: 'TIN-123456789', status: 'VERIFIED & PRE-QUALIFIED' },
-    { name: 'Plateau Medical Logistics', category: 'Consumables & Disposables', rating: '4.8 ★', taxId: 'TIN-554433221', status: 'VERIFIED & PRE-QUALIFIED' },
-  ]);
+  const [vendors, setVendors] = useState<any[]>([]);
 
-  const [rfqs, setRfqs] = useState<any[]>([
-    { 
-      reference: 'RFQ-2026-004', 
-      description: 'CO2 Cryotherapy Units Batch', 
-      status: 'EVALUATION COMPLETE',
-      quotes: [
-        { vendor: 'MedPharma West Africa Ltd', price: '3125000', warranty: '2 Years', score: '98', status: 'RECOMMENDED_FOR_AWARD' },
-        { vendor: 'JUTH Reagent Supplier', price: '3400000', warranty: '1 Year', score: '82', status: 'REJECTED' }
-      ]
-    }
-  ]);
+  const [rfqs, setRfqs] = useState<any[]>([]);
   
   const [contracts, setContracts] = useState<any[]>([]);
 

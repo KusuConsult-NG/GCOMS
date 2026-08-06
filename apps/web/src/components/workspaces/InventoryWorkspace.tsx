@@ -19,12 +19,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
     assetName: '', assetTag: '', category: 'MEDICAL_EQUIPMENT', serialNumber: '', acquisitionDate: '', purchaseCost: '', currentLocation: '', assignedTo: '', condition: 'GOOD'
   });
 
-  const [movements, setMovements] = useState<any[]>([
-    { id: 1, type: 'STOCK_RECEIPT', item: 'Acetic Acid VIA Test Solution', qty: 500, from: 'JUTH Supplier Warehouse', to: 'Main Store - Jos Office', ref: 'GRN-2026-047', authorized: 'John Danladi', date: '2026-07-15', remarks: 'Q3 reagent batch delivery' },
-    { id: 2, type: 'STOCK_ISSUE', item: 'Sterile Speculums (Size M)', qty: 200, from: 'Main Store - Jos Office', to: 'Field Team - Barkin Ladi', ref: 'ISS-2026-093', authorized: 'Dr. Amara Okafor', date: '2026-07-20', remarks: 'Field outreach drive July 2026' },
-    { id: 3, type: 'TRANSFER', item: 'Portable BP Monitor (Manual)', qty: 2, from: 'Mangu LGA Clinic', to: 'Barkin Ladi LGA Clinic', ref: 'TRF-2026-011', authorized: 'Fatima Bello', date: '2026-07-28', remarks: 'Reallocation per field commander directive' },
-    { id: 4, type: 'ADJUSTMENT', item: 'Latex Examination Gloves (Box)', qty: -30, from: 'Main Store', to: 'Main Store', ref: 'ADJ-2026-005', authorized: 'John Danladi', date: '2026-08-01', remarks: 'Physical count variance - damaged items written off' }
-  ]);
+  const [movements, setMovements] = useState<any[]>([]);
 
   const [movementForm, setMovementForm] = useState({
     type: 'STOCK_RECEIPT', itemId: '', qty: '', from: '', to: '', ref: '', remarks: '', date: new Date().toISOString().split('T')[0], authorized: ''
@@ -43,6 +38,11 @@ export function InventoryWorkspace({ user }: { user: any }) {
 
   const [submitting, setSubmitting] = useState(false);
 
+  const fetchMovements = async () => {
+    try { setMovements((await api.get('/operations/stock-movements')).data); }
+    catch (err) { console.error('Failed to fetch stock movements', err); }
+  };
+
   const fetchServiceLogs = async () => {
     try {
       const res = await api.get('/inventory/service-logs');
@@ -52,6 +52,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
 
   useEffect(() => {
     fetchServiceLogs();
+    fetchMovements();
   }, []);
 
   useEffect(() => {
@@ -422,17 +423,17 @@ export function InventoryWorkspace({ user }: { user: any }) {
               <tbody className="divide-y divide-[#e2e8f0] font-medium text-[#0d1c2e]">
                 {movements.map((m) => (
                   <tr key={m.id} className="hover:bg-[#e5eeff]">
-                    <td className="p-3 whitespace-nowrap">{m.date}</td>
+                    <td className="p-3 whitespace-nowrap">{String(m.movementDate ?? '').slice(0, 10)}</td>
                     <td className="p-3">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getMovementBadge(m.type)}`}>{m.type}</span>
                     </td>
-                    <td className="p-3 font-bold text-[#002045]">{m.item}</td>
-                    <td className="p-3 font-mono tabular-nums">{m.qty}</td>
-                    <td className="p-3">{m.from}</td>
-                    <td className="p-3">{m.to}</td>
-                    <td className="p-3 font-mono">{m.ref}</td>
-                    <td className="p-3">{m.authorized}</td>
-                    <td className="p-3 text-[#74777f] max-w-xs truncate">{m.remarks}</td>
+                    <td className="p-3 font-bold text-[#002045]">{m.inventoryItem?.itemName ?? '—'}</td>
+                    <td className="p-3 font-mono tabular-nums">{m.quantity}</td>
+                    <td className="p-3">{m.fromLocation ?? '—'}</td>
+                    <td className="p-3">{m.toLocation ?? '—'}</td>
+                    <td className="p-3 font-mono">{m.reference ?? '—'}</td>
+                    <td className="p-3">{m.authorisedBy ?? '—'}</td>
+                    <td className="p-3 text-[#74777f] max-w-xs truncate">{m.remarks ?? ''}</td>
                   </tr>
                 ))}
               </tbody>

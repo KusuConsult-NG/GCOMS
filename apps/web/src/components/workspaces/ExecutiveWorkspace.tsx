@@ -6,6 +6,7 @@ import type { ApprovalRequest, FinanceTransaction, Grant, InventoryItem, Project
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { StatCard } from '@/components/StatCard';
 
 export function ExecutiveWorkspace() {
   const router = useRouter();
@@ -109,31 +110,29 @@ export function ExecutiveWorkspace() {
 
       {/* Section 2: Live KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Active Grant Portfolio</span>
-          <p className="text-2xl font-bold text-[var(--primary)] mt-1">{grants.length}</p>
-          <p className="text-[10px] text-[var(--on-surface-variant)]">Total: ₦{totalGrantValue.toLocaleString()}</p>
-        </div>
-        <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Active Projects</span>
-          <p className="text-2xl font-bold text-[var(--secondary)] mt-1 tabular-nums">{projects.length}</p>
-        </div>
-        <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Pending Procurement Orders</span>
-          <p className="text-2xl font-bold text-[var(--risk-high-text)] mt-1 tabular-nums">{pendingProcurement}</p>
-        </div>
-        <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Financial Balance</span>
-          <p className="text-2xl font-bold text-[var(--risk-low-text)] mt-1 tabular-nums">₦{financialBalance.toLocaleString()}</p>
-        </div>
-        <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Low Stock Alerts</span>
-          <p className="text-2xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">{lowStockCount}</p>
-        </div>
-        <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Pending Approvals</span>
-          <p className="text-2xl font-bold text-[var(--risk-high-text)] mt-1 tabular-nums">{pendingApprovalsCount}</p>
-        </div>
+        <StatCard
+          label="Active grant portfolio"
+          value={grants.length}
+          detail={`Total: ₦${totalGrantValue.toLocaleString()}`}
+        />
+        <StatCard label="Active projects" value={projects.length} />
+        <StatCard label="Pending procurement orders" value={pendingProcurement} />
+        <StatCard
+          label="Financial balance"
+          value={`₦${financialBalance.toLocaleString()}`}
+        />
+        {/* Colour here is a state, not a category: nothing is wrong until a
+            count is above zero. */}
+        <StatCard
+          label="Low stock alerts"
+          value={lowStockCount}
+          tone={lowStockCount > 0 ? 'warning' : 'neutral'}
+        />
+        <StatCard
+          label="Pending approvals"
+          value={pendingApprovalsCount}
+          tone={pendingApprovalsCount > 0 ? 'critical' : 'neutral'}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -16,10 +16,30 @@ jobs:
     defaults:
       run:
         working-directory: apps/api
+    # The same major version the app runs against elsewhere. A file-backed
+    # SQLite stand-in would no longer be testing the same database: case
+    # sensitivity, transactions and concurrency all differ.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gcoms_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     env:
       # The app validates env at boot and refuses to start without these.
       # Test-only values; production secrets come from the deploy environment.
-      DATABASE_URL: file:./ci.db
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gcoms_ci
+      # A separate database, not just a separate schema: the e2e specs refuse to
+      # run against the one the app is using, which is what stops them
+      # truncating a developer's data when run locally.
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gcoms_ci_e2e
       JWT_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
       ALLOWED_ORIGINS: http://localhost:3000
     steps:
@@ -30,6 +50,8 @@ jobs:
           cache: npm
           cache-dependency-path: apps/api/package-lock.json
       - run: npm ci
+      - name: Create the e2e database
+        run: PGPASSWORD=postgres psql -h localhost -U postgres -c 'CREATE DATABASE gcoms_ci_e2e'
       - run: npx prisma generate
       - run: npx prisma migrate deploy
       - name: Lint
@@ -127,10 +149,23 @@ jobs:
   ui:
     name: UI verification (browser)
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gcoms_ui
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     env:
-      # A fresh database built from migrations, not a copy of anyone's dev.db —
-      # the same path a deployment takes.
-      DATABASE_URL: file:./ci-ui.db
+      # A fresh database built from migrations, not a copy of anyone's — the
+      # same path a deployment takes.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gcoms_ui
       JWT_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
       ALLOWED_ORIGINS: http://localhost:3000
       # The seed generates a random password unless told otherwise; the browser

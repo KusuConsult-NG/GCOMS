@@ -4,6 +4,7 @@ import { errorMessage } from '@/lib/errors';
 import {
   enqueue,
   isRetryable,
+  isStale,
   markRejected,
   readQueue,
   removeFromQueue,
@@ -14,6 +15,7 @@ import type { OutreachEvent, SessionUser } from '@/types/api';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
+import { useToday } from '@/lib/useToday';
 
 const PLATEAU_LGAS = [
   'Barkin Ladi LGA',
@@ -46,6 +48,7 @@ export function VolunteerWorkspace({ user }: { user: SessionUser }) {
   const [syncing, setSyncing] = useState(false);
   const [syncNote, setSyncNote] = useState('');
   const [lastSync, setLastSync] = useState('');
+  const today = useToday();
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState('');
 
@@ -162,7 +165,12 @@ type RegistrationConfirmation = {
   const syncQueue = useCallback(async () => {
     if (syncingRef.current) return;
     let state = await readQueue();
-    const pending = state.items.filter((item) => !item.rejectedReason);
+    // Records captured by someone else on this shared device are left alone.
+    // The server files a registration against whoever is signed in, so syncing
+    // them here would put this account's name on another volunteer's work.
+    const pending = state.items.filter(
+      (item) => !item.rejectedReason && item.capturedById === user.id,
+    );
     if (!pending.length) return;
 
     syncingRef.current = true;
@@ -196,7 +204,7 @@ type RegistrationConfirmation = {
     if (sent > 0) setLastSync(new Date().toLocaleTimeString());
     syncingRef.current = false;
     setSyncing(false);
-  }, []);
+  }, [user.id]);
 
   /**
    * Load what the device is holding, and send it if there is a connection.
@@ -210,11 +218,14 @@ type RegistrationConfirmation = {
     void readQueue().then(({ items, persistent }) => {
       setOfflineQueue(items);
       setQueuePersistent(persistent);
-      if (navigator.onLine && items.some((item) => !item.rejectedReason)) {
+      if (
+        navigator.onLine &&
+        items.some((item) => !item.rejectedReason && item.capturedById === user.id)
+      ) {
         void syncQueue();
       }
     });
-  }, [syncQueue]);
+  }, [syncQueue, user.id]);
 
   // The browser tells us when the connection comes back; that is the moment to
   // try, rather than making the volunteer notice and press something.
@@ -300,7 +311,10 @@ type RegistrationConfirmation = {
       // server issues one. Until this syncs, the patient is not registered, and
       // the notice says so rather than implying a save.
       if (isRetryable(err)) {
-        const state = await enqueue(payload, new Date().toISOString());
+        const state = await enqueue(payload, new Date().toISOString(), {
+          id: user.id,
+          name: `${user.firstName} ${user.lastName}`.trim() || user.email,
+        });
         setOfflineQueue(state.items);
         setQueuePersistent(state.persistent);
         setRegForm(emptyForm);
@@ -682,7 +696,12 @@ type RegistrationConfirmation = {
             <button
               type="button"
               onClick={() => { void syncQueue(); }}
-              disabled={syncing || !offlineQueue.some((item) => !item.rejectedReason)}
+              disabled={
+                syncing ||
+                !offlineQueue.some(
+                  (item) => !item.rejectedReason && item.capturedById === user.id,
+                )
+              }
               className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)] disabled:opacity-50"
             >
               {syncing ? 'Syncing…' : 'Sync now'}
@@ -718,19 +737,31 @@ type RegistrationConfirmation = {
                     <p className="text-[11px] font-semibold text-[var(--risk-high-text)] mt-1">
                       Rejected by the server: {item.rejectedReason} This will not be retried.
                     </p>
+                  ) : item.capturedById !== user.id ? (
+                    <p className="text-[11px] font-semibold text-[var(--on-surface-variant)] mt-1">
+                      Captured by {item.capturedByName}. Only they can sync it — the
+                      server would otherwise record it as yours.
+                    </p>
+                  ) : today && isStale(item, today.getTime()) ? (
+                    <p className="text-[11px] font-semibold text-[var(--risk-high-text)] mt-1">
+                      Waiting over a day. Not registered yet, and patient details are
+                      sitting on this device until it syncs.
+                    </p>
                   ) : (
                     <p className="text-[11px] text-[var(--on-surface-variant)] mt-1">
                       Waiting to sync. Not registered yet.
                     </p>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => { void removeFromQueue(item.localId).then((s) => setOfflineQueue(s.items)); }}
-                  className="btn-secondary text-[11px]"
-                >
-                  Discard
-                </button>
+                {item.capturedById === user.id && (
+                  <button
+                    type="button"
+                    onClick={() => { void removeFromQueue(item.localId).then((s) => setOfflineQueue(s.items)); }}
+                    className="btn-secondary text-[11px]"
+                  >
+                    Discard
+                  </button>
+                )}
               </div>
             ))}
           </div>

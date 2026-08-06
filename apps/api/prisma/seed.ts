@@ -42,6 +42,11 @@ async function main() {
   const users = [
     { email: 'executive@gcoms.org', firstName: 'Retsum', lastName: 'Anzaku', role: 'EXECUTIVE' },
     { email: 'clinician@gcoms.org', firstName: 'Dr. Sarah', lastName: 'Okonkwo', role: 'CLINICIAN' },
+    // DOCTOR and NURSE are distinct roles with different permissions, so the
+    // seed covers both — the UI verification signs in as every role, and a
+    // missing account there is a failure nobody would otherwise notice.
+    { email: 'doctor@gcoms.org', firstName: 'Dr. Ibrahim', lastName: 'Musa', role: 'DOCTOR' },
+    { email: 'nurse@gcoms.org', firstName: 'Ngozi', lastName: 'Eze', role: 'NURSE' },
     { email: 'volunteer@gcoms.org', firstName: 'Amina', lastName: 'Bello', role: 'VOLUNTEER' },
     { email: 'field@gcoms.org', firstName: 'John', lastName: 'Danladi', role: 'FIELD_OFFICER' },
     { email: 'finance@gcoms.org', firstName: 'Emmanuel', lastName: 'Gyang', role: 'FINANCE' },

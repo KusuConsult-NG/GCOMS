@@ -60,7 +60,7 @@ model ApprovalRequest {
 
 model FinanceTransaction {
   id            String   @id @default(uuid())
-  amount        Float
+  amount        Decimal
   type          String   // INCOME, EXPENSE
   category      String   // DONATION, SALARY, SUPPLIES, etc.
   description   String
@@ -75,7 +75,7 @@ model ProcurementOrder {
   id            String   @id @default(uuid())
   itemName      String
   quantity      Int
-  estimatedCost Float
+  estimatedCost Decimal
   vendor        String
   status        String   @default("PENDING") // PENDING, APPROVED, REJECTED
   requestedById String
@@ -113,7 +113,7 @@ model Grant {
   id          String   @id @default(uuid())
   donorName   String
   grantName   String
-  amount      Float
+  amount      Decimal
   startDate   DateTime
   endDate     DateTime
   status      String   @default("ACTIVE") // ACTIVE, PENDING, EXHAUSTED
@@ -151,7 +151,7 @@ model Project {
   startDate   DateTime
   endDate     DateTime
   status      String   @default("PLANNING") // PLANNING, ACTIVE, COMPLETED
-  budget      Float
+  budget      Decimal
   managedById String
   managedBy   User     @relation("ManagedProjects", fields: [managedById], references: [id])
   createdAt   DateTime @default(now())
@@ -530,7 +530,7 @@ model BankReconciliation {
   statementDate   DateTime
   bankBalance     Float
   ledgerBalance   Float
-  discrepancy     Float    @default(0)
+  discrepancy     Decimal  @default(0)
   status          String   @default("RECONCILED") // RECONCILED, DISCREPANCY, PENDING
   notes           String?
   createdAt       DateTime @default(now())
@@ -577,7 +577,7 @@ model GrantProposal {
   id              String   @id @default(uuid())
   title           String
   donorName       String
-  requestedAmount Float
+  requestedAmount Decimal
   submissionDeadline DateTime
   status          String   @default("UNDER_REVIEW") // DRAFT, UNDER_REVIEW, SUBMITTED, AWARDED, REJECTED
   leadAuthor      String
@@ -644,7 +644,7 @@ model VolunteerProfile {
   lga       String
   ward      String?
   address   String?
-  stipend   Float    @default(0)
+  stipend   Decimal  @default(0)
   status    String   @default("ACTIVE") // ACTIVE, INACTIVE
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -781,7 +781,7 @@ model RfqQuote {
   rfq       Rfq      @relation(fields: [rfqId], references: [id], onDelete: Cascade)
   vendorId  String
   vendor    Vendor   @relation(fields: [vendorId], references: [id])
-  price     Float
+  price     Decimal
   warranty  String?
   score     Int      @default(0)
   status    String   @default("SUBMITTED") // SUBMITTED, RECOMMENDED, REJECTED

@@ -15,9 +15,17 @@ function cell(value: unknown): string {
   if (value === null || value === undefined) return '""';
 
   let text: string;
-  if (value instanceof Date) text = value.toISOString();
-  else if (typeof value === 'object') text = JSON.stringify(value);
-  else text = String(value);
+  if (value instanceof Date) {
+    text = value.toISOString();
+  } else if (typeof value === 'object') {
+    // Prisma.Decimal and similar value objects carry a meaningful toString().
+    // JSON.stringify would wrap a money value in its own quotes, which then get
+    // escaped again and land in the file as """0.20""".
+    const asString = String(value);
+    text = asString === '[object Object]' ? JSON.stringify(value) : asString;
+  } else {
+    text = String(value);
+  }
 
   if (text.length > 0 && FORMULA_TRIGGERS.includes(text[0])) {
     text = `'${text}`;

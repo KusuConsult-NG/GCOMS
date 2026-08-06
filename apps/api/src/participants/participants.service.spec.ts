@@ -60,6 +60,78 @@ describe('ParticipantsService', () => {
     service = module.get(ParticipantsService);
   });
 
+  describe('idempotency key', () => {
+    const KEY = '3f1c2a54-9d7b-4e21-8f66-1a2b3c4d5e6f';
+
+    it('returns the first record rather than registering the patient twice', async () => {
+      const first = {
+        id: 'p1',
+        registrationId: 'GC-2608-ABC123',
+        registeredById: VOLUNTEER.id,
+      };
+      prisma.participant.findUnique.mockResolvedValueOnce(first);
+
+      const result = await service.create(
+        { ...VALID, idempotencyKey: KEY },
+        VOLUNTEER.id,
+      );
+
+      expect(result).toBe(first);
+      expect(prisma.participant.create).not.toHaveBeenCalled();
+    });
+
+    it('stores the key on the record it creates', async () => {
+      prisma.participant.findUnique.mockResolvedValueOnce(null);
+      await service.create({ ...VALID, idempotencyKey: KEY }, VOLUNTEER.id);
+      expect(
+        dataOf<{ idempotencyKey: string }>(prisma.participant.create, 0)
+          .idempotencyKey,
+      ).toBe(KEY);
+    });
+
+    // Keys are UUIDs and a client only ever sees its own, but the lookup is by
+    // key alone: without the ownership check this hands back another patient's
+    // full record through a write route.
+    it('refuses a key belonging to a different registrant', async () => {
+      prisma.participant.findUnique.mockResolvedValueOnce({
+        id: 'p9',
+        registeredById: 'another-volunteer',
+      });
+
+      await expect(
+        service.create({ ...VALID, idempotencyKey: KEY }, VOLUNTEER.id),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(prisma.participant.create).not.toHaveBeenCalled();
+    });
+
+    it('resolves two replays racing each other to the same record', async () => {
+      const winner = { id: 'p1', registeredById: VOLUNTEER.id };
+      // Nothing on the pre-check, then the other replay commits first.
+      prisma.participant.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(winner);
+      prisma.participant.create.mockRejectedValueOnce(
+        uniqueViolation('idempotencyKey'),
+      );
+
+      const result = await service.create(
+        { ...VALID, idempotencyKey: KEY },
+        VOLUNTEER.id,
+      );
+
+      expect(result).toBe(winner);
+    });
+
+    it('leaves the column null when no key is sent', async () => {
+      await service.create(VALID, VOLUNTEER.id);
+      expect(
+        dataOf<{ idempotencyKey: string | null }>(prisma.participant.create, 0)
+          .idempotencyKey,
+      ).toBeNull();
+      expect(prisma.participant.findUnique).not.toHaveBeenCalled();
+    });
+  });
+
   describe('registration ids', () => {
     it('assigns one server-side and ignores anything the client sent', async () => {
       await service.create(

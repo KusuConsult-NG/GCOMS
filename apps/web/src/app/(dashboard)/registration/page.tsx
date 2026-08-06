@@ -2,7 +2,7 @@
 
 import { errorMessage } from '@/lib/errors';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
@@ -68,6 +68,14 @@ type RegistrationConfirmation = {
     useState<RegistrationConfirmation | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState('');
+
+  /**
+   * Identifies one capture across every attempt to send it, so that retrying a
+   * submission whose response was lost returns the record the first attempt
+   * created instead of registering the patient twice. Held until the
+   * registration is saved, then dropped so the next patient starts a new one.
+   */
+  const captureKey = useRef<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -135,10 +143,13 @@ type RegistrationConfirmation = {
 
     setLoading(true);
 
+    if (!captureKey.current) captureKey.current = crypto.randomUUID();
+
     try {
       // The registration ID comes back from the server. LGA, ward and GPS are
       // sent as their own fields rather than concatenated into `address`.
       const res = await api.post('/participants', {
+        idempotencyKey: captureKey.current,
         firstName: formData.firstName,
         lastName: formData.lastName,
         dateOfBirth: formData.dateOfBirth,
@@ -165,6 +176,8 @@ type RegistrationConfirmation = {
         qrPassId: `QR-${res.data.registrationId}`,
         createdAt: new Date().toLocaleDateString(),
       });
+      // Saved, so the next patient is a new capture.
+      captureKey.current = null;
     } catch (err) {
       // This previously rendered the success screen and a QR identity pass when
       // the request failed, so a field worker got a confirmation for a patient

@@ -40,6 +40,31 @@ export class ParticipantsService {
   }
 
   /**
+   * The record a previous attempt with this key created, if the caller is the
+   * one who created it.
+   *
+   * The ownership check is the point. Keys are UUIDs and a client only ever
+   * sees its own, but the lookup is by key alone, so without this a caller who
+   * guessed or replayed someone else's key would be handed that patient's full
+   * record — a read of PHI the caller has no claim to, through a write route.
+   */
+  private async findByIdempotencyKey(
+    idempotencyKey: string,
+    registeredById: string,
+  ): Promise<Participant | null> {
+    const existing = await this.prisma.participant.findUnique({
+      where: { idempotencyKey },
+    });
+    if (!existing) return null;
+    if (existing.registeredById !== registeredById) {
+      throw new ConflictException(
+        'This registration key has already been used.',
+      );
+    }
+    return existing;
+  }
+
+  /**
    * Registers a participant and assigns the registration ID server-side.
    *
    * The ID used to be generated in the browser from a truncated timestamp, which
@@ -57,6 +82,17 @@ export class ParticipantsService {
       );
     }
 
+    // A replay of a registration this caller already made returns what the
+    // first attempt created. Checked before the insert for the ordinary case,
+    // and again on P2002 below for two replays racing each other.
+    if (dto.idempotencyKey) {
+      const existing = await this.findByIdempotencyKey(
+        dto.idempotencyKey,
+        registeredById,
+      );
+      if (existing) return existing;
+    }
+
     const nationalId = dto.nationalId?.trim() || null;
 
     for (let attempt = 0; attempt < MAX_ID_ATTEMPTS; attempt++) {
@@ -65,6 +101,7 @@ export class ParticipantsService {
           data: {
             registrationId: this.generateRegistrationId(),
             nationalId,
+            idempotencyKey: dto.idempotencyKey || null,
             firstName: dto.firstName.trim(),
             lastName: dto.lastName.trim(),
             dateOfBirth: new Date(dto.dateOfBirth),
@@ -98,6 +135,18 @@ export class ParticipantsService {
         if (target.includes('nationalId')) {
           throw new ConflictException(
             'A participant with this National ID already exists',
+          );
+        }
+        if (target.includes('idempotencyKey') && dto.idempotencyKey) {
+          // Two replays of the same capture arrived together and the other one
+          // won. Its record is the answer to both.
+          const existing = await this.findByIdempotencyKey(
+            dto.idempotencyKey,
+            registeredById,
+          );
+          if (existing) return existing;
+          throw new ConflictException(
+            'This registration key has already been used.',
           );
         }
         // Registration ID collision — draw another and retry.

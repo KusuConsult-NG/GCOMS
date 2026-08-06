@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { paginate } from '../common/pagination';
 
 @Injectable()
 export class NavigationService {
@@ -8,7 +7,6 @@ export class NavigationService {
 
   async getNavigationTimeline(participantId: string) {
     return this.prisma.navigationEvent.findMany({
-      ...paginate(),
       where: { participantId },
       orderBy: { date: 'asc' },
     });

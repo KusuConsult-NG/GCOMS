@@ -56,6 +56,7 @@ export class DashboardService {
               id: true,
               firstName: true,
               lastName: true,
+              registrationId: true,
               nationalId: true,
               gender: true,
               createdAt: true,

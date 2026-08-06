@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PhiAccessService, PhiActor } from '../phi/phi-access.service';
-import { paginate } from '../common/pagination';
 
 /**
  * Reads take `scope` — PhiAccessService.participantScope() for the caller.
@@ -24,7 +23,6 @@ export class FollowUpService {
     if (scope) where.participant = scope;
 
     return this.prisma.followUp.findMany({
-      ...paginate(),
       where,
       orderBy: { scheduledDate: 'asc' },
       include: {
@@ -33,6 +31,7 @@ export class FollowUpService {
             id: true,
             firstName: true,
             lastName: true,
+            registrationId: true,
             nationalId: true,
             phoneNumber: true,
             gender: true,
@@ -111,7 +110,6 @@ export class FollowUpService {
     future.setDate(future.getDate() + days);
 
     return this.prisma.followUp.findMany({
-      ...paginate(),
       where: {
         status: 'SCHEDULED',
         scheduledDate: { gte: now, lte: future },
@@ -130,7 +128,6 @@ export class FollowUpService {
   async getMissed(scope?: Prisma.ParticipantWhereInput) {
     const now = new Date();
     return this.prisma.followUp.findMany({
-      ...paginate(),
       where: {
         status: 'SCHEDULED',
         scheduledDate: { lt: now },
@@ -142,6 +139,7 @@ export class FollowUpService {
           select: {
             firstName: true,
             lastName: true,
+            registrationId: true,
             nationalId: true,
             phoneNumber: true,
           },

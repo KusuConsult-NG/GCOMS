@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { paginate } from '../common/pagination';
 
 @Injectable()
 export class InventoryService {
@@ -28,7 +27,6 @@ export class InventoryService {
 
   async getInventoryItems() {
     return this.prisma.inventoryItem.findMany({
-      ...paginate(),
       orderBy: { itemName: 'asc' },
       include: {
         managedBy: {

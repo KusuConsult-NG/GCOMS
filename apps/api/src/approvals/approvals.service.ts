@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { paginate } from '../common/pagination';
 
 @Injectable()
 export class ApprovalsService {
@@ -36,7 +35,6 @@ export class ApprovalsService {
 
   async getPendingRequests() {
     return this.prisma.approvalRequest.findMany({
-      ...paginate(),
       where: { status: 'PENDING' },
       orderBy: { createdAt: 'desc' },
       include: {

@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { paginate } from '../common/pagination';
 
 @Injectable()
 export class OutreachService {
@@ -8,7 +7,6 @@ export class OutreachService {
 
   async getAllOutreaches() {
     return this.prisma.outreach.findMany({
-      ...paginate(),
       include: {
         location: true,
         tasks: {

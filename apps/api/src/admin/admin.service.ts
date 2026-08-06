@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { paginate } from '../common/pagination';
 
 @Injectable()
 export class AdminService {
@@ -35,7 +34,6 @@ export class AdminService {
 
   async getFacilityRequests() {
     return this.prisma.facilityRequest.findMany({
-      ...paginate(),
       orderBy: { createdAt: 'desc' },
       include: {
         requestedBy: {

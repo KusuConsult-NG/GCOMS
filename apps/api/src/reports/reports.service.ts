@@ -49,7 +49,7 @@ export class ReportsService {
     const screenings = await this.prisma.screening.findMany({
       include: {
         participant: {
-          select: { firstName: true, lastName: true, nationalId: true, gender: true },
+          select: { firstName: true, lastName: true, registrationId: true, nationalId: true, gender: true },
         },
         conductedBy: {
           select: { firstName: true, lastName: true },

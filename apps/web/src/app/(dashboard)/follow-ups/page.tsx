@@ -9,7 +9,7 @@ interface FollowUp {
   scheduledDate: string;
   status: string;
   notes: string | null;
-  participant: { firstName: string; lastName: string; nationalId: string; phoneNumber: string | null };
+  participant: { firstName: string; lastName: string; registrationId: string; nationalId: string | null; phoneNumber: string | null };
   clinician: { firstName: string; lastName: string; role: string };
 }
 
@@ -243,7 +243,7 @@ export default function FollowUpPage() {
                 <tr key={fu.id} className="hover:bg-slate-50">
                   <td className="p-4">
                     <div className="font-bold text-slate-900">{fu.participant?.firstName} {fu.participant?.lastName}</div>
-                    <div className="text-slate-400 font-mono">{fu.participant?.nationalId}</div>
+                    <div className="text-slate-400 font-mono">{fu.participant?.registrationId ?? fu.participant?.nationalId ?? '—'}</div>
                   </td>
                   <td className="p-4">{fu.clinician?.firstName} {fu.clinician?.lastName}</td>
                   <td className="p-4 font-mono">{new Date(fu.scheduledDate).toLocaleString()}</td>

@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { paginate } from '../common/pagination';
 
 @Injectable()
 export class FinanceService {
@@ -36,7 +35,6 @@ export class FinanceService {
 
   async getTransactions() {
     return this.prisma.financeTransaction.findMany({
-      ...paginate(),
       orderBy: { createdAt: 'desc' },
       include: {
         requestedBy: {

@@ -91,50 +91,45 @@ export default function RegistrationPage() {
 
     setLoading(true);
 
-    const generatedId = `GC-PAT-${Date.now().toString().slice(-6)}`;
-    const fullAddress = `${formData.address || 'Central Community'}, Ward: ${formData.ward || 'General Ward'}, ${formData.lga}`;
-
     try {
+      // The registration ID comes back from the server. LGA, ward and GPS are
+      // sent as their own fields rather than concatenated into `address`.
       const res = await api.post('/participants', {
         firstName: formData.firstName,
         lastName: formData.lastName,
         dateOfBirth: formData.dateOfBirth,
         gender: formData.gender,
         phoneNumber: formData.phoneNumber,
-        address: fullAddress,
-        nationalId: generatedId,
+        address: formData.address,
+        lga: formData.lga,
+        ward: formData.ward,
+        gpsCoordinates: formData.gpsCoordinates,
+        consentGiven: formData.consentGiven,
       });
 
       setRegisteredPatient({
-        id: res.data?.id || Date.now(),
-        nationalId: generatedId,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        gender: formData.gender,
+        id: res.data.id,
+        registrationId: res.data.registrationId,
+        firstName: res.data.firstName,
+        lastName: res.data.lastName,
+        gender: res.data.gender,
         dob: formData.dateOfBirth,
-        lga: formData.lga,
-        ward: formData.ward || 'Central Ward',
-        address: formData.address || 'LGA Health Centre',
-        gps: formData.gpsCoordinates || '9.8965° N, 8.8583° E',
-        qrPassId: `QR-${generatedId}`,
+        lga: res.data.lga || formData.lga,
+        ward: res.data.ward || 'Central Ward',
+        address: res.data.address || 'LGA Health Centre',
+        gps: res.data.gpsCoordinates || '',
+        qrPassId: `QR-${res.data.registrationId}`,
         createdAt: new Date().toLocaleDateString(),
       });
     } catch (err: any) {
-      // Create local fallback preview if API unavailable
-      setRegisteredPatient({
-        id: Date.now(),
-        nationalId: generatedId,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        gender: formData.gender,
-        dob: formData.dateOfBirth,
-        lga: formData.lga,
-        ward: formData.ward || 'Central Ward',
-        address: formData.address || 'LGA Health Centre',
-        gps: formData.gpsCoordinates || '9.8965° N, 8.8583° E',
-        qrPassId: `QR-${generatedId}`,
-        createdAt: new Date().toLocaleDateString(),
-      });
+      // This previously rendered the success screen and a QR identity pass when
+      // the request failed, so a field worker got a confirmation for a patient
+      // that was never saved.
+      const message =
+        err.response?.data?.message || err.message || 'Registration failed.';
+      setError(
+        `${Array.isArray(message) ? message.join('; ') : message} — the patient was NOT registered. Your entries have been kept; check your connection and try again.`,
+      );
     } finally {
       setLoading(false);
     }
@@ -177,7 +172,7 @@ export default function RegistrationPage() {
                     <p className="text-[10px] text-[#a2eded]">Georgel Cancer Foundation Clinical Trust</p>
                   </div>
                 </div>
-                <span className="text-[10px] font-mono bg-[#13696a] px-2 py-0.5 rounded text-white font-bold">{registeredPatient.nationalId}</span>
+                <span className="text-[10px] font-mono bg-[#13696a] px-2 py-0.5 rounded text-white font-bold">{registeredPatient.registrationId}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-xs">

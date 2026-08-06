@@ -95,7 +95,7 @@ export default function ScreeningsPage() {
                 ) : (
                   participants.map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.firstName} {p.lastName} ({p.nationalId})
+                      {p.firstName} {p.lastName} ({p.registrationId ?? p.nationalId ?? '—'})
                     </option>
                   ))
                 )}

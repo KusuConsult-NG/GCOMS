@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { paginate } from '../common/pagination';
 
 @Injectable()
 export class LocationsService {
@@ -8,7 +7,6 @@ export class LocationsService {
 
   async getAll() {
     return this.prisma.location.findMany({
-      ...paginate(),
       orderBy: { name: 'asc' },
     });
   }

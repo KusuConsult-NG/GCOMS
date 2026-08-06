@@ -4,7 +4,6 @@ import {
   CreateStrategicGoalDto,
   UpdateStrategicGoalDto,
 } from './dto/strategy.dto';
-import { paginate } from '../common/pagination';
 
 @Injectable()
 export class StrategyService {
@@ -23,7 +22,6 @@ export class StrategyService {
 
   async getGoals() {
     return this.prisma.strategicGoal.findMany({
-      ...paginate(),
       orderBy: { deadline: 'asc' },
     });
   }

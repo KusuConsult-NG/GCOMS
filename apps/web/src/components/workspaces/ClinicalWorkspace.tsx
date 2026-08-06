@@ -286,7 +286,7 @@ export function ClinicalWorkspace({ user }: { user: any }) {
                 {missedFu.map((fu: any) => (
                   <div key={fu.id} className="py-2 flex justify-between items-center">
                     <div>
-                      <p className="font-bold text-[#0d1c2e]">{fu.participant?.firstName} {fu.participant?.lastName} ({fu.participant?.nationalId})</p>
+                      <p className="font-bold text-[#0d1c2e]">{fu.participant?.firstName} {fu.participant?.lastName} ({fu.participant?.registrationId ?? fu.participant?.nationalId ?? '—'})</p>
                       <p className="text-[#93000a] text-[10px]">Was due: {new Date(fu.scheduledDate).toLocaleDateString()}</p>
                     </div>
                     <span className="badge-high-risk text-[#ba1a1a] font-bold">MISSED</span>
@@ -317,7 +317,7 @@ export function ClinicalWorkspace({ user }: { user: any }) {
                   {assignments.map(a => (
                     <tr key={a.id} className="hover:bg-[#e5eeff]">
                       <td className="p-3 font-bold text-[#002045]">{a.participant?.firstName} {a.participant?.lastName}</td>
-                      <td className="p-3 font-mono text-[#74777f] tabular-nums">{a.participant?.nationalId}</td>
+                      <td className="p-3 font-mono text-[#74777f] tabular-nums">{a.participant?.registrationId ?? a.participant?.nationalId ?? '—'}</td>
                       <td className="p-3">{a.participant?.gender}</td>
                       <td className="p-3 text-[#74777f] tabular-nums">{new Date(a.assignedAt).toLocaleDateString()}</td>
                       <td className="p-3"><span className="badge-low-risk text-[#13696a] font-bold">{a.status}</span></td>
@@ -355,7 +355,7 @@ export function ClinicalWorkspace({ user }: { user: any }) {
                   <option value="">Select Patient</option>
                   {assignments.map(a => (
                     <option key={a.id} value={a.participantId}>
-                      {a.participant?.firstName} {a.participant?.lastName} ({a.participant?.nationalId})
+                      {a.participant?.firstName} {a.participant?.lastName} ({a.participant?.registrationId ?? a.participant?.nationalId ?? '—'})
                     </option>
                   ))}
                 </select>
@@ -432,7 +432,7 @@ export function ClinicalWorkspace({ user }: { user: any }) {
                 <option value="">Select Patient...</option>
                 {assignments.map(a => (
                   <option key={a.id} value={a.participantId}>
-                    {a.participant?.firstName} {a.participant?.lastName} - {a.participant?.nationalId}
+                    {a.participant?.firstName} {a.participant?.lastName} - {a.participant?.registrationId ?? a.participant?.nationalId ?? '—'}
                   </option>
                 ))}
               </select>

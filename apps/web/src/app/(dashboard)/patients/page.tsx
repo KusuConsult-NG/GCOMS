@@ -8,7 +8,8 @@ interface Patient {
   id: string;
   firstName: string;
   lastName: string;
-  nationalId: string;
+  registrationId: string;
+  nationalId: string | null;
   gender: string;
   dateOfBirth: string;
   phoneNumber: string | null;
@@ -151,7 +152,7 @@ export default function PatientsPage() {
                     onClick={() => loadProfile(p.id)}
                   >
                     <td className="p-3 font-bold text-[#002045]">{p.firstName} {p.lastName}</td>
-                    <td className="p-3 font-mono text-[#43474e] tabular-nums">{p.nationalId}</td>
+                    <td className="p-3 font-mono text-[#43474e] tabular-nums">{p.registrationId ?? p.nationalId ?? '—'}</td>
                     <td className="p-3 tabular-nums">{getAge(p.dateOfBirth)} yrs / {p.gender}</td>
                     <td className="p-3 tabular-nums">{p.phoneNumber || 'N/A'}</td>
                     <td className="p-3 text-[#74777f] tabular-nums">{new Date(p.createdAt).toLocaleDateString()}</td>
@@ -172,7 +173,7 @@ export default function PatientsPage() {
               <div className="flex justify-between items-start border-b border-[#e2e8f0] pb-3">
                 <div>
                   <h2 className="text-base font-bold text-[#002045]">{selected.firstName} {selected.lastName}</h2>
-                  <p className="text-xs text-[#43474e] font-mono tabular-nums">{selected.nationalId}</p>
+                  <p className="text-xs text-[#43474e] font-mono tabular-nums">{selected.registrationId ?? selected.nationalId ?? '—'}</p>
                 </div>
                 <button onClick={() => setSelected(null)} className="text-[#74777f] hover:text-[#0d1c2e] font-bold text-sm">✕</button>
               </div>

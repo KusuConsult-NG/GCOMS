@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { paginate } from '../common/pagination';
 
 @Injectable()
 export class ScreeningsService {
@@ -61,7 +60,7 @@ export class ScreeningsService {
       },
       include: {
         participant: {
-          select: { firstName: true, lastName: true, nationalId: true },
+          select: { firstName: true, lastName: true, registrationId: true, nationalId: true },
         },
       },
     });
@@ -69,7 +68,6 @@ export class ScreeningsService {
 
   async getScreenings(participantId: string) {
     return this.prisma.screening.findMany({
-      ...paginate(),
       where: { participantId },
       orderBy: { createdAt: 'desc' },
       include: {

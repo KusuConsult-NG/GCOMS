@@ -97,7 +97,7 @@ export default function ReferralsPage() {
                 >
                   {participants.map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.firstName} {p.lastName} ({p.nationalId})
+                      {p.firstName} {p.lastName} ({p.registrationId ?? p.nationalId ?? '—'})
                     </option>
                   ))}
                 </select>
@@ -186,7 +186,7 @@ export default function ReferralsPage() {
                 <tr key={r.id} className="hover:bg-[#e5eeff]">
                   <td className="p-3 font-bold text-[#002045]">
                     {r.participant ? `${r.participant.firstName} ${r.participant.lastName}` : 'N/A'}
-                    <div className="text-[10px] text-[#74777f] font-mono tabular-nums">{r.participant?.nationalId}</div>
+                    <div className="text-[10px] text-[#74777f] font-mono tabular-nums">{r.participant?.registrationId ?? r.participant?.nationalId ?? '—'}</div>
                   </td>
                   <td className="p-3 font-semibold text-[#13696a]">{r.referredTo}</td>
                   <td className="p-3">{r.reason}</td>

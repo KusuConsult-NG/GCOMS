@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
-import { paginate } from '../common/pagination';
 
 @Injectable()
 export class HrService {
@@ -60,7 +59,6 @@ export class HrService {
 
   async getStaffRecords() {
     return this.prisma.staffRecord.findMany({
-      ...paginate(),
       orderBy: { createdAt: 'desc' },
       include: {
         user: {

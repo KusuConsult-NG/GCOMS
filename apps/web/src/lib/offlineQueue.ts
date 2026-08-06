@@ -1,3 +1,9 @@
+import {
+  decryptJson,
+  encryptJson,
+  secureStoreAvailable,
+} from '@/lib/secureStore';
+
 /**
  * Field registrations captured while the API was unreachable.
  *
@@ -7,21 +13,24 @@
  * retry, or lose it. This holds the record instead and replays it when the
  * connection returns.
  *
- * Two things to be clear about, because neither is solved here:
+ * The queue holds patient data, so it is encrypted at rest — see secureStore.ts
+ * for what that does and does not protect against. If the device cannot encrypt
+ * it, nothing is written to disk: the queue still works for the session but
+ * will not survive a reload, and `persistent` says so, so the workspace can
+ * tell the volunteer rather than quietly losing records at the next reload.
  *
- * localStorage is not a safe place for patient data. Everything below —
- * names, dates of birth, phone numbers, addresses, GPS — sits unencrypted on
- * the device until it syncs, readable by anything else running in this origin
- * and by anyone holding an unlocked phone. The queue is kept as small and as
- * short-lived as possible for that reason, but that is mitigation, not a fix.
- *
- * Replay can duplicate. If the server commits a registration and the response
- * is lost on the way back, the record stays queued and the retry creates a
- * second patient. Closing that needs an idempotency key the API accepts and
- * de-duplicates on; there is no way to do it from this side alone.
+ * Replaying is safe to repeat. Each capture carries an idempotency key the API
+ * de-duplicates on, so a request the server commits but whose response is lost
+ * returns the original record on the retry instead of registering the patient a
+ * second time.
  */
 
+const KEY = 'gcoms-offline-registrations';
+
 export type QueuedRegistrationPayload = {
+  /** Generated when the registration is captured, not when it is sent, so every
+   *  attempt at the same capture carries the same one. */
+  idempotencyKey: string;
   firstName: string;
   lastName: string;
   dateOfBirth: string;
@@ -45,59 +54,109 @@ export type QueuedRegistration = {
   rejectedReason?: string;
 };
 
-const KEY = 'gcoms-offline-registrations';
+export type QueueState = {
+  items: QueuedRegistration[];
+  /** False when the device cannot encrypt, so the queue is memory-only. */
+  persistent: boolean;
+};
 
-export function readQueue(): QueuedRegistration[] {
-  if (typeof window === 'undefined') return [];
+function isQueued(item: unknown): item is QueuedRegistration {
+  return (
+    !!item &&
+    typeof item === 'object' &&
+    typeof (item as QueuedRegistration).localId === 'string' &&
+    !!(item as QueuedRegistration).payload
+  );
+}
+
+/**
+ * Everything the session has captured, whether or not it could be written down.
+ *
+ * Held here so a device that cannot encrypt still gets a working queue for as
+ * long as the tab lives, instead of silently dropping registrations.
+ */
+let memoryItems: QueuedRegistration[] = [];
+
+export async function readQueue(): Promise<QueueState> {
+  if (typeof window === 'undefined') return { items: [], persistent: true };
+  if (!secureStoreAvailable()) {
+    return { items: memoryItems, persistent: false };
+  }
+
   try {
     const raw = window.localStorage.getItem(KEY);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    // Anything can write to localStorage, including an older version of this
-    // app. A malformed queue is dropped rather than crashing the workspace.
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (item): item is QueuedRegistration =>
-        !!item &&
-        typeof item === 'object' &&
-        typeof (item as QueuedRegistration).localId === 'string' &&
-        !!(item as QueuedRegistration).payload,
-    );
+    if (!raw) {
+      return { items: memoryItems, persistent: true };
+    }
+
+    // An earlier build wrote this queue as plain JSON. Anything left from it is
+    // unencrypted patient data sitting on the device, so it is taken in and
+    // rewritten encrypted rather than merely tolerated.
+    if (raw.startsWith('[')) {
+      const legacy: unknown = JSON.parse(raw);
+      const items = Array.isArray(legacy) ? legacy.filter(isQueued) : [];
+      memoryItems = items;
+      await writeQueue(items);
+      return { items, persistent: true };
+    }
+
+    const parsed = await decryptJson(raw);
+    const items = Array.isArray(parsed) ? parsed.filter(isQueued) : [];
+    memoryItems = items;
+    return { items, persistent: true };
   } catch {
-    return [];
+    // A queue that cannot be decrypted — a rotated key, a truncated write — is
+    // unreadable by anything, so keeping it only leaves ciphertext on the disk.
+    window.localStorage.removeItem(KEY);
+    memoryItems = [];
+    return { items: [], persistent: true };
   }
 }
 
-function writeQueue(items: QueuedRegistration[]): QueuedRegistration[] {
-  if (typeof window === 'undefined') return items;
+async function writeQueue(items: QueuedRegistration[]): Promise<QueueState> {
+  memoryItems = items;
+  if (typeof window === 'undefined') return { items, persistent: true };
+  if (!secureStoreAvailable()) return { items, persistent: false };
+
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(items));
+    if (!items.length) {
+      // Nothing to hold, so hold nothing: an empty queue leaves no patient data
+      // on the device at all.
+      window.localStorage.removeItem(KEY);
+    } else {
+      window.localStorage.setItem(KEY, await encryptJson(items));
+    }
+    return { items, persistent: true };
   } catch {
-    // Quota exceeded, or storage disabled. The caller still gets the list back
-    // so the session keeps working; it just will not survive a reload.
+    // Quota exceeded, storage disabled, or encryption unavailable. The session
+    // keeps its queue; it just will not survive a reload.
+    return { items, persistent: false };
   }
-  return items;
 }
 
-export function enqueue(
+export async function enqueue(
   payload: QueuedRegistrationPayload,
   capturedAt: string,
-): QueuedRegistration[] {
-  const item: QueuedRegistration = {
-    localId: crypto.randomUUID(),
-    capturedAt,
-    payload,
-  };
-  return writeQueue([...readQueue(), item]);
+): Promise<QueueState> {
+  const { items } = await readQueue();
+  return writeQueue([
+    ...items,
+    { localId: crypto.randomUUID(), capturedAt, payload },
+  ]);
 }
 
-export function removeFromQueue(localId: string): QueuedRegistration[] {
-  return writeQueue(readQueue().filter((item) => item.localId !== localId));
+export async function removeFromQueue(localId: string): Promise<QueueState> {
+  const { items } = await readQueue();
+  return writeQueue(items.filter((item) => item.localId !== localId));
 }
 
-export function markRejected(localId: string, reason: string): QueuedRegistration[] {
+export async function markRejected(
+  localId: string,
+  reason: string,
+): Promise<QueueState> {
+  const { items } = await readQueue();
   return writeQueue(
-    readQueue().map((item) =>
+    items.map((item) =>
       item.localId === localId ? { ...item, rejectedReason: reason } : item,
     ),
   );

@@ -21,19 +21,16 @@ const eslintConfig = defineConfig([
   {
     rules: {
       /**
-       * Downgraded to a warning after reviewing all 32 occurrences.
+       * Downgraded to a warning after reviewing all 31 occurrences.
        *
        * Twenty are `useEffect(() => { fetchX(); }, [dep])`, where fetchX sets a
        * loading flag before its first await. Eight synchronise component state
        * from a `?tab=` search param, which has to react to navigation and so
-       * cannot be derived once during render. Four read something only
-       * available after mount — the stored theme, the current date, and the
-       * offline registration queue, which is in localStorage and so would
-       * disagree with the server-rendered markup if it were read during render.
+       * cannot be derived once during render. Three read something only
+       * available after mount — the stored theme, the current date.
        *
-       * Was 33, then 31: two of the loading flags turned out to be set and
-       * never read, so the state went rather than the warning being explained
-       * away. The offline queue added one back.
+       * Was 33. Two of the loading flags turned out to be set and never read,
+       * so the state went rather than the warning being explained away.
        *
        * All three are the ordinary way to do these things without a data
        * library, and the rule's own guidance is about avoiding cascading

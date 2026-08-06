@@ -264,6 +264,11 @@ model Participant {
   // record a patient's actual National Identification Number.
   registrationId   String   @unique
   nationalId       String?  @unique
+  // Supplied by the client when a registration is captured, and reused if that
+  // registration has to be sent again. Without it, a request the server commits
+  // but whose response is lost creates a second patient on the retry — the
+  // failure mode the volunteer app's offline queue would otherwise have.
+  idempotencyKey   String?  @unique
   firstName        String
   lastName         String
   dateOfBirth      DateTime

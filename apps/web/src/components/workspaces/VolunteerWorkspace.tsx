@@ -11,7 +11,7 @@ import {
 } from '@/lib/offlineQueue';
 import type { OutreachEvent, SessionUser } from '@/types/api';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 
@@ -40,6 +40,9 @@ export function VolunteerWorkspace({ user }: { user: SessionUser }) {
   const [outreaches, setOutreaches] = useState<OutreachEvent[]>([]);
   // Registrations captured while offline, replayed when the connection returns.
   const [offlineQueue, setOfflineQueue] = useState<QueuedRegistration[]>([]);
+  // False when the device cannot encrypt, in which case the queue lives only as
+  // long as the tab does. The volunteer is told rather than finding out.
+  const [queuePersistent, setQueuePersistent] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncNote, setSyncNote] = useState('');
   const [lastSync, setLastSync] = useState('');
@@ -132,9 +135,20 @@ type RegistrationConfirmation = {
     );
   };
 
-  useEffect(() => {
-    setOfflineQueue(readQueue());
-  }, []);
+  // Re-entrancy is tracked in a ref rather than the state flag so that
+  // syncQueue keeps a stable identity; the effects below depend on it, and a
+  // function that changed every time `syncing` did would re-run them mid-sync.
+  const syncingRef = useRef(false);
+
+  /**
+   * Identifies one capture across every attempt to send it.
+   *
+   * Generated when a registration is first submitted and held until that
+   * registration is saved, so a retry — from the queue or by hand — carries the
+   * key the first attempt used. The API returns the record it already created
+   * for that key instead of registering the patient twice.
+   */
+  const captureKey = useRef<string | null>(null);
 
   /**
    * Replays the queue oldest first.
@@ -146,18 +160,20 @@ type RegistrationConfirmation = {
    * having it disappear.
    */
   const syncQueue = useCallback(async () => {
-    const pending = readQueue().filter((item) => !item.rejectedReason);
-    if (!pending.length || syncing) return;
+    if (syncingRef.current) return;
+    let state = await readQueue();
+    const pending = state.items.filter((item) => !item.rejectedReason);
+    if (!pending.length) return;
 
+    syncingRef.current = true;
     setSyncing(true);
     setSyncNote('');
     let sent = 0;
-    let queue = readQueue();
 
     for (const item of pending) {
       try {
         await api.post('/participants', item.payload);
-        queue = removeFromQueue(item.localId);
+        state = await removeFromQueue(item.localId);
         sent += 1;
       } catch (err) {
         if (isRetryable(err)) {
@@ -168,14 +184,37 @@ type RegistrationConfirmation = {
           );
           break;
         }
-        queue = markRejected(item.localId, errorMessage(err, 'The server rejected this record.'));
+        state = await markRejected(
+          item.localId,
+          errorMessage(err, 'The server rejected this record.'),
+        );
       }
     }
 
-    setOfflineQueue(queue);
+    setOfflineQueue(state.items);
+    setQueuePersistent(state.persistent);
     if (sent > 0) setLastSync(new Date().toLocaleTimeString());
+    syncingRef.current = false;
     setSyncing(false);
-  }, [syncing]);
+  }, []);
+
+  /**
+   * Load what the device is holding, and send it if there is a connection.
+   *
+   * The `online` event alone is not enough: it only fires on a transition. A
+   * volunteer who captures records with no signal, closes the app, and opens it
+   * again somewhere with one gets no such transition, and the queue would sit
+   * there until someone thought to press Sync.
+   */
+  useEffect(() => {
+    void readQueue().then(({ items, persistent }) => {
+      setOfflineQueue(items);
+      setQueuePersistent(persistent);
+      if (navigator.onLine && items.some((item) => !item.rejectedReason)) {
+        void syncQueue();
+      }
+    });
+  }, [syncQueue]);
 
   // The browser tells us when the connection comes back; that is the moment to
   // try, rather than making the volunteer notice and press something.
@@ -206,7 +245,10 @@ type RegistrationConfirmation = {
     // The registration ID is assigned by the server. LGA, ward and GPS are
     // sent as their own fields — they used to be concatenated into `address`,
     // which meant the structured location never reached the database.
+    if (!captureKey.current) captureKey.current = crypto.randomUUID();
+
     const payload = {
+      idempotencyKey: captureKey.current,
       firstName: regForm.firstName,
       lastName: regForm.lastName,
       dateOfBirth: regForm.dateOfBirth,
@@ -250,6 +292,7 @@ type RegistrationConfirmation = {
 
       // Only clear the form once the registration is actually saved.
       setRegForm(emptyForm);
+      captureKey.current = null;
     } catch (err) {
       // A registration that could not be sent is held on the device rather than
       // refused, so the volunteer can carry on to the next patient. No identity
@@ -257,12 +300,19 @@ type RegistrationConfirmation = {
       // server issues one. Until this syncs, the patient is not registered, and
       // the notice says so rather than implying a save.
       if (isRetryable(err)) {
-        const queue = enqueue(payload, new Date().toISOString());
-        setOfflineQueue(queue);
+        const state = await enqueue(payload, new Date().toISOString());
+        setOfflineQueue(state.items);
+        setQueuePersistent(state.persistent);
         setRegForm(emptyForm);
+        // The queued payload carries the key, so the replay is the same capture
+        // rather than a new one.
+        captureKey.current = null;
         setQueuedNotice(
-          `No connection, so this registration is held on this device — ${queue.length} now waiting. ` +
-          'The patient is not registered until it syncs, and no identity pass can be issued before then.',
+          `No connection, so this registration is held on this device — ${state.items.length} now waiting. ` +
+          'The patient is not registered until it syncs, and no identity pass can be issued before then.' +
+          (state.persistent
+            ? ''
+            : ' This device cannot store it safely, so it will be lost if you reload — sync before closing.'),
         );
       } else {
         // The server understood the request and refused it, so holding onto it
@@ -618,9 +668,16 @@ type RegistrationConfirmation = {
             <div>
               <h2 className="text-lg font-bold text-[var(--primary)]">Local Offline Synchronization Queue</h2>
               <p className="text-xs text-[var(--on-surface-variant)]">
-                Registrations captured while the server was unreachable. They are stored on this
-                device, unencrypted, until they sync — treat the device as holding patient data.
+                Registrations captured while the server was unreachable, encrypted on this device
+                until they sync. Encryption is not a substitute for a screen lock: the device still
+                holds patient data.
               </p>
+              {!queuePersistent && (
+                <p role="status" className="text-xs font-semibold text-[var(--risk-high-text)] mt-1">
+                  This device cannot encrypt stored data, so nothing here has been written to disk.
+                  Reloading loses it — sync before closing this tab.
+                </p>
+              )}
             </div>
             <button
               type="button"
@@ -669,7 +726,7 @@ type RegistrationConfirmation = {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setOfflineQueue(removeFromQueue(item.localId))}
+                  onClick={() => { void removeFromQueue(item.localId).then((s) => setOfflineQueue(s.items)); }}
                   className="btn-secondary text-[11px]"
                 >
                   Discard

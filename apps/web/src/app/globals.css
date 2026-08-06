@@ -33,6 +33,12 @@
 
   --secondary: #13696a;          /* teal: actions, links */
   --secondary-hover: #0f5455;
+  /* Text on a filled --secondary surface. It has to be a token because the two
+     themes need opposite answers: the teal is dark in light mode and light in
+     dark mode, so a hardcoded white reads at about 1.9:1 on the dark theme's
+     button — well under the 4.5:1 minimum, on the primary action of every
+     screen. */
+  --on-secondary: #ffffff;
   --secondary-container: #a2eded;
 
   /* Chrome that stays dark in both themes: top bar, sidebar, page headers.
@@ -77,6 +83,7 @@
 
   --secondary: #4fd1c5;
   --secondary-hover: #7fe0d6;
+  --on-secondary: #04222b;
   --secondary-container: #14494a;
 
   --nav-surface: #0a1730;
@@ -118,7 +125,7 @@ body {
 /* Clinical Trust Buttons */
 .btn-primary {
   background-color: var(--secondary);
-  color: #ffffff;
+  color: var(--on-secondary);
   font-weight: 600;
   padding: 0.5rem 1rem;
   border-radius: 0.25rem;

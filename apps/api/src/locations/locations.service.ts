@@ -1,15 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { paginate } from '../common/pagination';
 
 @Injectable()
 export class LocationsService {
   constructor(private prisma: PrismaService) {}
 
   async getAll() {
-    return this.prisma.location.findMany({ orderBy: { name: 'asc' } });
+    return this.prisma.location.findMany({
+      ...paginate(),
+      orderBy: { name: 'asc' },
+    });
   }
 
-  async create(data: { name: string; address?: string; lga?: string; state?: string }) {
+  async create(data: {
+    name: string;
+    address?: string;
+    lga?: string;
+    state?: string;
+  }) {
     return this.prisma.location.create({
       data: {
         name: data.name,

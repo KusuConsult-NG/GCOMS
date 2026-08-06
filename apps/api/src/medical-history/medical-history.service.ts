@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { paginate } from '../common/pagination';
 
 @Injectable()
 export class MedicalHistoryService {
@@ -27,6 +28,7 @@ export class MedicalHistoryService {
 
   async findByParticipant(participantId: string) {
     return this.prisma.medicalHistory.findMany({
+      ...paginate(),
       where: { participantId },
       orderBy: { createdAt: 'desc' },
     });

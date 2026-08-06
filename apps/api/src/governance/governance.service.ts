@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { paginate } from '../common/pagination';
 
 @Injectable()
 export class GovernanceService {
@@ -12,18 +13,19 @@ export class GovernanceService {
         meetingDate: new Date(data.meetingDate),
         minutesUrl: data.minutesUrl,
         organizedById: userId,
-      }
+      },
     });
   }
 
   async getMeetings() {
     return this.prisma.governanceMeeting.findMany({
+      ...paginate(),
       orderBy: { meetingDate: 'desc' },
       include: {
         organizedBy: {
-          select: { firstName: true, lastName: true }
-        }
-      }
+          select: { firstName: true, lastName: true },
+        },
+      },
     });
   }
 }

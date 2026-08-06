@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { paginate } from '../common/pagination';
 
 @Injectable()
 export class AdminService {
@@ -14,7 +15,7 @@ export class AdminService {
           requestType: data.requestType,
           description: data.description,
           requestedById: userId,
-        }
+        },
       });
 
       // 2. Create corresponding ApprovalRequest
@@ -25,7 +26,7 @@ export class AdminService {
           resourceType: 'ADMIN',
           resourceId: request.id,
           requestedById: userId,
-        }
+        },
       });
 
       return request;
@@ -34,12 +35,13 @@ export class AdminService {
 
   async getFacilityRequests() {
     return this.prisma.facilityRequest.findMany({
+      ...paginate(),
       orderBy: { createdAt: 'desc' },
       include: {
         requestedBy: {
-          select: { firstName: true, lastName: true, role: true }
-        }
-      }
+          select: { firstName: true, lastName: true, role: true },
+        },
+      },
     });
   }
 }

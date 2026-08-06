@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { paginate } from '../common/pagination';
 
 @Injectable()
 export class VolunteersService {
@@ -7,12 +8,17 @@ export class VolunteersService {
 
   async getVolunteers() {
     return this.prisma.user.findMany({
+      ...paginate(),
       where: { role: 'VOLUNTEER' },
       include: { volunteerTasks: { include: { outreach: true } } },
     });
   }
 
-  async assignTask(data: { outreachId: string; volunteerId: string; title: string }) {
+  async assignTask(data: {
+    outreachId: string;
+    volunteerId: string;
+    title: string;
+  }) {
     return this.prisma.volunteerTask.create({
       data: {
         outreachId: data.outreachId,
@@ -30,4 +36,3 @@ export class VolunteersService {
     });
   }
 }
-

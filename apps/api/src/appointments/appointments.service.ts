@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PhiAccessService, PhiActor } from '../phi/phi-access.service';
+import { paginate } from '../common/pagination';
 
 @Injectable()
 export class AppointmentsService {
@@ -42,6 +43,7 @@ export class AppointmentsService {
     if (scope) where.participant = scope;
 
     return this.prisma.appointment.findMany({
+      ...paginate(),
       where,
       orderBy: { scheduledAt: 'asc' },
       include: {

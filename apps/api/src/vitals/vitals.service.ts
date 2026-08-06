@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { paginate } from '../common/pagination';
 
 @Injectable()
 export class VitalsService {
@@ -31,6 +32,7 @@ export class VitalsService {
 
   async findByParticipant(participantId: string) {
     return this.prisma.vitalSign.findMany({
+      ...paginate(),
       where: { participantId },
       orderBy: { recordedAt: 'desc' },
     });

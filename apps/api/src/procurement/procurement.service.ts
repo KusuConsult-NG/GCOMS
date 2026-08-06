@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { paginate } from '../common/pagination';
 
 @Injectable()
 export class ProcurementService {
@@ -15,7 +16,7 @@ export class ProcurementService {
           estimatedCost: parseFloat(data.estimatedCost),
           vendor: data.vendor,
           requestedById: userId,
-        }
+        },
       });
 
       // 2. Create corresponding ApprovalRequest
@@ -26,7 +27,7 @@ export class ProcurementService {
           resourceType: 'PROCUREMENT',
           resourceId: order.id,
           requestedById: userId,
-        }
+        },
       });
 
       return order;
@@ -35,12 +36,13 @@ export class ProcurementService {
 
   async getOrders() {
     return this.prisma.procurementOrder.findMany({
+      ...paginate(),
       orderBy: { createdAt: 'desc' },
       include: {
         requestedBy: {
-          select: { firstName: true, lastName: true, role: true }
-        }
-      }
+          select: { firstName: true, lastName: true, role: true },
+        },
+      },
     });
   }
 }

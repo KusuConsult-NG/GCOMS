@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PhiAccessService, PhiActor } from '../phi/phi-access.service';
+import { paginate } from '../common/pagination';
 
 /**
  * `scope` is PhiAccessService.participantScope() for the caller — undefined for
@@ -18,6 +19,7 @@ export class ReferralsService {
 
   async getAll(scope?: Prisma.ParticipantWhereInput) {
     return this.prisma.referral.findMany({
+      ...paginate(),
       where: scope ? { participant: scope } : {},
       include: { participant: true, referredBy: true },
       orderBy: { createdAt: 'desc' },

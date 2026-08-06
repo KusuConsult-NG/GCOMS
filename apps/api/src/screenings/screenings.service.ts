@@ -1,11 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { paginate } from '../common/pagination';
 
 @Injectable()
 export class ScreeningsService {
   constructor(private prisma: PrismaService) {}
 
-  async calculateRiskScore(data: { cancerType: string; result: string; participantId: string }) {
+  async calculateRiskScore(data: {
+    cancerType: string;
+    result: string;
+    participantId: string;
+  }) {
     let baseScore = 2.0;
 
     // 1. Result weighting
@@ -30,7 +35,10 @@ export class ScreeningsService {
     });
 
     if (participant && participant.dateOfBirth) {
-      const age = Math.floor((Date.now() - new Date(participant.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+      const age = Math.floor(
+        (Date.now() - new Date(participant.dateOfBirth).getTime()) /
+          (365.25 * 24 * 60 * 60 * 1000),
+      );
       if (age > 50) baseScore += 1.0;
       else if (age > 40) baseScore += 0.5;
     }
@@ -52,17 +60,22 @@ export class ScreeningsService {
         conductedById: userId,
       },
       include: {
-        participant: { select: { firstName: true, lastName: true, nationalId: true } },
+        participant: {
+          select: { firstName: true, lastName: true, nationalId: true },
+        },
       },
     });
   }
 
   async getScreenings(participantId: string) {
     return this.prisma.screening.findMany({
+      ...paginate(),
       where: { participantId },
       orderBy: { createdAt: 'desc' },
       include: {
-        conductedBy: { select: { firstName: true, lastName: true, role: true } },
+        conductedBy: {
+          select: { firstName: true, lastName: true, role: true },
+        },
       },
     });
   }

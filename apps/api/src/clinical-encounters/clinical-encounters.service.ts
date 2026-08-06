@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PhiAccessService, PhiActor } from '../phi/phi-access.service';
+import { paginate } from '../common/pagination';
 
 @Injectable()
 export class ClinicalEncountersService {
@@ -22,6 +23,7 @@ export class ClinicalEncountersService {
 
   async getEncounters(participantId: string) {
     return this.prisma.clinicalEncounter.findMany({
+      ...paginate(),
       where: { participantId },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -82,6 +84,7 @@ export class ClinicalEncountersService {
   async getAssignments(clinicianId?: string) {
     const where = clinicianId ? { clinicianId } : {};
     return this.prisma.patientAssignment.findMany({
+      ...paginate(),
       where,
       orderBy: { assignedAt: 'desc' },
       include: {

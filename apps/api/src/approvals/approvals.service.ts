@@ -1,12 +1,17 @@
-import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { paginate } from '../common/pagination';
 
 @Injectable()
 export class ApprovalsService {
   constructor(
     private prisma: PrismaService,
-    private notifications: NotificationsService
+    private notifications: NotificationsService,
   ) {}
 
   async createRequest(data: any, userId: string) {
@@ -17,13 +22,13 @@ export class ApprovalsService {
         resourceType: data.resourceType,
         resourceId: data.resourceId,
         requestedById: userId,
-      }
+      },
     });
 
     await this.notifications.sendEmail(
       'executives@gcoms.org',
       `New Approval Request: ${request.title}`,
-      `A new request requires your approval. Description: ${request.description}`
+      `A new request requires your approval. Description: ${request.description}`,
     );
 
     return request;
@@ -31,13 +36,14 @@ export class ApprovalsService {
 
   async getPendingRequests() {
     return this.prisma.approvalRequest.findMany({
+      ...paginate(),
       where: { status: 'PENDING' },
       orderBy: { createdAt: 'desc' },
       include: {
         requestedBy: {
-          select: { firstName: true, lastName: true, role: true }
-        }
-      }
+          select: { firstName: true, lastName: true, role: true },
+        },
+      },
     });
   }
 
@@ -46,7 +52,9 @@ export class ApprovalsService {
       throw new Error('Invalid status');
     }
 
-    const request = await this.prisma.approvalRequest.findUnique({ where: { id } });
+    const request = await this.prisma.approvalRequest.findUnique({
+      where: { id },
+    });
     if (!request) throw new NotFoundException('Approval request not found');
 
     const result = await this.prisma.$transaction(async (tx) => {
@@ -56,7 +64,7 @@ export class ApprovalsService {
         data: {
           status,
           approvedById: executiveId,
-        }
+        },
       });
 
       // 2. Sync the underlying resource if the request was APPROVED or REJECTED
@@ -64,17 +72,17 @@ export class ApprovalsService {
         if (request.resourceType === 'FINANCE') {
           await tx.financeTransaction.update({
             where: { id: request.resourceId },
-            data: { status }
+            data: { status },
           });
         } else if (request.resourceType === 'PROCUREMENT') {
           await tx.procurementOrder.update({
             where: { id: request.resourceId },
-            data: { status }
+            data: { status },
           });
         } else if (request.resourceType === 'ADMIN') {
           await tx.facilityRequest.update({
             where: { id: request.resourceId },
-            data: { status }
+            data: { status },
           });
         }
       }
@@ -83,12 +91,14 @@ export class ApprovalsService {
     });
 
     // Notify original requester
-    const requester = await this.prisma.user.findUnique({ where: { id: request.requestedById } });
+    const requester = await this.prisma.user.findUnique({
+      where: { id: request.requestedById },
+    });
     if (requester) {
       await this.notifications.sendEmail(
         requester.email,
         `Approval Request ${status}: ${request.title}`,
-        `Your request has been ${status} by executive ${executiveId}.`
+        `Your request has been ${status} by executive ${executiveId}.`,
       );
     }
 

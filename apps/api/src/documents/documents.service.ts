@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { paginate } from '../common/pagination';
 
 @Injectable()
 export class DocumentsService {
@@ -19,6 +20,7 @@ export class DocumentsService {
 
   async getDocumentRecords() {
     return this.prisma.documentRecord.findMany({
+      ...paginate(),
       orderBy: { createdAt: 'desc' },
       include: {
         uploadedBy: {

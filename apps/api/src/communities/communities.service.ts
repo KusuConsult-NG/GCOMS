@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { paginate } from '../common/pagination';
 
 @Injectable()
 export class CommunitiesService {
@@ -7,11 +8,18 @@ export class CommunitiesService {
 
   async getAll() {
     return this.prisma.community.findMany({
+      ...paginate(),
       orderBy: { name: 'asc' },
     });
   }
 
-  async create(data: { name: string; lga: string; state?: string; population?: number; leaderName?: string }) {
+  async create(data: {
+    name: string;
+    lga: string;
+    state?: string;
+    population?: number;
+    leaderName?: string;
+  }) {
     return this.prisma.community.create({
       data: {
         name: data.name,
@@ -23,4 +31,3 @@ export class CommunitiesService {
     });
   }
 }
-

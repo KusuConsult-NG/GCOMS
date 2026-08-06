@@ -1,11 +1,14 @@
 'use client';
 
+import { errorMessage } from '@/lib/errors';
+import type { Participant, Screening } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
 export default function ScreeningsPage() {
-  const [participants, setParticipants] = useState<any[]>([]);
-  const [screenings, setScreenings] = useState<any[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [screenings, setScreenings] = useState<Screening[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [formData, setFormData] = useState({
@@ -18,9 +21,6 @@ export default function ScreeningsPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   const fetchData = async () => {
     setLoading(true);
@@ -41,6 +41,10 @@ export default function ScreeningsPage() {
     }
   };
 
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
@@ -54,8 +58,8 @@ export default function ScreeningsPage() {
       await api.post('/screenings', formData);
       setMessage('Screening recorded successfully!');
       fetchData();
-    } catch (err: any) {
-      setMessage(err.response?.data?.message || 'Failed to record screening.');
+    } catch (err) {
+      setMessage(errorMessage(err, 'Failed to record screening.'));
     } finally {
       setSaving(false);
     }
@@ -65,29 +69,29 @@ export default function ScreeningsPage() {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-[#002045]">Screening Registry & Assessment</h1>
-        <p className="text-[#43474e] text-xs mt-1">Record screening results and compute automatic clinical risk scores.</p>
+        <h1 className="text-2xl font-bold text-[var(--primary)]">Screening Registry & Assessment</h1>
+        <p className="text-[var(--on-surface-variant)] text-xs mt-1">Record screening results and compute automatic clinical risk scores.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Form Card */}
         <div className="clinical-card lg:col-span-1 space-y-4">
-          <h2 className="text-base font-bold text-[#002045] border-b border-[#e2e8f0] pb-2">➕ Record New Screening</h2>
+          <h2 className="text-base font-bold text-[var(--primary)] border-b border-[var(--outline)] pb-2">➕ Record New Screening</h2>
 
           {message && (
-            <div className={`p-3 rounded text-xs font-semibold ${message.includes('success') ? 'bg-[#c6f6d5] text-[#22543d]' : 'bg-[#ffdad6] text-[#93000a]'}`}>
+            <div className={`p-3 rounded text-xs font-semibold ${message.includes('success') ? 'bg-[var(--risk-low-bg)] text-[var(--risk-low-text)]' : 'bg-[var(--risk-high-bg)] text-[var(--risk-high-text)]'}`}>
               {message}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             <div>
-              <label className="block font-semibold text-[#0d1c2e] mb-1">Select Participant *</label>
+              <label className="block font-semibold text-[var(--on-background)] mb-1">Select Participant *</label>
               <select
                 name="participantId"
                 value={formData.participantId}
                 onChange={handleChange}
-                className="w-full px-3 py-2 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] outline-none text-[#0d1c2e]"
+                className="w-full px-3 py-2 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)]"
                 required
               >
                 {participants.length === 0 ? (
@@ -95,7 +99,7 @@ export default function ScreeningsPage() {
                 ) : (
                   participants.map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.firstName} {p.lastName} ({p.nationalId})
+                      {p.firstName} {p.lastName} ({p.registrationId ?? p.nationalId ?? '—'})
                     </option>
                   ))
                 )}
@@ -103,12 +107,12 @@ export default function ScreeningsPage() {
             </div>
 
             <div>
-              <label className="block font-semibold text-[#0d1c2e] mb-1">Cancer Screening Type *</label>
+              <label className="block font-semibold text-[var(--on-background)] mb-1">Cancer Screening Type *</label>
               <select
                 name="cancerType"
                 value={formData.cancerType}
                 onChange={handleChange}
-                className="w-full px-3 py-2 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] outline-none text-[#0d1c2e]"
+                className="w-full px-3 py-2 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)]"
                 required
               >
                 <option value="Cervical Cancer">Cervical Cancer (VIA / Pap)</option>
@@ -119,12 +123,12 @@ export default function ScreeningsPage() {
             </div>
 
             <div>
-              <label className="block font-semibold text-[#0d1c2e] mb-1">Screening Result *</label>
+              <label className="block font-semibold text-[var(--on-background)] mb-1">Screening Result *</label>
               <select
                 name="result"
                 value={formData.result}
                 onChange={handleChange}
-                className="w-full px-3 py-2 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] outline-none text-[#0d1c2e]"
+                className="w-full px-3 py-2 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)]"
                 required
               >
                 <option value="Negative">Negative (Normal)</option>
@@ -136,7 +140,7 @@ export default function ScreeningsPage() {
             </div>
 
             <div>
-              <label className="block font-semibold text-[#0d1c2e] mb-1">Override Risk Score (Optional, 0.0 - 10.0)</label>
+              <label className="block font-semibold text-[var(--on-background)] mb-1">Override Risk Score (Optional, 0.0 - 10.0)</label>
               <input
                 type="number"
                 step="0.1"
@@ -144,7 +148,7 @@ export default function ScreeningsPage() {
                 value={formData.riskScore}
                 onChange={handleChange}
                 placeholder="Auto-calculated if left blank"
-                className="w-full px-3 py-2 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] outline-none text-[#0d1c2e]"
+                className="w-full px-3 py-2 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)]"
               />
             </div>
 
@@ -159,19 +163,19 @@ export default function ScreeningsPage() {
         </div>
 
         {/* Data Table Card */}
-        <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden lg:col-span-2">
-          <div className="p-4 border-b border-[#e2e8f0] flex justify-between items-center bg-[#f8f9ff]">
-            <h2 className="font-bold text-[#002045] text-sm">📋 Recent Screening Records</h2>
-            <span className="text-xs text-[#74777f] font-mono tabular-nums">{screenings.length} Total</span>
+        <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden lg:col-span-2">
+          <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
+            <h2 className="font-bold text-[var(--primary)] text-sm">📋 Recent Screening Records</h2>
+            <span className="text-xs text-[var(--muted)] font-mono tabular-nums">{screenings.length} Total</span>
           </div>
 
           {loading ? (
-            <div className="p-8 text-center text-[#74777f] text-xs">Loading screening records...</div>
+            <div className="p-8 text-center text-[var(--muted)] text-xs">Loading screening records...</div>
           ) : screenings.length === 0 ? (
-            <div className="p-8 text-center text-[#74777f] text-xs">No screenings recorded yet.</div>
+            <div className="p-8 text-center text-[var(--muted)] text-xs">No screenings recorded yet.</div>
           ) : (
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+              <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
                 <tr>
                   <th className="p-3">Participant</th>
                   <th className="p-3">Cancer Type</th>
@@ -180,21 +184,21 @@ export default function ScreeningsPage() {
                   <th className="p-3">Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#e2e8f0] font-medium text-[#0d1c2e]">
-                {screenings.map((s: any) => (
-                  <tr key={s.ID} className="hover:bg-[#e5eeff]">
-                    <td className="p-3 font-bold text-[#002045]">
-                      {s.Participant}
-                      <div className="text-[10px] text-[#74777f] font-mono tabular-nums">{s.NationalID}</div>
+              <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
+                {screenings.map((s) => (
+                  <tr key={s.id} className="hover:bg-[var(--primary-surface)]">
+                    <td className="p-3 font-bold text-[var(--primary)]">
+                      {s.participant ? `${s.participant.firstName} ${s.participant.lastName}` : "Unknown"}
+                      <div className="text-[10px] text-[var(--muted)] font-mono tabular-nums">{s.participant?.registrationId ?? "—"}</div>
                     </td>
-                    <td className="p-3">{s.CancerType}</td>
+                    <td className="p-3">{s.cancerType}</td>
                     <td className="p-3">
-                      <span className={s.Result?.toLowerCase().includes('positive') ? 'badge-high-risk' : s.Result?.toLowerCase().includes('suspicious') ? 'badge-mod-risk' : 'badge-low-risk'}>
-                        {s.Result}
+                      <span className={s.result?.toLowerCase().includes('positive') ? 'badge-high-risk' : s.result?.toLowerCase().includes('suspicious') ? 'badge-mod-risk' : 'badge-low-risk'}>
+                        {s.result}
                       </span>
                     </td>
-                    <td className="p-3 font-bold tabular-nums text-[#002045]">{s.RiskScore ?? 'N/A'}</td>
-                    <td className="p-3 text-[#74777f] tabular-nums">{new Date(s.Date).toLocaleDateString()}</td>
+                    <td className="p-3 font-bold tabular-nums text-[var(--primary)]">{s.riskScore ?? 'N/A'}</td>
+                    <td className="p-3 text-[var(--muted)] tabular-nums">{new Date(s.createdAt).toLocaleDateString()}</td>
                   </tr>
                 ))}
               </tbody>

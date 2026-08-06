@@ -20,7 +20,7 @@ export default function Dashboard() {
 
   if (!user) {
     return (
-      <div className="p-8 text-center text-xs text-[#74777f]">
+      <div className="p-8 text-center text-xs text-[var(--muted)]">
         Authenticating GCOMS session...
       </div>
     );
@@ -61,11 +61,11 @@ export default function Dashboard() {
 
     case 'ADMIN':
     case 'SYSTEM_ADMIN':
-      return <AdminWorkspace user={user} />;
+      return <AdminWorkspace />;
 
     case 'EXECUTIVE':
     case 'BOARD':
     default:
-      return <ExecutiveWorkspace user={user} />;
+      return <ExecutiveWorkspace />;
   }
 }

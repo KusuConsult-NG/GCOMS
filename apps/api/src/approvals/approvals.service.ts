@@ -1,15 +1,21 @@
-import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import { CreateApprovalRequestDto } from './dto/create-approval-request.dto';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { APPROVER_ROLES, Role } from '../auth/roles.constants';
 
 @Injectable()
 export class ApprovalsService {
   constructor(
     private prisma: PrismaService,
-    private notifications: NotificationsService
+    private notifications: NotificationsService,
   ) {}
 
-  async createRequest(data: any, userId: string) {
+  async createRequest(data: CreateApprovalRequestDto, userId: string) {
     const request = await this.prisma.approvalRequest.create({
       data: {
         title: data.title,
@@ -17,14 +23,22 @@ export class ApprovalsService {
         resourceType: data.resourceType,
         resourceId: data.resourceId,
         requestedById: userId,
-      }
+      },
     });
 
-    await this.notifications.sendEmail(
-      'executives@gcoms.org',
-      `New Approval Request: ${request.title}`,
-      `A new request requires your approval. Description: ${request.description}`
-    );
+    // Was hardcoded to executives@gcoms.org, an address no account owns, so no
+    // approver was ever reachable. Notify the real approvers instead.
+    const approvers = await this.prisma.user.findMany({
+      where: { role: { in: [...APPROVER_ROLES] }, isActive: true },
+      select: { email: true },
+    });
+    for (const approver of approvers) {
+      await this.notifications.sendEmail(
+        approver.email,
+        `New Approval Request: ${request.title}`,
+        `A new request requires your approval. Description: ${request.description}`,
+      );
+    }
 
     return request;
   }
@@ -35,18 +49,37 @@ export class ApprovalsService {
       orderBy: { createdAt: 'desc' },
       include: {
         requestedBy: {
-          select: { firstName: true, lastName: true, role: true }
-        }
-      }
+          select: { firstName: true, lastName: true, role: true },
+        },
+      },
     });
   }
 
-  async resolveRequest(id: string, status: string, executiveId: string) {
+  /**
+   * `actor` is the resolving user, not just their id, because the role has to be
+   * checked here rather than by the guard: RolesGuard grants EXECUTIVE and
+   * SYSTEM_ADMIN every route unconditionally, so @Roles cannot exclude a system
+   * admin. Authorising spend is not the same as administering the system, and
+   * that separation is only expressible below the guard.
+   */
+  async resolveRequest(
+    id: string,
+    status: string,
+    actor: { id: string; role: string },
+  ) {
+    if (!APPROVER_ROLES.includes(actor.role as Role)) {
+      throw new ForbiddenException(
+        `Only ${APPROVER_ROLES.join(' or ')} may resolve approvals`,
+      );
+    }
+    const executiveId = actor.id;
     if (status !== 'APPROVED' && status !== 'REJECTED') {
       throw new Error('Invalid status');
     }
 
-    const request = await this.prisma.approvalRequest.findUnique({ where: { id } });
+    const request = await this.prisma.approvalRequest.findUnique({
+      where: { id },
+    });
     if (!request) throw new NotFoundException('Approval request not found');
 
     const result = await this.prisma.$transaction(async (tx) => {
@@ -56,7 +89,7 @@ export class ApprovalsService {
         data: {
           status,
           approvedById: executiveId,
-        }
+        },
       });
 
       // 2. Sync the underlying resource if the request was APPROVED or REJECTED
@@ -64,17 +97,22 @@ export class ApprovalsService {
         if (request.resourceType === 'FINANCE') {
           await tx.financeTransaction.update({
             where: { id: request.resourceId },
-            data: { status }
+            data: { status },
           });
         } else if (request.resourceType === 'PROCUREMENT') {
           await tx.procurementOrder.update({
             where: { id: request.resourceId },
-            data: { status }
+            data: { status },
           });
         } else if (request.resourceType === 'ADMIN') {
           await tx.facilityRequest.update({
             where: { id: request.resourceId },
-            data: { status }
+            data: { status },
+          });
+        } else if (request.resourceType === 'HR_LEAVE') {
+          await tx.leaveRequest.update({
+            where: { id: request.resourceId },
+            data: { status },
           });
         }
       }
@@ -83,12 +121,14 @@ export class ApprovalsService {
     });
 
     // Notify original requester
-    const requester = await this.prisma.user.findUnique({ where: { id: request.requestedById } });
+    const requester = await this.prisma.user.findUnique({
+      where: { id: request.requestedById },
+    });
     if (requester) {
       await this.notifications.sendEmail(
         requester.email,
         `Approval Request ${status}: ${request.title}`,
-        `Your request has been ${status} by executive ${executiveId}.`
+        `Your request has been ${status} by executive ${executiveId}.`,
       );
     }
 

@@ -1,4 +1,11 @@
-import { Controller, Post, Get, Body, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { SystemAdminService } from './system-admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -12,14 +19,13 @@ export class SystemAdminController {
 
   @Post()
   @Roles('EXECUTIVE', 'SYSTEM_ADMIN')
-  setConfig(@Body() data: UpdateSystemConfigDto, @Request() req: any) {
+  setConfig(@Body() data: UpdateSystemConfigDto) {
     return this.systemAdminService.setConfig(data.key, data.value);
   }
 
   @Get()
   @Roles('EXECUTIVE', 'SYSTEM_ADMIN')
-  getConfigs(@Request() req: any) {
+  getConfigs() {
     return this.systemAdminService.getConfigs();
   }
 }
-

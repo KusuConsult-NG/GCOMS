@@ -1,3 +1,4 @@
+import { CreateScreeningDto } from './dto/create-screening.dto';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -5,7 +6,11 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ScreeningsService {
   constructor(private prisma: PrismaService) {}
 
-  async calculateRiskScore(data: { cancerType: string; result: string; participantId: string }) {
+  async calculateRiskScore(data: {
+    cancerType: string;
+    result: string;
+    participantId: string;
+  }) {
     let baseScore = 2.0;
 
     // 1. Result weighting
@@ -30,7 +35,10 @@ export class ScreeningsService {
     });
 
     if (participant && participant.dateOfBirth) {
-      const age = Math.floor((Date.now() - new Date(participant.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+      const age = Math.floor(
+        (Date.now() - new Date(participant.dateOfBirth).getTime()) /
+          (365.25 * 24 * 60 * 60 * 1000),
+      );
       if (age > 50) baseScore += 1.0;
       else if (age > 40) baseScore += 0.5;
     }
@@ -38,10 +46,11 @@ export class ScreeningsService {
     return Math.min(10.0, parseFloat(baseScore.toFixed(1)));
   }
 
-  async createScreening(data: any, userId: string) {
-    const riskScore = data.riskScore
-      ? parseFloat(data.riskScore)
-      : await this.calculateRiskScore(data);
+  async createScreening(data: CreateScreeningDto, userId: string) {
+    const riskScore =
+      data.riskScore !== undefined
+        ? data.riskScore
+        : await this.calculateRiskScore(data);
 
     return this.prisma.screening.create({
       data: {
@@ -52,7 +61,14 @@ export class ScreeningsService {
         conductedById: userId,
       },
       include: {
-        participant: { select: { firstName: true, lastName: true, nationalId: true } },
+        participant: {
+          select: {
+            firstName: true,
+            lastName: true,
+            registrationId: true,
+            nationalId: true,
+          },
+        },
       },
     });
   }
@@ -62,7 +78,9 @@ export class ScreeningsService {
       where: { participantId },
       orderBy: { createdAt: 'desc' },
       include: {
-        conductedBy: { select: { firstName: true, lastName: true, role: true } },
+        conductedBy: {
+          select: { firstName: true, lastName: true, role: true },
+        },
       },
     });
   }

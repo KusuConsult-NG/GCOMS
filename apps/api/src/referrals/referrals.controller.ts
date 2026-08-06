@@ -1,33 +1,63 @@
-import { Controller, Get, Post, Put, Body, Param, UseGuards, Request } from '@nestjs/common';
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { ReferralsService } from './referrals.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { PHI_READ_ROLES } from '../auth/roles.constants';
+import { ParticipantAccessGuard } from '../phi/participant-access.guard';
+import { PhiAccessService } from '../phi/phi-access.service';
+import { CLINICAL_WRITE_ROLES } from '../auth/roles.constants';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('referrals')
 export class ReferralsController {
-  constructor(private readonly referralsService: ReferralsService) {}
+  constructor(
+    private readonly referralsService: ReferralsService,
+    private readonly phi: PhiAccessService,
+  ) {}
 
   @Get()
-  async getAll() {
-    return this.referralsService.getAll();
+  @Roles(...PHI_READ_ROLES)
+  async getAll(@Request() req: AuthenticatedRequest) {
+    return this.referralsService.getAll(this.phi.participantScope(req.user));
   }
 
   @Get(':id')
-  async getOne(@Param('id') id: string) {
-    return this.referralsService.getOne(id);
+  @Roles(...PHI_READ_ROLES)
+  async getOne(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    return this.referralsService.getOne(
+      id,
+      this.phi.participantScope(req.user),
+    );
   }
 
   @Post()
-  @Roles('CLINICIAN', 'FIELD_OFFICER', 'EXECUTIVE', 'ADMIN')
-  async create(@Body() body: { participantId: string; referredTo: string; reason: string }, @Request() req: any) {
+  @Roles(...CLINICAL_WRITE_ROLES)
+  @UseGuards(ParticipantAccessGuard)
+  async create(
+    @Body() body: { participantId: string; referredTo: string; reason: string },
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.referralsService.create({ ...body, referredById: req.user.id });
   }
 
   @Put(':id/status')
-  @Roles('CLINICIAN', 'FIELD_OFFICER', 'EXECUTIVE', 'ADMIN')
-  async updateStatus(@Param('id') id: string, @Body() body: { status: string }) {
-    return this.referralsService.updateStatus(id, body.status);
+  @Roles(...CLINICAL_WRITE_ROLES)
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string },
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.referralsService.updateStatus(id, body.status, req.user);
   }
 }

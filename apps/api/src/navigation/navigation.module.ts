@@ -5,6 +5,6 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Module({
   providers: [NavigationService, PrismaService],
-  controllers: [NavigationController]
+  controllers: [NavigationController],
 })
 export class NavigationModule {}

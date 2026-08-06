@@ -1,15 +1,16 @@
 'use client';
 
+import { errorMessage } from '@/lib/errors';
+import type { FollowUp, PatientAssignment, Referral, Screening, SessionUser, Vitals } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { useAuthStore } from '@/store/authStore';
 
-export function ClinicalWorkspace({ user }: { user: any }) {
+export function ClinicalWorkspace({ user }: { user: SessionUser }) {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'encounters' | 'vitals' | 'followups' | 'reports'>('dashboard');
-  const [assignments, setAssignments] = useState<any[]>([]);
-  const [upcomingFu, setUpcomingFu] = useState<any[]>([]);
-  const [missedFu, setMissedFu] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [assignments, setAssignments] = useState<PatientAssignment[]>([]);
+  const [upcomingFu, setUpcomingFu] = useState<FollowUp[]>([]);
+  const [missedFu, setMissedFu] = useState<FollowUp[]>([]);
 
   // Clinical Encounter Form
   const [encounterForm, setEncounterForm] = useState({
@@ -33,7 +34,7 @@ export function ClinicalWorkspace({ user }: { user: any }) {
 
   // Vitals Tab State
   const [vitalsParticipantId, setVitalsParticipantId] = useState('');
-  const [patientVitals, setPatientVitals] = useState<any[]>([]);
+  const [patientVitals, setPatientVitals] = useState<Vitals[]>([]);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [vitalsForm, setVitalsForm] = useState({
     participantId: '',
@@ -50,7 +51,7 @@ export function ClinicalWorkspace({ user }: { user: any }) {
   });
 
   // Follow-ups Tab State
-  const [allFollowUps, setAllFollowUps] = useState<any[]>([]);
+  const [allFollowUps, setAllFollowUps] = useState<FollowUp[]>([]);
   const [showFuModal, setShowFuModal] = useState(false);
   const [fuForm, setFuForm] = useState({
     participantId: '',
@@ -82,12 +83,12 @@ export function ClinicalWorkspace({ user }: { user: any }) {
   ];
 
   // Hardcoded Data for Reports
-  const referralTracking = [
-    { id: 1, participantId: 'NG-PL-101', condition: 'CIN-2', destination: 'JUTH Oncology', date: '2026-08-01', status: 'PENDING' },
-    { id: 2, participantId: 'NG-PL-205', condition: 'Suspected Breast Mass', destination: 'Bingham Teaching Hospital', date: '2026-07-28', status: 'ACCEPTED' },
-    { id: 3, participantId: 'NG-PL-312', condition: 'Elevated PSA', destination: 'JUTH Urology', date: '2026-07-15', status: 'TREATED' },
-    { id: 4, participantId: 'NG-PL-440', condition: 'VIA Positive', destination: 'Pankshin General Hospital', date: '2026-08-02', status: 'PENDING' },
-  ];
+  // Was a hardcoded array of four invented patients (NG-PL-101, "CIN-2",
+  // "JUTH Oncology"). It rendered for every clinician regardless of caseload, so
+  // a nurse with no patients was shown four fabricated referrals — inventing
+  // clinical data and bypassing PHI scoping at the same time.
+  const [referralTracking, setReferralTracking] = useState<Referral[]>([]);
+  const [screenings, setScreenings] = useState<Screening[]>([]);
 
   const fetchDashboardData = () => {
     Promise.all([
@@ -104,15 +105,26 @@ export function ClinicalWorkspace({ user }: { user: any }) {
         setVitalsForm(prev => ({ ...prev, participantId: aRes.data[0].participantId }));
         setFuForm(prev => ({ ...prev, participantId: aRes.data[0].participantId }));
       }
-    }).catch(console.error).finally(() => setLoading(false));
+    }).catch(console.error);
   };
 
   const fetchFollowUps = () => {
     api.get('/follow-ups').then(res => setAllFollowUps(res.data)).catch(console.error);
+    api.get('/screenings').then(res => setScreenings(res.data)).catch(console.error);
+  };
+
+  // Scoped by the API to the caller's caseload, so a clinician sees their own
+  // referrals rather than everyone's.
+  const fetchReferrals = () => {
+    api
+      .get('/referrals')
+      .then(res => setReferralTracking(res.data))
+      .catch(err => console.error('Failed to fetch referrals', err));
   };
 
   useEffect(() => {
     fetchDashboardData();
+    fetchReferrals();
   }, []);
 
   useEffect(() => {
@@ -157,8 +169,8 @@ export function ClinicalWorkspace({ user }: { user: any }) {
 
       setEncounterMessage('Clinical encounter & vital signs logged successfully!');
       setEncounterForm(prev => ({ ...prev, notes: '', diagnosis: '', treatmentPlan: '' }));
-    } catch (err: any) {
-      setEncounterMessage(err.response?.data?.message || 'Failed to save clinical encounter.');
+    } catch (err) {
+      setEncounterMessage(errorMessage(err, 'Failed to save clinical encounter.'));
     } finally {
       setSavingEncounter(false);
     }
@@ -183,8 +195,8 @@ export function ClinicalWorkspace({ user }: { user: any }) {
           .then(res => setPatientVitals(res.data))
           .catch(console.error);
       }
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to save vitals');
+    } catch (err) {
+      alert(errorMessage(err, 'Failed to save vitals'));
     }
   };
 
@@ -200,8 +212,8 @@ export function ClinicalWorkspace({ user }: { user: any }) {
       });
       setShowFuModal(false);
       fetchFollowUps();
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to save follow-up');
+    } catch (err) {
+      alert(errorMessage(err, 'Failed to save follow-up'));
     }
   };
 
@@ -209,18 +221,18 @@ export function ClinicalWorkspace({ user }: { user: any }) {
     try {
       await api.patch(`/follow-ups/${id}/status`, { status });
       fetchFollowUps();
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to update status');
+    } catch (err) {
+      alert(errorMessage(err, 'Failed to update status'));
     }
   };
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Clinical Workspace Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[#002045] text-white p-5 rounded-lg border border-[#1a365d] shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#13696a] text-white uppercase tracking-wider">
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
               Clinical Medical Workspace
             </span>
             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#adc7f7] text-[#001b3c]">
@@ -233,7 +245,7 @@ export function ClinicalWorkspace({ user }: { user: any }) {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-[#e2e8f0] gap-2 text-xs font-semibold overflow-x-auto">
+      <div className="flex border-b border-[var(--outline)] gap-2 text-xs font-semibold overflow-x-auto">
         {[
           { id: 'dashboard', label: '📊 Clinical Dashboard & Alerts' },
           { id: 'encounters', label: '🩺 New Clinical Encounter & Staging' },
@@ -243,11 +255,11 @@ export function ClinicalWorkspace({ user }: { user: any }) {
         ].map(tab => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id as Parameters<typeof setActiveTab>[0])}
             className={`py-2.5 px-4 rounded-t border-b-2 transition-all whitespace-nowrap ${
               activeTab === tab.id
-                ? 'border-[#13696a] text-[#13696a] bg-white font-bold'
-                : 'border-transparent text-[#74777f] hover:text-[#002045]'
+                ? 'border-[var(--secondary)] text-[var(--secondary)] bg-white font-bold'
+                : 'border-transparent text-[var(--muted)] hover:text-[var(--primary)]'
             }`}
           >
             {tab.label}
@@ -260,51 +272,51 @@ export function ClinicalWorkspace({ user }: { user: any }) {
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="clinical-card">
-              <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Assigned Patients</span>
-              <p className="text-3xl font-bold text-[#002045] mt-1 tabular-nums">{assignments.length}</p>
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Assigned Patients</span>
+              <p className="text-3xl font-bold text-[var(--primary)] mt-1 tabular-nums">{assignments.length}</p>
             </div>
             <div className="clinical-card">
-              <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Upcoming Follow-ups (7d)</span>
-              <p className="text-3xl font-bold text-[#13696a] mt-1 tabular-nums">{upcomingFu.length}</p>
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Upcoming Follow-ups (7d)</span>
+              <p className="text-3xl font-bold text-[var(--secondary)] mt-1 tabular-nums">{upcomingFu.length}</p>
             </div>
             <div className="clinical-card">
-              <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Missed Follow-ups (Alert)</span>
-              <p className="text-3xl font-bold text-[#ba1a1a] mt-1 tabular-nums">{missedFu.length}</p>
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Missed Follow-ups (Alert)</span>
+              <p className="text-3xl font-bold text-[var(--risk-high-text)] mt-1 tabular-nums">{missedFu.length}</p>
             </div>
             <div className="clinical-card">
-              <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Urgent Referrals</span>
-              <p className="text-3xl font-bold text-[#92400e] mt-1 tabular-nums">{referralTracking.filter((r: any) => r.status === 'URGENT' || r.urgency === 'HIGH').length || referralTracking.length}</p>
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Urgent Referrals</span>
+              <p className="text-3xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">{referralTracking.filter((r) => r.status === 'PENDING').length}</p>
             </div>
           </div>
 
           {missedFu.length > 0 && (
-            <div className="p-4 bg-[#ffdad6]/40 border border-[#ba1a1a]/30 rounded-lg space-y-2">
-              <h3 className="font-bold text-[#93000a] text-sm flex items-center gap-1.5">
+            <div className="p-4 bg-[var(--risk-high-bg)]/40 border border-[var(--risk-high-text)]/30 rounded-lg space-y-2">
+              <h3 className="font-bold text-[var(--risk-high-text)] text-sm flex items-center gap-1.5">
                 ⚠ Missed Follow-up Clinical Alerts ({missedFu.length})
               </h3>
-              <div className="divide-y divide-[#ba1a1a]/10 text-xs">
-                {missedFu.map((fu: any) => (
+              <div className="divide-y divide-[var(--risk-high-text)]/10 text-xs">
+                {missedFu.map((fu) => (
                   <div key={fu.id} className="py-2 flex justify-between items-center">
                     <div>
-                      <p className="font-bold text-[#0d1c2e]">{fu.participant?.firstName} {fu.participant?.lastName} ({fu.participant?.nationalId})</p>
-                      <p className="text-[#93000a] text-[10px]">Was due: {new Date(fu.scheduledDate).toLocaleDateString()}</p>
+                      <p className="font-bold text-[var(--on-background)]">{fu.participant?.firstName} {fu.participant?.lastName} ({fu.participant?.registrationId ?? fu.participant?.nationalId ?? '—'})</p>
+                      <p className="text-[var(--risk-high-text)] text-[10px]">Was due: {new Date(fu.scheduledDate).toLocaleDateString()}</p>
                     </div>
-                    <span className="badge-high-risk text-[#ba1a1a] font-bold">MISSED</span>
+                    <span className="badge-high-risk text-[var(--risk-high-text)] font-bold">MISSED</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden">
-            <div className="p-4 border-b border-[#e2e8f0] font-bold text-[#002045] text-sm bg-[#f8f9ff]">
+          <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
+            <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
               👥 My Assigned Patient Roster
             </div>
             {assignments.length === 0 ? (
-              <div className="p-8 text-center text-xs text-[#74777f]">No patients currently assigned.</div>
+              <div className="p-8 text-center text-xs text-[var(--muted)]">No patients currently assigned.</div>
             ) : (
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+                <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
                   <tr>
                     <th className="p-3">Patient Name</th>
                     <th className="p-3">National ID</th>
@@ -313,14 +325,14 @@ export function ClinicalWorkspace({ user }: { user: any }) {
                     <th className="p-3">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#e2e8f0] font-medium text-[#0d1c2e]">
+                <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
                   {assignments.map(a => (
-                    <tr key={a.id} className="hover:bg-[#e5eeff]">
-                      <td className="p-3 font-bold text-[#002045]">{a.participant?.firstName} {a.participant?.lastName}</td>
-                      <td className="p-3 font-mono text-[#74777f] tabular-nums">{a.participant?.nationalId}</td>
+                    <tr key={a.id} className="hover:bg-[var(--primary-surface)]">
+                      <td className="p-3 font-bold text-[var(--primary)]">{a.participant?.firstName} {a.participant?.lastName}</td>
+                      <td className="p-3 font-mono text-[var(--muted)] tabular-nums">{a.participant?.registrationId ?? a.participant?.nationalId ?? '—'}</td>
                       <td className="p-3">{a.participant?.gender}</td>
-                      <td className="p-3 text-[#74777f] tabular-nums">{new Date(a.assignedAt).toLocaleDateString()}</td>
-                      <td className="p-3"><span className="badge-low-risk text-[#13696a] font-bold">{a.status}</span></td>
+                      <td className="p-3 text-[var(--muted)] tabular-nums">{new Date(a.assignedAt).toLocaleDateString()}</td>
+                      <td className="p-3"><span className="badge-low-risk text-[var(--secondary)] font-bold">{a.status}</span></td>
                     </tr>
                   ))}
                 </tbody>
@@ -332,40 +344,40 @@ export function ClinicalWorkspace({ user }: { user: any }) {
 
       {/* TAB 2: ENCOUNTERS */}
       {activeTab === 'encounters' && (
-        <div className="bg-white rounded-lg border border-[#e2e8f0] p-6 space-y-6">
-          <div className="border-b border-[#e2e8f0] pb-3">
-            <h2 className="text-lg font-bold text-[#002045]">Clinical Examination & Assessment Form</h2>
-            <p className="text-xs text-[#43474e]">Log patient symptoms, examination notes, vital signs, and master cancer classification.</p>
+        <div className="bg-white rounded-lg border border-[var(--outline)] p-6 space-y-6">
+          <div className="border-b border-[var(--outline)] pb-3">
+            <h2 className="text-lg font-bold text-[var(--primary)]">Clinical Examination & Assessment Form</h2>
+            <p className="text-xs text-[var(--on-surface-variant)]">Log patient symptoms, examination notes, vital signs, and master cancer classification.</p>
           </div>
           {encounterMessage && (
-            <div className={`p-3 rounded text-xs font-semibold ${encounterMessage.includes('success') ? 'bg-[#c6f6d5] text-[#22543d]' : 'bg-[#ffdad6] text-[#93000a]'}`}>
+            <div className={`p-3 rounded text-xs font-semibold ${encounterMessage.includes('success') ? 'bg-[var(--risk-low-bg)] text-[var(--risk-low-text)]' : 'bg-[var(--risk-high-bg)] text-[var(--risk-high-text)]'}`}>
               {encounterMessage}
             </div>
           )}
           <form onSubmit={handleEncounterSubmit} className="space-y-6 text-xs">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Assigned Patient *</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Assigned Patient *</label>
                 <select
                   value={encounterForm.participantId}
                   onChange={e => setEncounterForm({ ...encounterForm, participantId: e.target.value })}
-                  className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs"
+                  className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs"
                   required
                 >
                   <option value="">Select Patient</option>
                   {assignments.map(a => (
                     <option key={a.id} value={a.participantId}>
-                      {a.participant?.firstName} {a.participant?.lastName} ({a.participant?.nationalId})
+                      {a.participant?.firstName} {a.participant?.lastName} ({a.participant?.registrationId ?? a.participant?.nationalId ?? '—'})
                     </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Master Cancer Classification *</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Master Cancer Classification *</label>
                 <select
                   value={encounterForm.cancerType}
                   onChange={e => setEncounterForm({ ...encounterForm, cancerType: e.target.value })}
-                  className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs"
+                  className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs"
                   required
                 >
                   {cancerTypesMaster.map(type => (
@@ -374,43 +386,43 @@ export function ClinicalWorkspace({ user }: { user: any }) {
                 </select>
               </div>
             </div>
-            <div className="p-4 bg-[#f8f9ff] border border-[#e2e8f0] rounded space-y-3">
-              <h3 className="font-bold text-[#002045] border-b border-[#e2e8f0] pb-1">💓 Vital Signs & Physical Metrics</h3>
+            <div className="p-4 bg-[var(--background)] border border-[var(--outline)] rounded space-y-3">
+              <h3 className="font-bold text-[var(--primary)] border-b border-[var(--outline)] pb-1">💓 Vital Signs & Physical Metrics</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#74777f]">BP Systolic (mmHg)</label>
-                  <input type="number" value={encounterForm.bpSystolic} onChange={e => setEncounterForm({ ...encounterForm, bpSystolic: Number(e.target.value) })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                  <label className="block text-[11px] font-semibold text-[var(--muted)]">BP Systolic (mmHg)</label>
+                  <input type="number" value={encounterForm.bpSystolic} onChange={e => setEncounterForm({ ...encounterForm, bpSystolic: Number(e.target.value) })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#74777f]">BP Diastolic (mmHg)</label>
-                  <input type="number" value={encounterForm.bpDiastolic} onChange={e => setEncounterForm({ ...encounterForm, bpDiastolic: Number(e.target.value) })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                  <label className="block text-[11px] font-semibold text-[var(--muted)]">BP Diastolic (mmHg)</label>
+                  <input type="number" value={encounterForm.bpDiastolic} onChange={e => setEncounterForm({ ...encounterForm, bpDiastolic: Number(e.target.value) })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#74777f]">Pulse Rate (bpm)</label>
-                  <input type="number" value={encounterForm.pulseRate} onChange={e => setEncounterForm({ ...encounterForm, pulseRate: Number(e.target.value) })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                  <label className="block text-[11px] font-semibold text-[var(--muted)]">Pulse Rate (bpm)</label>
+                  <input type="number" value={encounterForm.pulseRate} onChange={e => setEncounterForm({ ...encounterForm, pulseRate: Number(e.target.value) })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#74777f]">Body Temp (°C)</label>
-                  <input type="number" step="0.1" value={encounterForm.temperature} onChange={e => setEncounterForm({ ...encounterForm, temperature: Number(e.target.value) })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                  <label className="block text-[11px] font-semibold text-[var(--muted)]">Body Temp (°C)</label>
+                  <input type="number" step="0.1" value={encounterForm.temperature} onChange={e => setEncounterForm({ ...encounterForm, temperature: Number(e.target.value) })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
                 </div>
               </div>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Clinical Diagnosis & Findings *</label>
-                <input type="text" required value={encounterForm.diagnosis} onChange={e => setEncounterForm({ ...encounterForm, diagnosis: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Clinical Diagnosis & Findings *</label>
+                <input type="text" required value={encounterForm.diagnosis} onChange={e => setEncounterForm({ ...encounterForm, diagnosis: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Clinical Examination & Doctor's Notes *</label>
-                <textarea required rows={3} value={encounterForm.notes} onChange={e => setEncounterForm({ ...encounterForm, notes: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Clinical Examination & Doctor&apos;s Notes *</label>
+                <textarea required rows={3} value={encounterForm.notes} onChange={e => setEncounterForm({ ...encounterForm, notes: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Treatment Plan & Clinical Recommendations *</label>
-                <textarea required rows={2} value={encounterForm.treatmentPlan} onChange={e => setEncounterForm({ ...encounterForm, treatmentPlan: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Treatment Plan & Clinical Recommendations *</label>
+                <textarea required rows={2} value={encounterForm.treatmentPlan} onChange={e => setEncounterForm({ ...encounterForm, treatmentPlan: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
-              <button type="submit" disabled={savingEncounter || assignments.length === 0} className="btn-primary text-xs bg-[#13696a] text-white px-4 py-2 rounded font-bold disabled:opacity-50">
+            <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
+              <button type="submit" disabled={savingEncounter || assignments.length === 0} className="btn-primary text-xs bg-[var(--secondary)] text-white px-4 py-2 rounded font-bold disabled:opacity-50">
                 {savingEncounter ? 'Saving Record...' : 'Submit Clinical Record'}
               </button>
             </div>
@@ -421,59 +433,66 @@ export function ClinicalWorkspace({ user }: { user: any }) {
       {/* TAB 3: VITALS */}
       {activeTab === 'vitals' && (
         <div className="space-y-6">
-          <div className="flex justify-between items-center bg-white p-4 rounded-lg border border-[#e2e8f0]">
+          <div className="flex justify-between items-center bg-white p-4 rounded-lg border border-[var(--outline)]">
             <div className="flex-1 max-w-md">
-              <label className="block text-xs font-semibold text-[#0d1c2e] mb-1">Select Patient to View Vitals History</label>
+              <label className="block text-xs font-semibold text-[var(--on-background)] mb-1">Select Patient to View Vitals History</label>
               <select
                 value={vitalsParticipantId}
                 onChange={e => setVitalsParticipantId(e.target.value)}
-                className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs"
+                className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs"
               >
                 <option value="">Select Patient...</option>
                 {assignments.map(a => (
                   <option key={a.id} value={a.participantId}>
-                    {a.participant?.firstName} {a.participant?.lastName} - {a.participant?.nationalId}
+                    {a.participant?.firstName} {a.participant?.lastName} - {a.participant?.registrationId ?? a.participant?.nationalId ?? '—'}
                   </option>
                 ))}
               </select>
             </div>
-            <button onClick={() => setShowVitalsModal(true)} className="btn-primary bg-[#13696a] text-white px-4 py-2 rounded text-xs font-bold whitespace-nowrap ml-4">
+            <button onClick={() => setShowVitalsModal(true)} className="btn-primary bg-[var(--secondary)] text-white px-4 py-2 rounded text-xs font-bold whitespace-nowrap ml-4">
               + Record Vitals
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="clinical-card bg-white p-4 rounded border border-[#e2e8f0]">
-              <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Patients with Vitals Recorded</span>
-              <p className="text-2xl font-bold text-[#002045] mt-1 tabular-nums">{new Set(assignments.map(a => a.participantId)).size}</p>
+            <div className="clinical-card bg-white p-4 rounded border border-[var(--outline)]">
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Patients with Vitals Recorded</span>
+              <p className="text-2xl font-bold text-[var(--primary)] mt-1 tabular-nums">{new Set(assignments.map(a => a.participantId)).size}</p>
             </div>
-            <div className="clinical-card bg-white p-4 rounded border border-[#e2e8f0]">
-              <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Hypertensive Alerts</span>
-              <p className="text-2xl font-bold text-[#ba1a1a] mt-1 tabular-nums">
+            <div className="clinical-card bg-white p-4 rounded border border-[var(--outline)]">
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Hypertensive Alerts</span>
+              <p className="text-2xl font-bold text-[var(--risk-high-text)] mt-1 tabular-nums">
                 {patientVitals.length > 0 
-                  ? patientVitals.filter(v => parseInt(v.bpSystolic) > 140 || parseInt(v.bpDiastolic) > 90).length 
+                  ? patientVitals.filter(v => (v.bpSystolic ?? 0) > 140 || (v.bpDiastolic ?? 0) > 90).length 
                   : <span className="text-sm font-normal">0 <br/><span className="text-[10px]">Select a patient to see vitals alerts</span></span>}
               </p>
             </div>
-            <div className="clinical-card bg-white p-4 rounded border border-[#e2e8f0]">
-              <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">BMI Alerts</span>
-              <p className="text-2xl font-bold text-[#92400e] mt-1 tabular-nums">
-                {patientVitals.filter(v => { const h = parseFloat(v.heightCm)/100; const bmi = parseFloat(v.weightKg)/(h*h); return bmi > 30 || bmi < 18.5; }).length}
+            <div className="clinical-card bg-white p-4 rounded border border-[var(--outline)]">
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">BMI Alerts</span>
+              <p className="text-2xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">
+                {patientVitals.filter(v => {
+                  // The API stores bmi; recomputing it from height and weight
+                  // meant a row with either missing produced NaN, and NaN fails
+                  // both comparisons — so an incomplete record silently dropped
+                  // out of the count instead of being flagged.
+                  const bmi = v.bmi ?? undefined;
+                  return bmi !== undefined && (bmi > 30 || bmi < 18.5);
+                }).length}
               </p>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden">
-            <div className="p-4 border-b border-[#e2e8f0] font-bold text-[#002045] text-sm bg-[#f8f9ff]">
+          <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
+            <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
               📈 Vitals History
             </div>
             {!vitalsParticipantId ? (
-              <div className="p-8 text-center text-xs text-[#74777f]">Select a patient to view vitals history.</div>
+              <div className="p-8 text-center text-xs text-[var(--muted)]">Select a patient to view vitals history.</div>
             ) : patientVitals.length === 0 ? (
-              <div className="p-8 text-center text-xs text-[#74777f]">No vitals recorded for this patient yet.</div>
+              <div className="p-8 text-center text-xs text-[var(--muted)]">No vitals recorded for this patient yet.</div>
             ) : (
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+                <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
                   <tr>
                     <th className="p-3">Date</th>
                     <th className="p-3">BP (Sys/Dia)</th>
@@ -484,13 +503,13 @@ export function ClinicalWorkspace({ user }: { user: any }) {
                     <th className="p-3">O2 Sat (%)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#e2e8f0] text-[#0d1c2e]">
+                <tbody className="divide-y divide-[var(--outline)] text-[var(--on-background)]">
                   {patientVitals.map(v => (
-                    <tr key={v.id} className="hover:bg-[#e5eeff]">
+                    <tr key={v.id} className="hover:bg-[var(--primary-surface)]">
                       <td className="p-3 tabular-nums">{new Date(v.createdAt).toLocaleDateString()}</td>
                       <td className="p-3 tabular-nums font-bold">
                         {v.bpSystolic}/{v.bpDiastolic}
-                        {v.bpSystolic > 140 && <span className="ml-2 px-1.5 py-0.5 bg-[#ffdad6] text-[#ba1a1a] rounded text-[10px]">⚠️ HIGH BP</span>}
+                        {(v.bpSystolic ?? 0) > 140 && <span className="ml-2 px-1.5 py-0.5 bg-[var(--risk-high-bg)] text-[var(--risk-high-text)] rounded text-[10px]">⚠️ HIGH BP</span>}
                       </td>
                       <td className="p-3 tabular-nums">{v.pulseRate}</td>
                       <td className="p-3 tabular-nums">{v.temperature}</td>
@@ -510,35 +529,35 @@ export function ClinicalWorkspace({ user }: { user: any }) {
       {activeTab === 'followups' && (
         <div className="space-y-6">
           <div className="grid grid-cols-3 gap-4">
-            <div className="clinical-card bg-white p-4 rounded border border-[#e2e8f0]">
-              <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Due Today</span>
-              <p className="text-2xl font-bold text-[#002045] mt-1 tabular-nums">
+            <div className="clinical-card bg-white p-4 rounded border border-[var(--outline)]">
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Due Today</span>
+              <p className="text-2xl font-bold text-[var(--primary)] mt-1 tabular-nums">
                 {allFollowUps.filter(f => new Date(f.scheduledDate).toDateString() === new Date().toDateString()).length}
               </p>
             </div>
-            <div className="clinical-card bg-white p-4 rounded border border-[#e2e8f0]">
-              <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Overdue</span>
-              <p className="text-2xl font-bold text-[#ba1a1a] mt-1 tabular-nums">
+            <div className="clinical-card bg-white p-4 rounded border border-[var(--outline)]">
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Overdue</span>
+              <p className="text-2xl font-bold text-[var(--risk-high-text)] mt-1 tabular-nums">
                 {allFollowUps.filter(f => new Date(f.scheduledDate) < new Date() && f.status !== 'COMPLETED').length}
               </p>
             </div>
-            <div className="clinical-card bg-white p-4 rounded border border-[#e2e8f0]">
-              <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Completed This Week</span>
-              <p className="text-2xl font-bold text-[#13696a] mt-1 tabular-nums">
+            <div className="clinical-card bg-white p-4 rounded border border-[var(--outline)]">
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Completed This Week</span>
+              <p className="text-2xl font-bold text-[var(--secondary)] mt-1 tabular-nums">
                 {allFollowUps.filter(f => f.status === 'COMPLETED').length}
               </p>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden">
-            <div className="p-4 border-b border-[#e2e8f0] flex justify-between items-center bg-[#f8f9ff]">
-              <h3 className="font-bold text-[#002045] text-sm">📅 Follow-Up Schedule</h3>
-              <button onClick={() => setShowFuModal(true)} className="btn-primary bg-[#13696a] text-white px-3 py-1.5 rounded text-xs font-bold">
+          <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
+            <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
+              <h3 className="font-bold text-[var(--primary)] text-sm">📅 Follow-Up Schedule</h3>
+              <button onClick={() => setShowFuModal(true)} className="btn-primary bg-[var(--secondary)] text-white px-3 py-1.5 rounded text-xs font-bold">
                 + Schedule Follow-Up
               </button>
             </div>
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+              <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
                 <tr>
                   <th className="p-3">Patient</th>
                   <th className="p-3">Type</th>
@@ -548,30 +567,30 @@ export function ClinicalWorkspace({ user }: { user: any }) {
                   <th className="p-3">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#e2e8f0] text-[#0d1c2e]">
+              <tbody className="divide-y divide-[var(--outline)] text-[var(--on-background)]">
                 {allFollowUps.length === 0 ? (
-                  <tr><td colSpan={6} className="p-6 text-center text-[#74777f]">No follow-ups scheduled.</td></tr>
+                  <tr><td colSpan={6} className="p-6 text-center text-[var(--muted)]">No follow-ups scheduled.</td></tr>
                 ) : allFollowUps.map(fu => (
-                  <tr key={fu.id} className="hover:bg-[#e5eeff]">
+                  <tr key={fu.id} className="hover:bg-[var(--primary-surface)]">
                     <td className="p-3 font-bold">{fu.participant?.firstName} {fu.participant?.lastName}</td>
-                    <td className="p-3">{fu.type.replace('_', ' ')}</td>
+                    <td className="p-3">{fu.notes || 'Follow-up'}</td>
                     <td className="p-3 tabular-nums">{new Date(fu.scheduledDate).toLocaleDateString()}</td>
-                    <td className="p-3">{fu.assignedTo || 'Unassigned'}</td>
+                    <td className="p-3">{fu.clinician ? `${fu.clinician.firstName} ${fu.clinician.lastName}` : 'Unassigned'}</td>
                     <td className="p-3">
                       <span className={`px-2 py-1 rounded text-[10px] font-bold ${
-                        fu.status === 'COMPLETED' ? 'bg-[#c6f6d5] text-[#22543d]' :
-                        fu.status === 'MISSED' ? 'bg-[#ffdad6] text-[#ba1a1a]' :
-                        'bg-[#e2e8f0] text-[#4a5568]'
+                        fu.status === 'COMPLETED' ? 'bg-[var(--risk-low-bg)] text-[var(--risk-low-text)]' :
+                        fu.status === 'MISSED' ? 'bg-[var(--risk-high-bg)] text-[var(--risk-high-text)]' :
+                        'bg-[var(--outline)] text-[#4a5568]'
                       }`}>
                         {fu.status}
                       </span>
                     </td>
                     <td className="p-3 flex gap-2">
                       {fu.status !== 'COMPLETED' && (
-                        <button onClick={() => updateFuStatus(fu.id, 'COMPLETED')} className="text-[#22543d] bg-[#c6f6d5] px-2 py-1 rounded text-[10px] font-bold">Mark Attended</button>
+                        <button onClick={() => updateFuStatus(fu.id, 'COMPLETED')} className="text-[var(--risk-low-text)] bg-[var(--risk-low-bg)] px-2 py-1 rounded text-[10px] font-bold">Mark Attended</button>
                       )}
                       {fu.status !== 'MISSED' && (
-                        <button onClick={() => updateFuStatus(fu.id, 'MISSED')} className="text-[#ba1a1a] bg-[#ffdad6] px-2 py-1 rounded text-[10px] font-bold">Mark Missed</button>
+                        <button onClick={() => updateFuStatus(fu.id, 'MISSED')} className="text-[var(--risk-high-text)] bg-[var(--risk-high-bg)] px-2 py-1 rounded text-[10px] font-bold">Mark Missed</button>
                       )}
                     </td>
                   </tr>
@@ -586,54 +605,54 @@ export function ClinicalWorkspace({ user }: { user: any }) {
       {activeTab === 'reports' && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="clinical-card bg-white p-4 rounded border border-[#e2e8f0]">
-              <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Total Encounters</span>
-              <p className="text-2xl font-bold text-[#002045] mt-1 tabular-nums">
+            <div className="clinical-card bg-white p-4 rounded border border-[var(--outline)]">
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Total Encounters</span>
+              <p className="text-2xl font-bold text-[var(--primary)] mt-1 tabular-nums">
                 {assignments.length > 0 ? assignments.length : <span className="text-sm font-normal">No participant selected</span>}
               </p>
             </div>
-            <div className="clinical-card bg-white p-4 rounded border border-[#e2e8f0]">
-              <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">VIA Screenings</span>
-              <p className="text-2xl font-bold text-[#002045] mt-1 tabular-nums">
-                {assignments.filter(e => e.encounterType === 'VIA_SCREENING' || e.screeningType === 'VIA').length}
+            <div className="clinical-card bg-white p-4 rounded border border-[var(--outline)]">
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">VIA Screenings</span>
+              <p className="text-2xl font-bold text-[var(--primary)] mt-1 tabular-nums">
+                {screenings.filter(sc => (sc.cancerType || '').toUpperCase().includes('CERVICAL')).length}
               </p>
             </div>
-            <div className="clinical-card bg-white p-4 rounded border border-[#e2e8f0]">
-              <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Positive Cases</span>
-              <p className="text-2xl font-bold text-[#ba1a1a] mt-1 tabular-nums">
-                {assignments.filter(e => e.viaResult === 'POSITIVE' || e.outcome?.includes('POSITIVE')).length}
+            <div className="clinical-card bg-white p-4 rounded border border-[var(--outline)]">
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Positive Cases</span>
+              <p className="text-2xl font-bold text-[var(--risk-high-text)] mt-1 tabular-nums">
+                {screenings.filter(sc => (sc.result || '').toUpperCase().includes('POSITIVE')).length}
               </p>
             </div>
-            <div className="clinical-card bg-white p-4 rounded border border-[#e2e8f0]">
-              <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Referrals Made</span>
-              <p className="text-2xl font-bold text-[#92400e] mt-1 tabular-nums">{referralTracking.length}</p>
+            <div className="clinical-card bg-white p-4 rounded border border-[var(--outline)]">
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Referrals Made</span>
+              <p className="text-2xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">{referralTracking.length}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden">
-              <div className="p-4 border-b border-[#e2e8f0] font-bold text-[#002045] text-sm bg-[#f8f9ff]">
+            <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
                 📊 Staging Summary YTD 2026
               </div>
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#edf2f7] text-[#43474e]">
+                <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)]">
                   <tr><th className="p-3">Stage/Classification</th><th className="p-3">Count</th><th className="p-3">% of Screenings</th></tr>
                 </thead>
-                <tbody className="divide-y divide-[#e2e8f0]">
+                <tbody className="divide-y divide-[var(--outline)]">
                   <tr><td className="p-3" colSpan={3}>Loading clinical data... (Computed from {assignments.length} encounters)</td></tr>
                 </tbody>
               </table>
             </div>
 
-            <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden">
-              <div className="p-4 border-b border-[#e2e8f0] font-bold text-[#002045] text-sm bg-[#f8f9ff]">
+            <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
                 📈 Monthly Screening Trend
               </div>
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#edf2f7] text-[#43474e]">
+                <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)]">
                   <tr><th className="p-3">Month</th><th className="p-3">Screenings</th><th className="p-3">Positives</th><th className="p-3">Referrals</th></tr>
                 </thead>
-                <tbody className="divide-y divide-[#e2e8f0]">
+                <tbody className="divide-y divide-[var(--outline)]">
                   <tr><td className="p-3" colSpan={4}>Loading clinical data... (Trend based on {assignments.length} encounters)</td></tr>
                 </tbody>
               </table>
@@ -641,20 +660,20 @@ export function ClinicalWorkspace({ user }: { user: any }) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden">
-              <div className="p-4 border-b border-[#e2e8f0] font-bold text-[#002045] text-sm bg-[#f8f9ff]">
+            <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
                 🏥 Referral Tracking
               </div>
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#edf2f7] text-[#43474e]">
+                <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)]">
                   <tr><th className="p-3">Patient ID</th><th className="p-3">Condition</th><th className="p-3">Destination</th><th className="p-3">Status</th></tr>
                 </thead>
-                <tbody className="divide-y divide-[#e2e8f0]">
+                <tbody className="divide-y divide-[var(--outline)]">
                   {referralTracking.map(rt => (
                     <tr key={rt.id}>
                       <td className="p-3">{rt.participantId}</td>
-                      <td className="p-3">{rt.condition}</td>
-                      <td className="p-3">{rt.destination}</td>
+                      <td className="p-3">{rt.reason}</td>
+                      <td className="p-3">{rt.referredTo}</td>
                       <td className="p-3 font-bold">{rt.status}</td>
                     </tr>
                   ))}
@@ -662,15 +681,15 @@ export function ClinicalWorkspace({ user }: { user: any }) {
               </table>
             </div>
 
-            <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden">
-              <div className="p-4 border-b border-[#e2e8f0] font-bold text-[#002045] text-sm bg-[#f8f9ff]">
+            <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
                 📍 LGA Performance Breakdown
               </div>
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#edf2f7] text-[#43474e]">
+                <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)]">
                   <tr><th className="p-3">LGA</th><th className="p-3">Screenings</th><th className="p-3">Positive Rate</th><th className="p-3">CHWs</th></tr>
                 </thead>
-                <tbody className="divide-y divide-[#e2e8f0]">
+                <tbody className="divide-y divide-[var(--outline)]">
                   <tr><td className="p-3" colSpan={4}>Sample Data — Connect to live API for real LGA breakdown (Total encounters: {assignments.length})</td></tr>
                 </tbody>
               </table>
@@ -684,61 +703,61 @@ export function ClinicalWorkspace({ user }: { user: any }) {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full p-6">
             <div className="flex justify-between items-center mb-4 border-b pb-2">
-              <h2 className="text-lg font-bold text-[#002045]">Record Patient Vitals</h2>
+              <h2 className="text-lg font-bold text-[var(--primary)]">Record Patient Vitals</h2>
               <button onClick={() => setShowVitalsModal(false)} className="text-gray-500 hover:text-black">✕</button>
             </div>
             <form onSubmit={handleVitalsSubmit} className="space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block mb-1 font-semibold">Patient *</label>
-                  <select required value={vitalsForm.participantId} onChange={e => setVitalsForm({...vitalsForm, participantId: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
+                  <select required value={vitalsForm.participantId} onChange={e => setVitalsForm({...vitalsForm, participantId: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                     <option value="">Select Patient</option>
                     {assignments.map(a => <option key={a.id} value={a.participantId}>{a.participant?.firstName} {a.participant?.lastName}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block mb-1 font-semibold">Date & Time *</label>
-                  <input type="datetime-local" required value={vitalsForm.date} onChange={e => setVitalsForm({...vitalsForm, date: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                  <input type="datetime-local" required value={vitalsForm.date} onChange={e => setVitalsForm({...vitalsForm, date: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
                 </div>
                 <div>
                   <label className="block mb-1 font-semibold">BP Systolic mmHg *</label>
-                  <input type="number" required value={vitalsForm.bpSystolic} onChange={e => setVitalsForm({...vitalsForm, bpSystolic: Number(e.target.value)})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                  <input type="number" required value={vitalsForm.bpSystolic} onChange={e => setVitalsForm({...vitalsForm, bpSystolic: Number(e.target.value)})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
                 </div>
                 <div>
                   <label className="block mb-1 font-semibold">BP Diastolic mmHg *</label>
-                  <input type="number" required value={vitalsForm.bpDiastolic} onChange={e => setVitalsForm({...vitalsForm, bpDiastolic: Number(e.target.value)})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                  <input type="number" required value={vitalsForm.bpDiastolic} onChange={e => setVitalsForm({...vitalsForm, bpDiastolic: Number(e.target.value)})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
                 </div>
                 <div>
                   <label className="block mb-1 font-semibold">Pulse Rate bpm *</label>
-                  <input type="number" required value={vitalsForm.pulseRate} onChange={e => setVitalsForm({...vitalsForm, pulseRate: Number(e.target.value)})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                  <input type="number" required value={vitalsForm.pulseRate} onChange={e => setVitalsForm({...vitalsForm, pulseRate: Number(e.target.value)})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
                 </div>
                 <div>
                   <label className="block mb-1 font-semibold">Temperature °C *</label>
-                  <input type="number" step="0.1" required value={vitalsForm.temperature} onChange={e => setVitalsForm({...vitalsForm, temperature: Number(e.target.value)})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                  <input type="number" step="0.1" required value={vitalsForm.temperature} onChange={e => setVitalsForm({...vitalsForm, temperature: Number(e.target.value)})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
                 </div>
                 <div>
                   <label className="block mb-1 font-semibold">Weight kg *</label>
-                  <input type="number" step="0.1" required value={vitalsForm.weightKg} onChange={e => setVitalsForm({...vitalsForm, weightKg: Number(e.target.value)})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                  <input type="number" step="0.1" required value={vitalsForm.weightKg} onChange={e => setVitalsForm({...vitalsForm, weightKg: Number(e.target.value)})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
                 </div>
                 <div>
                   <label className="block mb-1 font-semibold">Height cm *</label>
-                  <input type="number" step="0.1" required value={vitalsForm.heightCm} onChange={e => setVitalsForm({...vitalsForm, heightCm: Number(e.target.value)})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                  <input type="number" step="0.1" required value={vitalsForm.heightCm} onChange={e => setVitalsForm({...vitalsForm, heightCm: Number(e.target.value)})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
                 </div>
                 <div>
                   <label className="block mb-1 font-semibold">O2 Saturation % *</label>
-                  <input type="number" required value={vitalsForm.oxygenSat} onChange={e => setVitalsForm({...vitalsForm, oxygenSat: Number(e.target.value)})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                  <input type="number" required value={vitalsForm.oxygenSat} onChange={e => setVitalsForm({...vitalsForm, oxygenSat: Number(e.target.value)})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
                 </div>
                 <div>
                   <label className="block mb-1 font-semibold">Respiratory Rate (opt)</label>
-                  <input type="number" value={vitalsForm.respRate} onChange={e => setVitalsForm({...vitalsForm, respRate: Number(e.target.value)})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                  <input type="number" value={vitalsForm.respRate} onChange={e => setVitalsForm({...vitalsForm, respRate: Number(e.target.value)})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
                 </div>
               </div>
               <div>
                 <label className="block mb-1 font-semibold">Notes</label>
-                <textarea rows={2} value={vitalsForm.notes} onChange={e => setVitalsForm({...vitalsForm, notes: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs"></textarea>
+                <textarea rows={2} value={vitalsForm.notes} onChange={e => setVitalsForm({...vitalsForm, notes: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs"></textarea>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="bg-[#13696a] text-white px-4 py-2 rounded font-bold">Submit Vitals</button>
+                <button type="submit" className="bg-[var(--secondary)] text-white px-4 py-2 rounded font-bold">Submit Vitals</button>
               </div>
             </form>
           </div>
@@ -749,20 +768,20 @@ export function ClinicalWorkspace({ user }: { user: any }) {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <div className="flex justify-between items-center mb-4 border-b pb-2">
-              <h2 className="text-lg font-bold text-[#002045]">Schedule Follow-Up</h2>
+              <h2 className="text-lg font-bold text-[var(--primary)]">Schedule Follow-Up</h2>
               <button onClick={() => setShowFuModal(false)} className="text-gray-500 hover:text-black">✕</button>
             </div>
             <form onSubmit={handleFuSubmit} className="space-y-4 text-xs">
               <div>
                 <label className="block mb-1 font-semibold">Patient *</label>
-                <select required value={fuForm.participantId} onChange={e => setFuForm({...fuForm, participantId: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
+                <select required value={fuForm.participantId} onChange={e => setFuForm({...fuForm, participantId: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                   <option value="">Select Patient</option>
                   {assignments.map(a => <option key={a.id} value={a.participantId}>{a.participant?.firstName} {a.participant?.lastName}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block mb-1 font-semibold">Follow-Up Type *</label>
-                <select required value={fuForm.type} onChange={e => setFuForm({...fuForm, type: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
+                <select required value={fuForm.type} onChange={e => setFuForm({...fuForm, type: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                   <option value="TREATMENT_REVIEW">TREATMENT_REVIEW</option>
                   <option value="POST_CRYOTHERAPY">POST_CRYOTHERAPY</option>
                   <option value="BIOPSY_RESULT">BIOPSY_RESULT</option>
@@ -772,18 +791,18 @@ export function ClinicalWorkspace({ user }: { user: any }) {
               </div>
               <div>
                 <label className="block mb-1 font-semibold">Scheduled Date *</label>
-                <input type="date" required value={fuForm.scheduledDate} onChange={e => setFuForm({...fuForm, scheduledDate: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                <input type="date" required value={fuForm.scheduledDate} onChange={e => setFuForm({...fuForm, scheduledDate: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
               </div>
               <div>
                 <label className="block mb-1 font-semibold">Assigned Clinician</label>
-                <input type="text" value={fuForm.assignedTo} onChange={e => setFuForm({...fuForm, assignedTo: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" placeholder="e.g. Dr. Smith" />
+                <input type="text" value={fuForm.assignedTo} onChange={e => setFuForm({...fuForm, assignedTo: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" placeholder="e.g. Dr. Smith" />
               </div>
               <div>
                 <label className="block mb-1 font-semibold">Notes</label>
-                <textarea rows={2} value={fuForm.notes} onChange={e => setFuForm({...fuForm, notes: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs"></textarea>
+                <textarea rows={2} value={fuForm.notes} onChange={e => setFuForm({...fuForm, notes: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs"></textarea>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="bg-[#13696a] text-white px-4 py-2 rounded font-bold">Schedule</button>
+                <button type="submit" className="bg-[var(--secondary)] text-white px-4 py-2 rounded font-bold">Schedule</button>
               </div>
             </form>
           </div>

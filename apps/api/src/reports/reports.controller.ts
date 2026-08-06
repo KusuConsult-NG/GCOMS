@@ -10,7 +10,13 @@ export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Get('summary')
-  @Roles('EXECUTIVE', 'SYSTEM_ADMIN', 'BOARD', 'PROGRAMME_MANAGER', 'DATA_OFFICER')
+  @Roles(
+    'EXECUTIVE',
+    'SYSTEM_ADMIN',
+    'BOARD',
+    'PROGRAMME_MANAGER',
+    'DATA_OFFICER',
+  )
   async getSummary() {
     return this.reportsService.getExecutiveSummary();
   }

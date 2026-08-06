@@ -7,7 +7,14 @@ export class OutreachService {
 
   async getAllOutreaches() {
     return this.prisma.outreach.findMany({
-      include: { location: true, tasks: { include: { volunteer: { select: { firstName: true, lastName: true } } } } },
+      include: {
+        location: true,
+        tasks: {
+          include: {
+            volunteer: { select: { firstName: true, lastName: true } },
+          },
+        },
+      },
       orderBy: { date: 'desc' },
     });
   }
@@ -15,13 +22,25 @@ export class OutreachService {
   async getOutreach(id: string) {
     const outreach = await this.prisma.outreach.findUnique({
       where: { id },
-      include: { location: true, tasks: { include: { volunteer: { select: { firstName: true, lastName: true } } } } }
+      include: {
+        location: true,
+        tasks: {
+          include: {
+            volunteer: { select: { firstName: true, lastName: true } },
+          },
+        },
+      },
     });
     if (!outreach) throw new NotFoundException('Outreach not found');
     return outreach;
   }
 
-  async createOutreach(data: { title: string; locationId?: string; date: string; description?: string }) {
+  async createOutreach(data: {
+    title: string;
+    locationId?: string;
+    date: string;
+    description?: string;
+  }) {
     // If no locationId provided, find or create a default location
     let locationId = data.locationId;
     if (!locationId) {
@@ -30,7 +49,11 @@ export class OutreachService {
         locationId = defaultLocation.id;
       } else {
         const newLocation = await this.prisma.location.create({
-          data: { name: 'Main Office', lga: 'Jos North', state: 'Plateau State' },
+          data: {
+            name: 'Main Office',
+            lga: 'Jos North',
+            state: 'Plateau State',
+          },
         });
         locationId = newLocation.id;
       }
@@ -47,7 +70,11 @@ export class OutreachService {
     });
   }
 
-  async assignVolunteerTask(outreachId: string, volunteerId: string, title: string) {
+  async assignVolunteerTask(
+    outreachId: string,
+    volunteerId: string,
+    title: string,
+  ) {
     return this.prisma.volunteerTask.create({
       data: { title, outreachId, volunteerId },
     });

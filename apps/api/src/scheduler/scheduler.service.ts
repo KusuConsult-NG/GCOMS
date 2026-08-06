@@ -1,17 +1,42 @@
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+const CHECK_INTERVAL_MS = 5 * 60 * 1000;
+
 @Injectable()
-export class BackgroundSchedulerService implements OnModuleInit {
+export class BackgroundSchedulerService
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(BackgroundSchedulerService.name);
+  private timer?: NodeJS.Timeout;
 
   constructor(private prisma: PrismaService) {}
 
   onModuleInit() {
     this.logger.log('⏰ GCOMS Background Scheduler Engine initialized');
-    // Run automated check immediately and then every 5 minutes
-    this.runSchedulerChecks();
-    setInterval(() => this.runSchedulerChecks(), 5 * 60 * 1000);
+    // Run once at boot, then on an interval.
+    void this.runSchedulerChecks();
+
+    this.timer = setInterval(() => {
+      void this.runSchedulerChecks();
+    }, CHECK_INTERVAL_MS);
+
+    // The interval previously had no handle, no clearInterval and no unref, so
+    // it kept the event loop alive on its own: shutdown hooks could not stop it,
+    // and it went on querying a database that was being torn down.
+    this.timer.unref();
+  }
+
+  onModuleDestroy() {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = undefined;
+    }
   }
 
   async runSchedulerChecks() {
@@ -28,7 +53,9 @@ export class BackgroundSchedulerService implements OnModuleInit {
       });
 
       if (missedFollowUps.length > 0) {
-        this.logger.warn(`⚠️ Scheduler detected ${missedFollowUps.length} missed follow-up(s). Marking as MISSED.`);
+        this.logger.warn(
+          `⚠️ Scheduler detected ${missedFollowUps.length} missed follow-up(s). Marking as MISSED.`,
+        );
         for (const fu of missedFollowUps) {
           await this.prisma.followUp.update({
             where: { id: fu.id },
@@ -58,7 +85,9 @@ export class BackgroundSchedulerService implements OnModuleInit {
       });
 
       if (missedAppointments.length > 0) {
-        this.logger.warn(`⚠️ Scheduler detected ${missedAppointments.length} missed appointment(s). Marking as MISSED.`);
+        this.logger.warn(
+          `⚠️ Scheduler detected ${missedAppointments.length} missed appointment(s). Marking as MISSED.`,
+        );
         for (const appt of missedAppointments) {
           await this.prisma.appointment.update({
             where: { id: appt.id },
@@ -66,8 +95,11 @@ export class BackgroundSchedulerService implements OnModuleInit {
           });
         }
       }
-    } catch (err: any) {
-      this.logger.error('Error running scheduler checks', err.stack);
+    } catch (err) {
+      this.logger.error(
+        'Error running scheduler checks',
+        err instanceof Error ? err.stack : String(err),
+      );
     }
   }
 }

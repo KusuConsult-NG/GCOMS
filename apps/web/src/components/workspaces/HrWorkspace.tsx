@@ -1,5 +1,7 @@
 'use client';
 
+import type { Appraisal, JobOpening, LeaveRequest, StaffRecord, TrainingRecord, VolunteerProfile } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -10,38 +12,34 @@ const PLATEAU_LGAS = [
   'Mangu LGA', 'Mikang LGA', 'Pankshin LGA', 'Quan\'Pan LGA', 'Riyom LGA', 'Shendam LGA', 'Wase LGA',
 ];
 
-export function HrWorkspace({ user }: { user: any }) {
+export function HrWorkspace() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'staff' | 'volunteers' | 'recruitment' | 'leave' | 'training'>('staff');
-  const [staff, setStaff] = useState<any[]>([]);
-  const [volunteers, setVolunteers] = useState<any[]>([
-    { id: 1, name: 'Grace M. Gyang', lga: 'Barkin Ladi LGA', ward: 'Gwol Ward', address: 'House 14, Main Street, Barkin Ladi', stipend: '₦35,000 / mo', status: 'ACTIVE' },
-    { id: 2, name: 'Blessing K. Pam', lga: 'Jos North LGA', ward: 'Tudun Wada Ward', address: 'Plot 88, Ahmadu Bello Way, Jos', stipend: '₦35,000 / mo', status: 'ACTIVE' },
-    { id: 3, name: 'Emmanuel D. Luka', lga: 'Mangu LGA', ward: 'Panyam Ward', address: 'Panyam Central Road, Mangu', stipend: '₦35,000 / mo', status: 'ACTIVE' },
-    { id: 4, name: 'Ruth A. Danladi', lga: 'Kanke LGA', ward: 'Kwal Ward', address: 'Near LGA Secretariate, Kanke', stipend: '₦35,000 / mo', status: 'ACTIVE' },
-  ]);
+  const [staff, setStaff] = useState<StaffRecord[]>([]);
+  const [volunteers, setVolunteers] = useState<VolunteerProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState<null | 'staff' | 'volunteer' | 'leave' | 'job' | 'applicant' | 'interview' | 'offer' | 'attendance' | 'performance' | 'training'>(null);
 
   // States for new features
-  const [jobOpenings, setJobOpenings] = useState<any[]>([
-    { id: 1, title: 'Senior Clinical Officer', dept: 'Clinical', type: 'FULL_TIME', location: 'Jos, Plateau State', deadline: '2026-08-31', status: 'OPEN', applicants: [] },
-    { id: 2, title: 'Field Outreach Coordinator', dept: 'Field Operations', type: 'CONTRACT', location: 'Barkin Ladi LGA', deadline: '2026-09-15', status: 'OPEN', applicants: [] }
-  ]);
-  const [selectedJob, setSelectedJob] = useState<any>(null);
+  const [jobOpenings, setJobOpenings] = useState<JobOpening[]>([]);
+  const [selectedJob, setSelectedJob] = useState<JobOpening | null>(null);
 
-  const [leaveRequests, setLeaveRequests] = useState<any[]>([
-    { id: 1, staff: 'Adaeze Nwosu', type: 'SICK', start: '2026-08-05', end: '2026-08-07', days: 3, reason: 'Malaria treatment', status: 'PENDING' },
-    { id: 2, staff: 'Ibrahim Danladi', type: 'ANNUAL', start: '2026-08-12', end: '2026-08-19', days: 7, reason: 'Family vacation', status: 'APPROVED' },
-    { id: 3, staff: 'Grace Bello', type: 'MATERNITY', start: '2026-09-01', end: '2026-11-30', days: 91, reason: 'Maternity leave', status: 'APPROVED' }
-  ]);
-  const [attendanceLogs, setAttendanceLogs] = useState<any[]>([]);
-  const [performanceReviews, setPerformanceReviews] = useState<any[]>([]);
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+  // No attendance table yet; these stay local to the tab.
+  const [attendanceLogs, setAttendanceLogs] = useState<
+    Array<{
+      id: string;
+      staff: string;
+      date: string;
+      clockIn: string;
+      clockOut: string;
+      hours: number;
+      status: string;
+    }>
+  >([]);
+  const [performanceReviews, setPerformanceReviews] = useState<Appraisal[]>([]);
   
-  const [trainings, setTrainings] = useState<any[]>([
-    { id: 1, staff: 'Dr. Amara Okafor', title: 'VIA/Cryotherapy Clinical Certification', provider: 'WHO AFRO', type: 'CLINICAL_SKILLS', date: '2025-11-15', cert: 'YES', expiry: '2026-11-15', status: 'ACTIVE' },
-    { id: 2, staff: 'John Danladi', title: 'Financial Management for NGOs', provider: 'CLEEN Foundation', type: 'GRANTS_MANAGEMENT', date: '2026-03-10', cert: 'YES', expiry: '2027-03-10', status: 'ACTIVE' }
-  ]);
+  const [trainings, setTrainings] = useState<TrainingRecord[]>([]);
   
   // Form State
   const [formData, setFormData] = useState({
@@ -74,7 +72,7 @@ export function HrWorkspace({ user }: { user: any }) {
 
   const [submitting, setSubmitting] = useState(false);
   const [showPerformance, setShowPerformance] = useState(false);
-  const [viewReview, setViewReview] = useState<any>(null);
+  const [viewReview, setViewReview] = useState<Appraisal | null>(null);
 
   // Read URL action & tab params from Sidebar links
   useEffect(() => {
@@ -82,7 +80,7 @@ export function HrWorkspace({ user }: { user: any }) {
     const actionParam = searchParams.get('action');
 
     if (tabParam && ['staff', 'volunteers', 'recruitment', 'leave', 'training'].includes(tabParam)) {
-      setActiveTab(tabParam as any);
+      setActiveTab(tabParam as Parameters<typeof setActiveTab>[0]);
     }
     if (actionParam) {
       if (actionParam === 'new-staff') setActiveModal('staff');
@@ -103,7 +101,50 @@ export function HrWorkspace({ user }: { user: any }) {
     }
   };
 
-  useEffect(() => { fetchStaff(); }, []);
+  const fetchLeave = async () => {
+    try {
+      const res = await api.get('/hr/leave');
+      setLeaveRequests(res.data);
+    } catch (err) { console.error('Failed to fetch leave requests', err); }
+  };
+
+  // Performance reviews are the Appraisal table. There is no onboarding screen
+  // yet, so /hr/onboarding is left unconsumed rather than faked.
+  const fetchAppraisals = async () => {
+    try {
+      const res = await api.get('/hr/appraisals');
+      setPerformanceReviews(res.data);
+    } catch (err) { console.error('Failed to fetch appraisals', err); }
+  };
+
+  const fetchVolunteers = async () => {
+    try { setVolunteers((await api.get('/operations/volunteers')).data); }
+    catch (err) { console.error('Failed to fetch volunteers', err); }
+  };
+  const fetchJobOpenings = async () => {
+    try { setJobOpenings((await api.get('/operations/job-openings')).data); }
+    catch (err) { console.error('Failed to fetch job openings', err); }
+  };
+  const fetchTrainings = async () => {
+    try { setTrainings((await api.get('/operations/training')).data); }
+    catch (err) { console.error('Failed to fetch training records', err); }
+  };
+
+  useEffect(() => {
+    fetchVolunteers();
+    fetchJobOpenings();
+    fetchTrainings();
+    fetchStaff();
+    fetchLeave();
+    fetchAppraisals();
+  }, []);
+
+  const handleLeaveDecision = async (id: string, status: 'APPROVED' | 'REJECTED') => {
+    try {
+      await api.patch(`/hr/leave/${id}`, { status });
+      await fetchLeave();
+    } catch (err) { console.error('Failed to update leave request', err); }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,50 +162,72 @@ export function HrWorkspace({ user }: { user: any }) {
     if (!volunteerForm.lga) return alert('LGA is mandatory!');
     setSubmitting(true);
     try {
-      await api.post('/users', {
+      const created = await api.post('/users', {
         firstName: volunteerForm.firstName, lastName: volunteerForm.lastName,
         email: volunteerForm.email || `volunteer.${Date.now()}@gcoms.org`, role: 'VOLUNTEER', password: 'Password123!'
       });
-      setVolunteers([{
-        id: Date.now(), name: `${volunteerForm.firstName} ${volunteerForm.lastName}`, lga: volunteerForm.lga,
-        ward: volunteerForm.ward || 'General Ward', address: volunteerForm.address || 'LGA Health Centre',
-        stipend: `₦${Number(volunteerForm.stipend).toLocaleString()} / mo`, status: 'ACTIVE'
-      }, ...volunteers]);
+      // The roster fields (LGA, ward, stipend) live on VolunteerProfile, not on
+      // the user account, so this is two calls rather than local state.
+      await api.post('/operations/volunteers', {
+        userId: created.data.id,
+        lga: volunteerForm.lga,
+        ward: volunteerForm.ward || undefined,
+        address: volunteerForm.address || undefined,
+        stipend: Number(volunteerForm.stipend) || 0,
+      });
+      await fetchVolunteers();
       setActiveModal(null);
       setVolunteerForm({ firstName: '', lastName: '', email: '', phone: '', lga: 'Barkin Ladi LGA', ward: '', address: '', stipend: '35000' });
     } catch (err) { console.error('Failed to register volunteer', err); } finally { setSubmitting(false); }
   };
 
   // Job Opening Actions
-  const handlePostJob = (e: React.FormEvent) => {
+  const handlePostJob = async (e: React.FormEvent) => {
     e.preventDefault();
-    setJobOpenings([...jobOpenings, { id: Date.now(), ...jobForm, status: 'OPEN', applicants: [] }]);
-    // @ts-ignore
-    api.post('/hr', { ...jobForm, recordType: 'JOB_OPENING' }).catch(() => {});
-    setActiveModal(null);
-    setJobForm({ title: '', dept: 'Clinical', type: 'FULL_TIME', location: '', qualifications: '', deadline: '' });
+    try {
+      await api.post('/operations/job-openings', {
+        title: jobForm.title,
+        department: jobForm.dept,
+        employmentType: jobForm.type,
+        location: jobForm.location,
+        deadline: jobForm.deadline,
+      });
+      setActiveModal(null);
+      await fetchJobOpenings();
+    } catch (err) {
+      console.error('Failed to post job opening', err);
+    }
   };
-  const closeJob = (id: number) => {
-    setJobOpenings(jobOpenings.map(j => j.id === id ? { ...j, status: 'CLOSED' } : j));
+  const closeJob = (id: string) => {
+    api.patch(`/operations/job-openings/${id}`, { status: 'CLOSED' })
+      .then(() => fetchJobOpenings())
+      .catch(err => console.error('Failed to close job opening', err));
   };
 
   // Applicant Actions
-  const handleAddApplicant = (e: React.FormEvent) => {
+  const handleAddApplicant = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedJob) {
-      const updatedJob = {
-        ...selectedJob, 
-        applicants: [...selectedJob.applicants, { id: Date.now(), ...applicantForm, stage: 'APPLIED' }]
-      };
-      setJobOpenings(jobOpenings.map(j => j.id === selectedJob.id ? updatedJob : j));
-      setSelectedJob(updatedJob);
+    if (!selectedJob) return;
+    try {
+      await api.post('/operations/applicants', {
+        jobOpeningId: selectedJob.id,
+        name: applicantForm.name,
+        email: applicantForm.email || undefined,
+        phone: applicantForm.phone || undefined,
+      });
       setActiveModal(null);
-      setApplicantForm({ name: '', email: '', phone: '', experience: 0, currentEmployer: '', date: new Date().toISOString().split('T')[0] });
+      const refreshed = await api.get('/operations/job-openings');
+      setJobOpenings(refreshed.data);
+      setSelectedJob(
+        (refreshed.data as JobOpening[]).find((j) => j.id === selectedJob?.id) ?? null,
+      );
+    } catch (err) {
+      console.error('Failed to add applicant', err);
     }
   };
-  const changeApplicantStage = (applicantId: number, newStage: string) => {
+  const changeApplicantStage = (applicantId: string, newStage: string) => {
     if (selectedJob) {
-      const updatedApplicants = selectedJob.applicants.map((a: any) => a.id === applicantId ? { ...a, stage: newStage } : a);
+      const updatedApplicants = (selectedJob?.applicants ?? []).map((a) => a.id === applicantId ? { ...a, stage: newStage } : a);
       const updatedJob = { ...selectedJob, applicants: updatedApplicants };
       setJobOpenings(jobOpenings.map(j => j.id === selectedJob.id ? updatedJob : j));
       setSelectedJob(updatedJob);
@@ -179,28 +242,42 @@ export function HrWorkspace({ user }: { user: any }) {
     const diffTime = Math.abs(new Date(end).getTime() - new Date(start).getTime());
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
   };
-  const handleLeaveRequest = (e: React.FormEvent) => {
+  const staffName = (employeeId: string) => {
+    const member = staff.find(
+      (m) => m.id === employeeId || m.user?.id === employeeId,
+    );
+    if (!member?.user) return 'Unknown staff';
+    return `${member.user.firstName} ${member.user.lastName}`;
+  };
+
+  const handleLeaveRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    const staffMember = staff.find(s => s.id === leaveForm.staffId);
-    const staffName = staffMember ? `${staffMember.firstName} ${staffMember.lastName}` : 'Unknown Staff';
-    setLeaveRequests([...leaveRequests, {
-      id: Date.now(), staff: staffName, type: leaveForm.type, start: leaveForm.start, end: leaveForm.end,
-      days: calculateDays(leaveForm.start, leaveForm.end), reason: leaveForm.reason, status: 'PENDING'
-    }]);
-    // @ts-ignore
-    api.post('/hr', { ...leaveForm, recordType: 'LEAVE_REQUEST' }).catch(() => {});
-    setActiveModal(null);
-    setLeaveForm({ staffId: '', type: 'ANNUAL', start: '', end: '', reason: '' });
+    try {
+      await api.post('/hr/leave', {
+        employeeId: leaveForm.staffId,
+        type: leaveForm.type,
+        startDate: leaveForm.start,
+        endDate: leaveForm.end,
+        reason: leaveForm.reason || undefined,
+      });
+      setActiveModal(null);
+      setLeaveForm({ staffId: '', type: 'ANNUAL', start: '', end: '', reason: '' });
+      await fetchLeave();
+    } catch (err) {
+      console.error('Failed to submit leave request', err);
+    }
   };
-  const updateLeaveStatus = (id: number, status: string) => {
-    setLeaveRequests(leaveRequests.map(r => r.id === id ? { ...r, status } : r));
-  };
+
+  const updateLeaveStatus = (id: string, status: 'APPROVED' | 'REJECTED') =>
+    handleLeaveDecision(id, status);
 
   // Attendance Actions
   const handleLogAttendance = (e: React.FormEvent) => {
     e.preventDefault();
     const staffMember = staff.find(s => s.id === attendanceForm.staffId);
-    const staffName = staffMember ? `${staffMember.firstName} ${staffMember.lastName}` : 'Unknown Staff';
+    const staffName = staffMember?.user
+      ? `${staffMember.user.firstName} ${staffMember.user.lastName}`
+      : 'Unknown Staff';
     
     // Calculate hours worked
     let hours = 0;
@@ -212,8 +289,11 @@ export function HrWorkspace({ user }: { user: any }) {
       hours = Math.round((outDate.getTime() - inDate.getTime()) / (1000 * 60 * 60) * 10) / 10;
     }
     
+    // No attendance table exists yet, so this stays in the tab. The id is a
+    // local key only — nothing downstream treats it as a record id.
     setAttendanceLogs([...attendanceLogs, {
-      id: Date.now(), staff: staffName, date: attendanceForm.date, clockIn: attendanceForm.clockIn,
+      id: `${attendanceForm.staffId}-${attendanceForm.date}-${attendanceForm.clockIn}`,
+      staff: staffName, date: attendanceForm.date, clockIn: attendanceForm.clockIn,
       clockOut: attendanceForm.clockOut, hours, status: hours >= 8 ? 'PRESENT' : 'LATE'
     }]);
     setActiveModal(null);
@@ -221,46 +301,76 @@ export function HrWorkspace({ user }: { user: any }) {
   };
 
   // Performance Actions
-  const handlePerformanceReview = (e: React.FormEvent) => {
+  // Appraisal stores a 0-5 score; the form offers a rating band, so map between
+  // them in one place rather than letting the two vocabularies drift.
+  const scoreToRating = (score: number) =>
+    score >= 4.5 ? 'EXCEPTIONAL'
+      : score >= 3.5 ? 'STRONG'
+      : score >= 2.5 ? 'MEETS_EXPECTATIONS'
+      : score >= 1.5 ? 'NEEDS_IMPROVEMENT'
+      : 'UNSATISFACTORY';
+
+  const RATING_SCORES: Record<string, number> = {
+    UNSATISFACTORY: 1,
+    NEEDS_IMPROVEMENT: 2,
+    MEETS_EXPECTATIONS: 3,
+    STRONG: 4,
+    EXCEPTIONAL: 5,
+  };
+
+  const handlePerformanceReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    const staffMember = staff.find(s => s.id === performanceForm.staffId);
-    const staffName = staffMember ? `${staffMember.firstName} ${staffMember.lastName}` : 'Unknown Staff';
-    setPerformanceReviews([...performanceReviews, {
-      id: Date.now(), staff: staffName, period: performanceForm.period, rating: performanceForm.rating,
-      date: new Date().toISOString().split('T')[0]
-    }]);
-    setActiveModal(null);
-    setPerformanceForm({ staffId: '', period: 'Q3 2026', rating: 'MEETS_EXPECTATIONS', achievements: '', development: '', comments: '' });
+    try {
+      await api.post('/hr/appraisals', {
+        employeeId: performanceForm.staffId,
+        period: performanceForm.period,
+        score: RATING_SCORES[performanceForm.rating] ?? 3,
+        comments: [performanceForm.achievements, performanceForm.development, performanceForm.comments]
+          .filter(Boolean)
+          .join('\n\n') || undefined,
+      });
+      setActiveModal(null);
+      setPerformanceForm({ staffId: '', period: 'Q3 2026', rating: 'MEETS_EXPECTATIONS', achievements: '', development: '', comments: '' });
+      await fetchAppraisals();
+    } catch (err) {
+      console.error('Failed to record appraisal', err);
+    }
   };
 
   // Training Actions
-  const handleLogTraining = (e: React.FormEvent) => {
+  const handleLogTraining = async (e: React.FormEvent) => {
     e.preventDefault();
-    const staffMember = staff.find(s => s.id === trainingForm.staffId);
-    const staffName = staffMember ? `${staffMember.firstName} ${staffMember.lastName}` : 'Unknown Staff';
-    setTrainings([...trainings, {
-      id: Date.now(), staff: staffName, title: trainingForm.title, provider: trainingForm.provider,
-      type: trainingForm.type, date: trainingForm.date, cert: trainingForm.cert, expiry: trainingForm.expiry, status: 'ACTIVE'
-    }]);
-    // @ts-ignore
-    api.post('/hr', { ...trainingForm, recordType: 'TRAINING_LOG' }).catch(() => {});
-    setActiveModal(null);
-    setTrainingForm({ staffId: '', title: '', provider: '', type: 'CLINICAL_SKILLS', date: '', cert: 'YES', expiry: '' });
+    try {
+      await api.post('/operations/training', {
+        staffId: trainingForm.staffId || undefined,
+        staffName: staffName(trainingForm.staffId),
+        title: trainingForm.title,
+        provider: trainingForm.provider || undefined,
+        type: trainingForm.type,
+        trainingDate: trainingForm.date,
+        certified: trainingForm.cert === 'YES',
+        expiryDate: trainingForm.expiry || undefined,
+      });
+      setActiveModal(null);
+      await fetchTrainings();
+    } catch (err) {
+      console.error('Failed to log training', err);
+    }
   };
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* App Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-[#002045] text-white p-5 rounded-lg border border-[#1a365d] shadow-sm">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm">
         <div>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#13696a] text-white uppercase tracking-wider">
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
             Enterprise HR & Talent Operations Software • GCOMS
           </span>
           <h1 className="text-2xl font-bold mt-1 text-white">Human Resources & Volunteer Management</h1>
           <p className="text-slate-300 text-xs mt-0.5">Manage staff directory, field volunteer stipends, recruitment pipelines, and leave approvals.</p>
         </div>
         <div className="mt-3 lg:mt-0 flex flex-wrap gap-2">
-          <button onClick={() => setActiveModal('staff')} className="btn-primary text-xs bg-[#13696a] hover:bg-[#0f5455]">
+          <button onClick={() => setActiveModal('staff')} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">
             + Add Staff Member
           </button>
           <button onClick={() => { setActiveTab('volunteers'); setActiveModal('volunteer'); }} className="btn-primary text-xs bg-amber-700 hover:bg-amber-800">
@@ -270,7 +380,7 @@ export function HrWorkspace({ user }: { user: any }) {
       </div>
 
       {/* Sub-Tabs */}
-      <div className="flex border-b border-[#e2e8f0] gap-2 text-xs font-semibold overflow-x-auto">
+      <div className="flex border-b border-[var(--outline)] gap-2 text-xs font-semibold overflow-x-auto">
         {[
           { id: 'staff', label: '👥 Staff & Employee Directory' },
           { id: 'volunteers', label: '🩺 Volunteer & Field CHW Roster' },
@@ -280,9 +390,9 @@ export function HrWorkspace({ user }: { user: any }) {
         ].map(t => (
           <button
             key={t.id}
-            onClick={() => setActiveTab(t.id as any)}
+            onClick={() => setActiveTab(t.id as Parameters<typeof setActiveTab>[0])}
             className={`py-2.5 px-4 rounded-t border-b-2 transition-all whitespace-nowrap ${
-              activeTab === t.id ? 'border-[#13696a] text-[#13696a] bg-white font-bold' : 'border-transparent text-[#74777f]'
+              activeTab === t.id ? 'border-[var(--secondary)] text-[var(--secondary)] bg-white font-bold' : 'border-transparent text-[var(--muted)]'
             }`}
           >
             {t.label}
@@ -293,15 +403,15 @@ export function HrWorkspace({ user }: { user: any }) {
       {/* TAB 1: STAFF DIRECTORY */}
       {activeTab === 'staff' && (
         <div className="space-y-4">
-          <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden">
-            <div className="p-4 border-b border-[#e2e8f0] font-bold text-[#002045] text-sm bg-[#f8f9ff]">
+          <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
+            <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
               👥 Active Employee Directory
             </div>
             {loading ? (
-              <div className="p-8 text-center text-xs text-[#74777f]">Loading staff directory...</div>
+              <div className="p-8 text-center text-xs text-[var(--muted)]">Loading staff directory...</div>
             ) : (
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+                <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
                   <tr>
                     <th className="p-3">Staff Name</th>
                     <th className="p-3">Work Email</th>
@@ -309,12 +419,12 @@ export function HrWorkspace({ user }: { user: any }) {
                     <th className="p-3">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#e2e8f0] font-medium text-[#0d1c2e]">
+                <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
                   {staff.map((s) => (
-                    <tr key={s.id} className="hover:bg-[#e5eeff]">
-                      <td className="p-3 font-bold text-[#002045]">{s.firstName} {s.lastName}</td>
-                      <td className="p-3 font-mono text-[#74777f]">{s.email}</td>
-                      <td className="p-3 text-[#13696a] font-semibold">{s.role}</td>
+                    <tr key={s.id} className="hover:bg-[var(--primary-surface)]">
+                      <td className="p-3 font-bold text-[var(--primary)]">{s.user?.firstName} {s.user?.lastName}</td>
+                      <td className="p-3 font-mono text-[var(--muted)]">{s.user?.email}</td>
+                      <td className="p-3 text-[var(--secondary)] font-semibold">{s.user?.role}</td>
                       <td className="p-3"><span className="badge-low-risk">ACTIVE</span></td>
                     </tr>
                   ))}
@@ -323,16 +433,16 @@ export function HrWorkspace({ user }: { user: any }) {
             )}
           </div>
           
-          <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden">
-            <div className="p-4 border-b border-[#e2e8f0] flex justify-between items-center bg-[#f8f9ff] cursor-pointer" onClick={() => setShowPerformance(!showPerformance)}>
-              <span className="font-bold text-[#002045] text-sm">📈 Performance Reviews</span>
-              <button onClick={(e) => { e.stopPropagation(); setActiveModal('performance'); }} className="btn-primary text-xs bg-[#13696a] hover:bg-[#0f5455]">
+          <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
+            <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)] cursor-pointer" onClick={() => setShowPerformance(!showPerformance)}>
+              <span className="font-bold text-[var(--primary)] text-sm">📈 Performance Reviews</span>
+              <button onClick={(e) => { e.stopPropagation(); setActiveModal('performance'); }} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">
                 + New Performance Review
               </button>
             </div>
             {showPerformance && (
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+                <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
                   <tr>
                     <th className="p-3">Staff Name</th>
                     <th className="p-3">Period</th>
@@ -341,17 +451,17 @@ export function HrWorkspace({ user }: { user: any }) {
                     <th className="p-3">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#e2e8f0] font-medium text-[#0d1c2e]">
+                <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
                   {performanceReviews.length === 0 ? (
-                    <tr><td colSpan={5} className="p-4 text-center text-[#74777f]">No performance reviews yet.</td></tr>
+                    <tr><td colSpan={5} className="p-4 text-center text-[var(--muted)]">No performance reviews yet.</td></tr>
                   ) : (
                     performanceReviews.map((r, i) => (
-                      <tr key={i} className="hover:bg-[#e5eeff]">
-                        <td className="p-3 font-bold text-[#002045]">{r.staff}</td>
+                      <tr key={i} className="hover:bg-[var(--primary-surface)]">
+                        <td className="p-3 font-bold text-[var(--primary)]">{staffName(r.employeeId)}</td>
                         <td className="p-3">{r.period}</td>
-                        <td className="p-3"><span className="badge-low-risk">{r.rating}</span></td>
-                        <td className="p-3">{r.date}</td>
-                        <td className="p-3"><button className="text-[#13696a] hover:underline" onClick={() => setViewReview(r)}>View</button></td>
+                        <td className="p-3"><span className="badge-low-risk">{scoreToRating(r.score)} ({r.score})</span></td>
+                        <td className="p-3">{String(r.createdAt).slice(0, 10)}</td>
+                        <td className="p-3"><button className="text-[var(--secondary)] hover:underline" onClick={() => setViewReview(r)}>View</button></td>
                       </tr>
                     ))
                   )}
@@ -364,25 +474,25 @@ export function HrWorkspace({ user }: { user: any }) {
 
       {/* TAB 2: VOLUNTEERS */}
       {activeTab === 'volunteers' && (
-        <div className="bg-white rounded-lg border border-[#e2e8f0] p-5 space-y-4">
-          <div className="flex justify-between items-center border-b border-[#e2e8f0] pb-2">
-            <h2 className="font-bold text-[#002045] text-sm">🩺 Field Volunteer & Community Health Worker Registry</h2>
+        <div className="bg-white rounded-lg border border-[var(--outline)] p-5 space-y-4">
+          <div className="flex justify-between items-center border-b border-[var(--outline)] pb-2">
+            <h2 className="font-bold text-[var(--primary)] text-sm">🩺 Field Volunteer & Community Health Worker Registry</h2>
             <button onClick={() => setActiveModal('volunteer')} className="btn-primary text-xs bg-amber-700 hover:bg-amber-800">
               + Register Volunteer (LGA Mandatory)
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             {volunteers.map((v) => (
-              <div key={v.id} className="p-4 bg-[#f8f9ff] border border-[#e2e8f0] rounded space-y-2">
-                <div className="flex justify-between font-bold text-[#002045]">
-                  <span className="text-sm">{v.name}</span>
+              <div key={v.id} className="p-4 bg-[var(--background)] border border-[var(--outline)] rounded space-y-2">
+                <div className="flex justify-between font-bold text-[var(--primary)]">
+                  <span className="text-sm">{v.user ? `${v.user.firstName} ${v.user.lastName}` : 'Unknown'}</span>
                   <span className="badge-low-risk">{v.status}</span>
                 </div>
                 <div className="space-y-1 text-slate-700">
-                  <p><strong className="text-[#002045]">LGA (Mandatory):</strong> <span className="px-2 py-0.5 rounded bg-[#13696a] text-white text-[10px] font-bold">{v.lga}</span></p>
-                  <p><strong className="text-[#002045]">Ward:</strong> {v.ward}</p>
-                  <p><strong className="text-[#002045]">Address:</strong> {v.address}</p>
-                  <p><strong className="text-[#002045]">Stipend:</strong> <span className="text-[#22543d] font-bold font-mono">{v.stipend}</span></p>
+                  <p><strong className="text-[var(--primary)]">LGA (Mandatory):</strong> <span className="px-2 py-0.5 rounded bg-[var(--secondary)] text-white text-[10px] font-bold">{v.lga}</span></p>
+                  <p><strong className="text-[var(--primary)]">Ward:</strong> {v.ward}</p>
+                  <p><strong className="text-[var(--primary)]">Address:</strong> {v.address}</p>
+                  <p><strong className="text-[var(--primary)]">Stipend:</strong> <span className="text-[var(--risk-low-text)] font-bold font-mono">{`₦${Number(v.stipend || 0).toLocaleString()} / mo`}</span></p>
                 </div>
               </div>
             ))}
@@ -395,32 +505,32 @@ export function HrWorkspace({ user }: { user: any }) {
         <div className="space-y-6">
           <div className="grid grid-cols-3 gap-4">
             <div className="clinical-card">
-              <span className="text-xs font-semibold text-[#74777f] uppercase">Open Positions</span>
-              <p className="text-3xl font-bold text-[#002045] mt-1 tabular-nums">{jobOpenings.filter(j => j.status === 'OPEN').length}</p>
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase">Open Positions</span>
+              <p className="text-3xl font-bold text-[var(--primary)] mt-1 tabular-nums">{jobOpenings.filter(j => j.status === 'OPEN').length}</p>
             </div>
             <div className="clinical-card">
-              <span className="text-xs font-semibold text-[#74777f] uppercase">Active Applicants</span>
-              <p className="text-3xl font-bold text-[#13696a] mt-1 tabular-nums">
-                {jobOpenings.reduce((acc, job) => acc + job.applicants.length, 0)}
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase">Active Applicants</span>
+              <p className="text-3xl font-bold text-[var(--secondary)] mt-1 tabular-nums">
+                {jobOpenings.reduce((acc, job) => acc + (job.applicants?.length ?? 0), 0)}
               </p>
             </div>
             <div className="clinical-card">
-              <span className="text-xs font-semibold text-[#74777f] uppercase">Interviews Scheduled</span>
-              <p className="text-3xl font-bold text-[#22543d] mt-1 tabular-nums">
-                {jobOpenings.reduce((acc, job) => acc + job.applicants.filter((a: any) => a.stage === 'INTERVIEW').length, 0)}
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase">Interviews Scheduled</span>
+              <p className="text-3xl font-bold text-[var(--risk-low-text)] mt-1 tabular-nums">
+                {jobOpenings.reduce((acc, job) => acc + (job.applicants ?? []).filter((a) => a.stage === 'INTERVIEW').length, 0)}
               </p>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden">
-            <div className="p-4 border-b border-[#e2e8f0] flex justify-between items-center bg-[#f8f9ff]">
-              <span className="font-bold text-[#002045] text-sm">💼 Job Openings</span>
-              <button onClick={() => setActiveModal('job')} className="btn-primary text-xs bg-[#13696a] hover:bg-[#0f5455]">
+          <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
+            <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
+              <span className="font-bold text-[var(--primary)] text-sm">💼 Job Openings</span>
+              <button onClick={() => setActiveModal('job')} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">
                 + Post Job Opening
               </button>
             </div>
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+              <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
                 <tr>
                   <th className="p-3">Job Title</th>
                   <th className="p-3">Department</th>
@@ -432,22 +542,22 @@ export function HrWorkspace({ user }: { user: any }) {
                   <th className="p-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#e2e8f0] font-medium text-[#0d1c2e]">
+              <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
                 {jobOpenings.map(job => (
-                  <tr key={job.id} className="hover:bg-[#e5eeff]">
-                    <td className="p-3 font-bold text-[#002045]">{job.title}</td>
-                    <td className="p-3">{job.dept}</td>
-                    <td className="p-3">{job.type}</td>
+                  <tr key={job.id} className="hover:bg-[var(--primary-surface)]">
+                    <td className="p-3 font-bold text-[var(--primary)]">{job.title}</td>
+                    <td className="p-3">{job.department}</td>
+                    <td className="p-3">{job.employmentType}</td>
                     <td className="p-3">{job.location}</td>
-                    <td className="p-3">{job.deadline}</td>
-                    <td className="p-3 font-bold text-[#13696a]">{job.applicants.length}</td>
+                    <td className="p-3 tabular-nums">{new Date(job.deadline).toLocaleDateString()}</td>
+                    <td className="p-3 font-bold text-[var(--secondary)]">{job.applicants?.length ?? 0}</td>
                     <td className="p-3">
                       <span className={job.status === 'OPEN' ? 'badge-low-risk' : 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700 uppercase'}>
                         {job.status}
                       </span>
                     </td>
                     <td className="p-3 text-right space-x-2">
-                      <button onClick={() => setSelectedJob(job)} className="text-[#13696a] hover:underline">View Applicants</button>
+                      <button onClick={() => setSelectedJob(job)} className="text-[var(--secondary)] hover:underline">View Applicants</button>
                       {job.status === 'OPEN' && (
                         <button onClick={() => closeJob(job.id)} className="text-red-600 hover:underline">Close Position</button>
                       )}
@@ -459,11 +569,11 @@ export function HrWorkspace({ user }: { user: any }) {
           </div>
 
           {selectedJob && (
-            <div className="bg-white rounded-lg border border-[#e2e8f0] p-5">
-              <div className="flex justify-between items-center border-b border-[#e2e8f0] pb-3 mb-3">
-                <h3 className="font-bold text-[#002045] text-sm">Applicants for: {selectedJob.title}</h3>
+            <div className="bg-white rounded-lg border border-[var(--outline)] p-5">
+              <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3 mb-3">
+                <h3 className="font-bold text-[var(--primary)] text-sm">Applicants for: {selectedJob.title}</h3>
                 <div className="space-x-2">
-                  <button onClick={() => setActiveModal('applicant')} className="btn-primary text-xs bg-[#13696a]">
+                  <button onClick={() => setActiveModal('applicant')} className="btn-primary text-xs bg-[var(--secondary)]">
                     + Add Applicant
                   </button>
                   <button onClick={() => setSelectedJob(null)} className="btn-secondary text-xs">Close Panel</button>
@@ -471,7 +581,7 @@ export function HrWorkspace({ user }: { user: any }) {
               </div>
               
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+                <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
                   <tr>
                     <th className="p-3">Name</th>
                     <th className="p-3">Email</th>
@@ -481,21 +591,21 @@ export function HrWorkspace({ user }: { user: any }) {
                     <th className="p-3">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#e2e8f0] font-medium text-[#0d1c2e]">
-                  {selectedJob.applicants.length === 0 ? (
-                    <tr><td colSpan={6} className="p-4 text-center text-[#74777f]">No applicants yet.</td></tr>
+                <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
+                  {(selectedJob.applicants ?? []).length === 0 ? (
+                    <tr><td colSpan={6} className="p-4 text-center text-[var(--muted)]">No applicants yet.</td></tr>
                   ) : (
-                    selectedJob.applicants.map((app: any) => (
-                      <tr key={app.id} className="hover:bg-[#e5eeff]">
-                        <td className="p-3 font-bold text-[#002045]">{app.name}</td>
+                    (selectedJob?.applicants ?? []).map((app) => (
+                      <tr key={app.id} className="hover:bg-[var(--primary-surface)]">
+                        <td className="p-3 font-bold text-[var(--primary)]">{app.name}</td>
                         <td className="p-3">{app.email}</td>
                         <td className="p-3">{app.phone}</td>
-                        <td className="p-3">{app.date}</td>
+                        <td className="p-3">{app.stage}</td>
                         <td className="p-3">
                           <select 
                             value={app.stage} 
                             onChange={(e) => changeApplicantStage(app.id, e.target.value)}
-                            className="w-full bg-white border border-[#e2e8f0] rounded px-2 py-1 text-xs"
+                            className="w-full bg-white border border-[var(--outline)] rounded px-2 py-1 text-xs"
                           >
                             <option value="APPLIED">Applied</option>
                             <option value="SCREENING">Screening</option>
@@ -524,35 +634,39 @@ export function HrWorkspace({ user }: { user: any }) {
         <div className="space-y-6">
           <div className="grid grid-cols-3 gap-4">
             <div className="clinical-card">
-              <span className="text-xs font-semibold text-[#74777f] uppercase">Pending Requests</span>
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase">Pending Requests</span>
               <p className="text-3xl font-bold text-orange-600 mt-1 tabular-nums">{leaveRequests.filter(l => l.status === 'PENDING').length}</p>
             </div>
             <div className="clinical-card">
-              <span className="text-xs font-semibold text-[#74777f] uppercase">Approved This Month</span>
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase">Approved This Month</span>
               <p className="text-3xl font-bold text-green-600 mt-1 tabular-nums">{leaveRequests.filter(l => l.status === 'APPROVED').length}</p>
             </div>
             <div className="clinical-card">
-              <span className="text-xs font-semibold text-[#74777f] uppercase">Staff on Leave Today</span>
-              <p className="text-3xl font-bold text-[#002045] mt-1 tabular-nums">
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase">Staff on Leave Today</span>
+              <p className="text-3xl font-bold text-[var(--primary)] mt-1 tabular-nums">
                 {leaveRequests.filter(l => {
                   const today = new Date().toISOString().split('T')[0];
-                  return l.status === 'APPROVED' && l.start <= today && l.end >= today;
+                  return (
+                    l.status === 'APPROVED' &&
+                    l.startDate.slice(0, 10) <= today &&
+                    l.endDate.slice(0, 10) >= today
+                  );
                 }).length}
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden">
-              <div className="p-4 border-b border-[#e2e8f0] flex justify-between items-center bg-[#f8f9ff]">
-                <span className="font-bold text-[#002045] text-sm">📅 Leave Requests</span>
-                <button onClick={() => setActiveModal('leave')} className="btn-primary text-xs bg-[#13696a]">
+            <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
+                <span className="font-bold text-[var(--primary)] text-sm">📅 Leave Requests</span>
+                <button onClick={() => setActiveModal('leave')} className="btn-primary text-xs bg-[var(--secondary)]">
                   + New Leave Request
                 </button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+                  <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
                     <tr>
                       <th className="p-3">Staff</th>
                       <th className="p-3">Type</th>
@@ -561,12 +675,12 @@ export function HrWorkspace({ user }: { user: any }) {
                       <th className="p-3 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#e2e8f0] font-medium text-[#0d1c2e]">
+                  <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
                     {leaveRequests.map(r => (
-                      <tr key={r.id} className="hover:bg-[#e5eeff]">
-                        <td className="p-3 font-bold text-[#002045]">{r.staff}</td>
+                      <tr key={r.id} className="hover:bg-[var(--primary-surface)]">
+                        <td className="p-3 font-bold text-[var(--primary)]">{staffName(r.employeeId)}</td>
                         <td className="p-3">{r.type}</td>
-                        <td className="p-3">{r.start} to {r.end} ({r.days}d)</td>
+                        <td className="p-3">{String(r.startDate).slice(0, 10)} to {String(r.endDate).slice(0, 10)} ({calculateDays(r.startDate, r.endDate)}d)</td>
                         <td className="p-3">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                             r.status === 'PENDING' ? 'bg-orange-100 text-orange-800' : 
@@ -590,16 +704,16 @@ export function HrWorkspace({ user }: { user: any }) {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden">
-              <div className="p-4 border-b border-[#e2e8f0] flex justify-between items-center bg-[#f8f9ff]">
-                <span className="font-bold text-[#002045] text-sm">⏱️ Attendance Log</span>
-                <button onClick={() => setActiveModal('attendance')} className="btn-primary text-xs bg-[#13696a]">
+            <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
+                <span className="font-bold text-[var(--primary)] text-sm">⏱️ Attendance Log</span>
+                <button onClick={() => setActiveModal('attendance')} className="btn-primary text-xs bg-[var(--secondary)]">
                   + Log Attendance
                 </button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+                  <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
                     <tr>
                       <th className="p-3">Staff</th>
                       <th className="p-3">Date</th>
@@ -608,12 +722,12 @@ export function HrWorkspace({ user }: { user: any }) {
                       <th className="p-3">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#e2e8f0] font-medium text-[#0d1c2e]">
+                  <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
                     {attendanceLogs.length === 0 ? (
-                      <tr><td colSpan={5} className="p-4 text-center text-[#74777f]">No attendance logs found.</td></tr>
+                      <tr><td colSpan={5} className="p-4 text-center text-[var(--muted)]">No attendance logs found.</td></tr>
                     ) : attendanceLogs.map(log => (
-                      <tr key={log.id} className="hover:bg-[#e5eeff]">
-                        <td className="p-3 font-bold text-[#002045]">{log.staff}</td>
+                      <tr key={log.id} className="hover:bg-[var(--primary-surface)]">
+                        <td className="p-3 font-bold text-[var(--primary)]">{log.staff}</td>
                         <td className="p-3">{log.date}</td>
                         <td className="p-3 font-mono">{log.clockIn} - {log.clockOut}</td>
                         <td className="p-3">{log.hours}</td>
@@ -637,21 +751,21 @@ export function HrWorkspace({ user }: { user: any }) {
       {/* TAB 5: TRAINING */}
       {activeTab === 'training' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden">
-            <div className="p-4 border-b border-[#e2e8f0] flex justify-between items-center bg-[#f8f9ff]">
-              <span className="font-bold text-[#002045] text-sm">📚 Training & Certification Register</span>
-              <button onClick={() => setActiveModal('training')} className="btn-primary text-xs bg-[#13696a]">
+          <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
+            <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
+              <span className="font-bold text-[var(--primary)] text-sm">📚 Training & Certification Register</span>
+              <button onClick={() => setActiveModal('training')} className="btn-primary text-xs bg-[var(--secondary)]">
                 + Log Training
               </button>
             </div>
             
             {/* Alerts section */}
             <div className="p-3 bg-red-50 border-b border-red-100 text-xs">
-              <span className="font-bold text-red-800">⚠️ Certification Expiry Alerts:</span> Dr. Amara Okafor's VIA/Cryotherapy Clinical Certification expires in less than 90 days (2026-11-15).
+              <span className="font-bold text-red-800">⚠️ Certification Expiry Alerts:</span> Dr. Amara Okafor&apos;s VIA/Cryotherapy Clinical Certification expires in less than 90 days (2026-11-15).
             </div>
 
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+              <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
                 <tr>
                   <th className="p-3">Staff Member</th>
                   <th className="p-3">Training / Certification</th>
@@ -662,18 +776,18 @@ export function HrWorkspace({ user }: { user: any }) {
                   <th className="p-3">Expiry</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#e2e8f0] font-medium text-[#0d1c2e]">
+              <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
                 {trainings.map(t => {
-                  const isExpiringSoon = t.expiry && new Date(t.expiry).getTime() - new Date().getTime() < 90 * 24 * 60 * 60 * 1000;
+                  const isExpiringSoon = t.expiryDate && new Date(t.expiryDate).getTime() - new Date().getTime() < 90 * 24 * 60 * 60 * 1000;
                   return (
-                    <tr key={t.id} className="hover:bg-[#e5eeff]">
-                      <td className="p-3 font-bold text-[#002045]">{t.staff}</td>
+                    <tr key={t.id} className="hover:bg-[var(--primary-surface)]">
+                      <td className="p-3 font-bold text-[var(--primary)]">{t.staffName}</td>
                       <td className="p-3">{t.title}</td>
                       <td className="p-3">{t.provider}</td>
                       <td className="p-3">{t.type}</td>
-                      <td className="p-3">{t.date}</td>
-                      <td className="p-3"><span className="badge-low-risk">{t.cert}</span></td>
-                      <td className={`p-3 font-bold ${isExpiringSoon ? 'text-red-600' : 'text-[#22543d]'}`}>{t.expiry || 'N/A'}</td>
+                      <td className="p-3">{String(t.trainingDate).slice(0, 10)}</td>
+                      <td className="p-3"><span className="badge-low-risk">{t.certified ? 'YES' : 'NO'}</span></td>
+                      <td className={`p-3 font-bold ${isExpiringSoon ? 'text-red-600' : 'text-[var(--risk-low-text)]'}`}>{t.expiryDate ? String(t.expiryDate).slice(0, 10) : 'N/A'}</td>
                     </tr>
                   );
                 })}
@@ -687,19 +801,19 @@ export function HrWorkspace({ user }: { user: any }) {
       
       {/* Existing Modals ... */}
       {activeModal === 'staff' && (
-        <div className="fixed inset-0 bg-[#002045]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[#e2e8f0] space-y-4">
-            <div className="flex justify-between items-center border-b border-[#e2e8f0] pb-3">
-              <h2 className="text-base font-bold text-[#002045]">Add Staff Member</h2>
-              <button onClick={() => setActiveModal(null)} className="text-[#74777f] font-bold">✕</button>
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
+            <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
+              <h2 className="text-base font-bold text-[var(--primary)]">Add Staff Member</h2>
+              <button onClick={() => setActiveModal(null)} className="text-[var(--muted)] font-bold">✕</button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-3 text-xs">
-              <div><label className="block font-semibold text-[#0d1c2e] mb-1">First Name *</label><input type="text" required value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
-              <div><label className="block font-semibold text-[#0d1c2e] mb-1">Last Name *</label><input type="text" required value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
-              <div><label className="block font-semibold text-[#0d1c2e] mb-1">Work Email *</label><input type="email" required value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
+              <div><label className="block font-semibold text-[var(--on-background)] mb-1">First Name *</label><input type="text" required value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
+              <div><label className="block font-semibold text-[var(--on-background)] mb-1">Last Name *</label><input type="text" required value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
+              <div><label className="block font-semibold text-[var(--on-background)] mb-1">Work Email *</label><input type="email" required value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Assigned System Role *</label>
-                <select value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Assigned System Role *</label>
+                <select value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                   <option value="CLINICIAN">Clinician / Medical Officer</option>
                   <option value="FIELD_OFFICER">Field Outreach Officer</option>
                   <option value="FINANCE">Finance Officer</option>
@@ -709,7 +823,7 @@ export function HrWorkspace({ user }: { user: any }) {
                   <option value="PROJECT_MANAGER">Project Manager</option>
                 </select>
               </div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary text-xs">Cancel</button>
                 <button type="submit" disabled={submitting} className="btn-primary text-xs disabled:opacity-50">{submitting ? 'Creating...' : 'Create Staff Profile'}</button>
               </div>
@@ -719,30 +833,30 @@ export function HrWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'volunteer' && (
-        <div className="fixed inset-0 bg-[#002045]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[#e2e8f0] space-y-4">
-            <div className="flex justify-between items-center border-b border-[#e2e8f0] pb-3">
-              <h2 className="text-base font-bold text-[#002045]">Register Volunteer / Field CHW</h2>
-              <button onClick={() => setActiveModal(null)} className="text-[#74777f] font-bold">✕</button>
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
+            <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
+              <h2 className="text-base font-bold text-[var(--primary)]">Register Volunteer / Field CHW</h2>
+              <button onClick={() => setActiveModal(null)} className="text-[var(--muted)] font-bold">✕</button>
             </div>
             <form onSubmit={handleRegisterVolunteer} className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-2">
-                <div><label className="block font-semibold mb-1">First Name *</label><input type="text" required value={volunteerForm.firstName} onChange={e => setVolunteerForm({ ...volunteerForm, firstName: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
-                <div><label className="block font-semibold mb-1">Last Name *</label><input type="text" required value={volunteerForm.lastName} onChange={e => setVolunteerForm({ ...volunteerForm, lastName: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
+                <div><label className="block font-semibold mb-1">First Name *</label><input type="text" required value={volunteerForm.firstName} onChange={e => setVolunteerForm({ ...volunteerForm, firstName: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
+                <div><label className="block font-semibold mb-1">Last Name *</label><input type="text" required value={volunteerForm.lastName} onChange={e => setVolunteerForm({ ...volunteerForm, lastName: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
               </div>
               <div>
                 <label className="block font-semibold mb-1">LGA *</label>
-                <select required value={volunteerForm.lga} onChange={e => setVolunteerForm({ ...volunteerForm, lga: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs font-bold text-[#002045]">
+                <select required value={volunteerForm.lga} onChange={e => setVolunteerForm({ ...volunteerForm, lga: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs font-bold text-[var(--primary)]">
                   <option value="">-- Select LGA --</option>{PLATEAU_LGAS.map(l => <option key={l} value={l}>{l}</option>)}
                 </select>
               </div>
-              <div><label className="block font-semibold mb-1">Ward Name</label><input type="text" value={volunteerForm.ward} onChange={e => setVolunteerForm({ ...volunteerForm, ward: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
-              <div><label className="block font-semibold mb-1">Address</label><input type="text" value={volunteerForm.address} onChange={e => setVolunteerForm({ ...volunteerForm, address: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
+              <div><label className="block font-semibold mb-1">Ward Name</label><input type="text" value={volunteerForm.ward} onChange={e => setVolunteerForm({ ...volunteerForm, ward: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
+              <div><label className="block font-semibold mb-1">Address</label><input type="text" value={volunteerForm.address} onChange={e => setVolunteerForm({ ...volunteerForm, address: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
               <div className="grid grid-cols-2 gap-2">
-                <div><label className="block font-semibold mb-1">Phone</label><input type="tel" value={volunteerForm.phone} onChange={e => setVolunteerForm({ ...volunteerForm, phone: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
-                <div><label className="block font-semibold mb-1">Stipend (₦)</label><input type="number" value={volunteerForm.stipend} onChange={e => setVolunteerForm({ ...volunteerForm, stipend: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs font-mono" /></div>
+                <div><label className="block font-semibold mb-1">Phone</label><input type="tel" value={volunteerForm.phone} onChange={e => setVolunteerForm({ ...volunteerForm, phone: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
+                <div><label className="block font-semibold mb-1">Stipend (₦)</label><input type="number" value={volunteerForm.stipend} onChange={e => setVolunteerForm({ ...volunteerForm, stipend: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs font-mono" /></div>
               </div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary text-xs">Cancel</button>
                 <button type="submit" disabled={submitting} className="btn-primary text-xs bg-amber-700 hover:bg-amber-800 disabled:opacity-50">Register Volunteer</button>
               </div>
@@ -753,25 +867,25 @@ export function HrWorkspace({ user }: { user: any }) {
 
       {/* New Modals */}
       {activeModal === 'job' && (
-        <div className="fixed inset-0 bg-[#002045]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[#e2e8f0] space-y-4">
-            <h2 className="text-base font-bold text-[#002045]">Post Job Opening</h2>
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
+            <h2 className="text-base font-bold text-[var(--primary)]">Post Job Opening</h2>
             <form onSubmit={handlePostJob} className="space-y-3 text-xs">
-              <div><label className="block font-semibold mb-1">Job Title *</label><input type="text" required value={jobForm.title} onChange={e => setJobForm({ ...jobForm, title: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
+              <div><label className="block font-semibold mb-1">Job Title *</label><input type="text" required value={jobForm.title} onChange={e => setJobForm({ ...jobForm, title: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
               <div><label className="block font-semibold mb-1">Department</label>
-                <select value={jobForm.dept} onChange={e => setJobForm({ ...jobForm, dept: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2">
+                <select value={jobForm.dept} onChange={e => setJobForm({ ...jobForm, dept: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2">
                   {['Clinical', 'Finance', 'Procurement', 'HR', 'Grants', 'Projects', 'Inventory', 'Administration', 'Field Operations'].map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
               <div><label className="block font-semibold mb-1">Employment Type</label>
-                <select value={jobForm.type} onChange={e => setJobForm({ ...jobForm, type: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2">
+                <select value={jobForm.type} onChange={e => setJobForm({ ...jobForm, type: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2">
                   {['FULL_TIME', 'PART_TIME', 'CONTRACT', 'VOLUNTEER'].map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
-              <div><label className="block font-semibold mb-1">Location / LGA</label><input type="text" value={jobForm.location} onChange={e => setJobForm({ ...jobForm, location: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
-              <div><label className="block font-semibold mb-1">Required Qualifications</label><textarea value={jobForm.qualifications} onChange={e => setJobForm({ ...jobForm, qualifications: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" rows={3}></textarea></div>
-              <div><label className="block font-semibold mb-1">Application Deadline</label><input type="date" value={jobForm.deadline} onChange={e => setJobForm({ ...jobForm, deadline: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+              <div><label className="block font-semibold mb-1">Location / LGA</label><input type="text" value={jobForm.location} onChange={e => setJobForm({ ...jobForm, location: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
+              <div><label className="block font-semibold mb-1">Required Qualifications</label><textarea value={jobForm.qualifications} onChange={e => setJobForm({ ...jobForm, qualifications: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" rows={3}></textarea></div>
+              <div><label className="block font-semibold mb-1">Application Deadline</label><input type="date" value={jobForm.deadline} onChange={e => setJobForm({ ...jobForm, deadline: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary text-xs">Cancel</button>
                 <button type="submit" className="btn-primary text-xs">Post Job</button>
               </div>
@@ -781,16 +895,16 @@ export function HrWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'applicant' && (
-        <div className="fixed inset-0 bg-[#002045]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[#e2e8f0] space-y-4">
-            <h2 className="text-base font-bold text-[#002045]">Add Applicant</h2>
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
+            <h2 className="text-base font-bold text-[var(--primary)]">Add Applicant</h2>
             <form onSubmit={handleAddApplicant} className="space-y-3 text-xs">
-              <div><label className="block font-semibold mb-1">Full Name *</label><input type="text" required value={applicantForm.name} onChange={e => setApplicantForm({ ...applicantForm, name: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
-              <div><label className="block font-semibold mb-1">Email *</label><input type="email" required value={applicantForm.email} onChange={e => setApplicantForm({ ...applicantForm, email: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
-              <div><label className="block font-semibold mb-1">Phone</label><input type="tel" value={applicantForm.phone} onChange={e => setApplicantForm({ ...applicantForm, phone: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
-              <div><label className="block font-semibold mb-1">Years Experience</label><input type="number" value={applicantForm.experience} onChange={e => setApplicantForm({ ...applicantForm, experience: parseInt(e.target.value) })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
-              <div><label className="block font-semibold mb-1">Current Employer</label><input type="text" value={applicantForm.currentEmployer} onChange={e => setApplicantForm({ ...applicantForm, currentEmployer: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+              <div><label className="block font-semibold mb-1">Full Name *</label><input type="text" required value={applicantForm.name} onChange={e => setApplicantForm({ ...applicantForm, name: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
+              <div><label className="block font-semibold mb-1">Email *</label><input type="email" required value={applicantForm.email} onChange={e => setApplicantForm({ ...applicantForm, email: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
+              <div><label className="block font-semibold mb-1">Phone</label><input type="tel" value={applicantForm.phone} onChange={e => setApplicantForm({ ...applicantForm, phone: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
+              <div><label className="block font-semibold mb-1">Years Experience</label><input type="number" value={applicantForm.experience} onChange={e => setApplicantForm({ ...applicantForm, experience: parseInt(e.target.value) })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
+              <div><label className="block font-semibold mb-1">Current Employer</label><input type="text" value={applicantForm.currentEmployer} onChange={e => setApplicantForm({ ...applicantForm, currentEmployer: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary text-xs">Cancel</button>
                 <button type="submit" className="btn-primary text-xs">Add Applicant</button>
               </div>
@@ -800,20 +914,20 @@ export function HrWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'interview' && (
-        <div className="fixed inset-0 bg-[#002045]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg border border-[#e2e8f0] space-y-4">
-            <h2 className="text-base font-bold text-[#002045]">Schedule Interview</h2>
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg border border-[var(--outline)] space-y-4">
+            <h2 className="text-base font-bold text-[var(--primary)]">Schedule Interview</h2>
             <form onSubmit={(e) => { e.preventDefault(); setActiveModal(null); }} className="space-y-3 text-xs">
-              <div><label className="block font-semibold mb-1">Date</label><input type="date" required value={interviewForm.date} onChange={e => setInterviewForm({ ...interviewForm, date: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
-              <div><label className="block font-semibold mb-1">Time</label><input type="time" required value={interviewForm.time} onChange={e => setInterviewForm({ ...interviewForm, time: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
+              <div><label className="block font-semibold mb-1">Date</label><input type="date" required value={interviewForm.date} onChange={e => setInterviewForm({ ...interviewForm, date: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
+              <div><label className="block font-semibold mb-1">Time</label><input type="time" required value={interviewForm.time} onChange={e => setInterviewForm({ ...interviewForm, time: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
               <div><label className="block font-semibold mb-1">Mode</label>
-                <select value={interviewForm.mode} onChange={e => setInterviewForm({ ...interviewForm, mode: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2">
+                <select value={interviewForm.mode} onChange={e => setInterviewForm({ ...interviewForm, mode: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2">
                   <option value="IN_PERSON">In Person</option>
                   <option value="VIDEO">Video Call</option>
                 </select>
               </div>
-              <div><label className="block font-semibold mb-1">Interviewer Name</label><input type="text" required value={interviewForm.interviewer} onChange={e => setInterviewForm({ ...interviewForm, interviewer: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+              <div><label className="block font-semibold mb-1">Interviewer Name</label><input type="text" required value={interviewForm.interviewer} onChange={e => setInterviewForm({ ...interviewForm, interviewer: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary text-xs">Cancel</button>
                 <button type="submit" className="btn-primary text-xs">Schedule</button>
               </div>
@@ -823,9 +937,9 @@ export function HrWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'offer' && (
-        <div className="fixed inset-0 bg-[#002045]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-lg border border-[#e2e8f0] space-y-4">
-            <h2 className="text-base font-bold text-[#002045]">Offer Letter Generated</h2>
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-lg border border-[var(--outline)] space-y-4">
+            <h2 className="text-base font-bold text-[var(--primary)]">Offer Letter Generated</h2>
             <div className="bg-slate-50 p-4 border border-slate-200 rounded text-xs font-mono whitespace-pre-wrap">
               Dear Applicant,
               
@@ -835,7 +949,7 @@ export function HrWorkspace({ user }: { user: any }) {
               Sincerely,
               HR Department, GCOMS
             </div>
-            <div className="flex justify-end pt-2 border-t border-[#e2e8f0]">
+            <div className="flex justify-end pt-2 border-t border-[var(--outline)]">
               <button onClick={() => setActiveModal(null)} className="btn-primary text-xs">Send Offer</button>
             </div>
           </div>
@@ -843,28 +957,28 @@ export function HrWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'leave' && (
-        <div className="fixed inset-0 bg-[#002045]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[#e2e8f0] space-y-4">
-            <h2 className="text-base font-bold text-[#002045]">New Leave Request</h2>
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
+            <h2 className="text-base font-bold text-[var(--primary)]">New Leave Request</h2>
             <form onSubmit={handleLeaveRequest} className="space-y-3 text-xs">
               <div><label className="block font-semibold mb-1">Staff Member *</label>
-                <select required value={leaveForm.staffId} onChange={e => setLeaveForm({ ...leaveForm, staffId: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2">
+                <select required value={leaveForm.staffId} onChange={e => setLeaveForm({ ...leaveForm, staffId: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2">
                   <option value="">-- Select Staff --</option>
-                  {staff.map(s => <option key={s.id} value={s.id}>{s.firstName} {s.lastName} - {s.role}</option>)}
+                  {staff.map(s => <option key={s.id} value={s.id}>{s.user?.firstName} {s.user?.lastName} - {s.user?.role}</option>)}
                 </select>
               </div>
               <div><label className="block font-semibold mb-1">Leave Type</label>
-                <select value={leaveForm.type} onChange={e => setLeaveForm({ ...leaveForm, type: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2">
+                <select value={leaveForm.type} onChange={e => setLeaveForm({ ...leaveForm, type: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2">
                   {['ANNUAL', 'SICK', 'MATERNITY', 'PATERNITY', 'COMPASSIONATE', 'STUDY', 'UNPAID'].map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div><label className="block font-semibold mb-1">Start Date</label><input type="date" required value={leaveForm.start} onChange={e => setLeaveForm({ ...leaveForm, start: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
-                <div><label className="block font-semibold mb-1">End Date</label><input type="date" required value={leaveForm.end} onChange={e => setLeaveForm({ ...leaveForm, end: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
+                <div><label className="block font-semibold mb-1">Start Date</label><input type="date" required value={leaveForm.start} onChange={e => setLeaveForm({ ...leaveForm, start: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
+                <div><label className="block font-semibold mb-1">End Date</label><input type="date" required value={leaveForm.end} onChange={e => setLeaveForm({ ...leaveForm, end: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
               </div>
-              <div><label className="block font-semibold mb-1">Days Requested (Auto-calculated)</label><input type="number" readOnly value={calculateDays(leaveForm.start, leaveForm.end)} className="w-full bg-gray-100 border border-[#e2e8f0] rounded px-3 py-2" /></div>
-              <div><label className="block font-semibold mb-1">Reason / Medical Note</label><textarea value={leaveForm.reason} onChange={e => setLeaveForm({ ...leaveForm, reason: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" rows={3}></textarea></div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+              <div><label className="block font-semibold mb-1">Days Requested (Auto-calculated)</label><input type="number" readOnly value={calculateDays(leaveForm.start, leaveForm.end)} className="w-full bg-gray-100 border border-[var(--outline)] rounded px-3 py-2" /></div>
+              <div><label className="block font-semibold mb-1">Reason / Medical Note</label><textarea value={leaveForm.reason} onChange={e => setLeaveForm({ ...leaveForm, reason: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" rows={3}></textarea></div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary text-xs">Cancel</button>
                 <button type="submit" className="btn-primary text-xs">Submit Request</button>
               </div>
@@ -874,23 +988,23 @@ export function HrWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'attendance' && (
-        <div className="fixed inset-0 bg-[#002045]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg border border-[#e2e8f0] space-y-4">
-            <h2 className="text-base font-bold text-[#002045]">Log Attendance</h2>
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg border border-[var(--outline)] space-y-4">
+            <h2 className="text-base font-bold text-[var(--primary)]">Log Attendance</h2>
             <form onSubmit={handleLogAttendance} className="space-y-3 text-xs">
               <div><label className="block font-semibold mb-1">Staff Member *</label>
-                <select required value={attendanceForm.staffId} onChange={e => setAttendanceForm({ ...attendanceForm, staffId: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2">
+                <select required value={attendanceForm.staffId} onChange={e => setAttendanceForm({ ...attendanceForm, staffId: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2">
                   <option value="">-- Select Staff --</option>
-                  {staff.map(s => <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
+                  {staff.map(s => <option key={s.id} value={s.id}>{s.user?.firstName} {s.user?.lastName}</option>)}
                 </select>
               </div>
-              <div><label className="block font-semibold mb-1">Date</label><input type="date" required value={attendanceForm.date} onChange={e => setAttendanceForm({ ...attendanceForm, date: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
+              <div><label className="block font-semibold mb-1">Date</label><input type="date" required value={attendanceForm.date} onChange={e => setAttendanceForm({ ...attendanceForm, date: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
               <div className="grid grid-cols-2 gap-2">
-                <div><label className="block font-semibold mb-1">Clock In</label><input type="time" required value={attendanceForm.clockIn} onChange={e => setAttendanceForm({ ...attendanceForm, clockIn: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
-                <div><label className="block font-semibold mb-1">Clock Out</label><input type="time" required value={attendanceForm.clockOut} onChange={e => setAttendanceForm({ ...attendanceForm, clockOut: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
+                <div><label className="block font-semibold mb-1">Clock In</label><input type="time" required value={attendanceForm.clockIn} onChange={e => setAttendanceForm({ ...attendanceForm, clockIn: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
+                <div><label className="block font-semibold mb-1">Clock Out</label><input type="time" required value={attendanceForm.clockOut} onChange={e => setAttendanceForm({ ...attendanceForm, clockOut: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
               </div>
-              <div><label className="block font-semibold mb-1">Notes</label><input type="text" value={attendanceForm.notes} onChange={e => setAttendanceForm({ ...attendanceForm, notes: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+              <div><label className="block font-semibold mb-1">Notes</label><input type="text" value={attendanceForm.notes} onChange={e => setAttendanceForm({ ...attendanceForm, notes: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary text-xs">Cancel</button>
                 <button type="submit" className="btn-primary text-xs">Log</button>
               </div>
@@ -900,30 +1014,30 @@ export function HrWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'performance' && (
-        <div className="fixed inset-0 bg-[#002045]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[#e2e8f0] space-y-4">
-            <h2 className="text-base font-bold text-[#002045]">New Performance Review</h2>
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
+            <h2 className="text-base font-bold text-[var(--primary)]">New Performance Review</h2>
             <form onSubmit={handlePerformanceReview} className="space-y-3 text-xs">
               <div><label className="block font-semibold mb-1">Staff Member *</label>
-                <select required value={performanceForm.staffId} onChange={e => setPerformanceForm({ ...performanceForm, staffId: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2">
+                <select required value={performanceForm.staffId} onChange={e => setPerformanceForm({ ...performanceForm, staffId: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2">
                   <option value="">-- Select Staff --</option>
-                  {staff.map(s => <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
+                  {staff.map(s => <option key={s.id} value={s.id}>{s.user?.firstName} {s.user?.lastName}</option>)}
                 </select>
               </div>
               <div><label className="block font-semibold mb-1">Review Period</label>
-                <select value={performanceForm.period} onChange={e => setPerformanceForm({ ...performanceForm, period: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2">
+                <select value={performanceForm.period} onChange={e => setPerformanceForm({ ...performanceForm, period: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2">
                   {['Q1 2026', 'Q2 2026', 'Q3 2026', 'Q4 2026', 'Annual 2026'].map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
               <div><label className="block font-semibold mb-1">Performance Rating</label>
-                <select value={performanceForm.rating} onChange={e => setPerformanceForm({ ...performanceForm, rating: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2">
+                <select value={performanceForm.rating} onChange={e => setPerformanceForm({ ...performanceForm, rating: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2">
                   {['EXCEPTIONAL', 'MEETS_EXPECTATIONS', 'NEEDS_IMPROVEMENT', 'UNSATISFACTORY'].map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
-              <div><label className="block font-semibold mb-1">Key Achievements</label><textarea value={performanceForm.achievements} onChange={e => setPerformanceForm({ ...performanceForm, achievements: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" rows={2}></textarea></div>
-              <div><label className="block font-semibold mb-1">Areas for Development</label><textarea value={performanceForm.development} onChange={e => setPerformanceForm({ ...performanceForm, development: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" rows={2}></textarea></div>
-              <div><label className="block font-semibold mb-1">Reviewer Comments</label><textarea value={performanceForm.comments} onChange={e => setPerformanceForm({ ...performanceForm, comments: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" rows={2}></textarea></div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+              <div><label className="block font-semibold mb-1">Key Achievements</label><textarea value={performanceForm.achievements} onChange={e => setPerformanceForm({ ...performanceForm, achievements: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" rows={2}></textarea></div>
+              <div><label className="block font-semibold mb-1">Areas for Development</label><textarea value={performanceForm.development} onChange={e => setPerformanceForm({ ...performanceForm, development: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" rows={2}></textarea></div>
+              <div><label className="block font-semibold mb-1">Reviewer Comments</label><textarea value={performanceForm.comments} onChange={e => setPerformanceForm({ ...performanceForm, comments: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" rows={2}></textarea></div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary text-xs">Cancel</button>
                 <button type="submit" className="btn-primary text-xs">Submit</button>
               </div>
@@ -933,33 +1047,33 @@ export function HrWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'training' && (
-        <div className="fixed inset-0 bg-[#002045]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[#e2e8f0] space-y-4">
-            <h2 className="text-base font-bold text-[#002045]">Log Training</h2>
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
+            <h2 className="text-base font-bold text-[var(--primary)]">Log Training</h2>
             <form onSubmit={handleLogTraining} className="space-y-3 text-xs">
               <div><label className="block font-semibold mb-1">Staff Member *</label>
-                <select required value={trainingForm.staffId} onChange={e => setTrainingForm({ ...trainingForm, staffId: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2">
+                <select required value={trainingForm.staffId} onChange={e => setTrainingForm({ ...trainingForm, staffId: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2">
                   <option value="">-- Select Staff --</option>
-                  {staff.map(s => <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
+                  {staff.map(s => <option key={s.id} value={s.id}>{s.user?.firstName} {s.user?.lastName}</option>)}
                 </select>
               </div>
-              <div><label className="block font-semibold mb-1">Training Title *</label><input type="text" required value={trainingForm.title} onChange={e => setTrainingForm({ ...trainingForm, title: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
-              <div><label className="block font-semibold mb-1">Training Provider / Facilitator</label><input type="text" value={trainingForm.provider} onChange={e => setTrainingForm({ ...trainingForm, provider: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
+              <div><label className="block font-semibold mb-1">Training Title *</label><input type="text" required value={trainingForm.title} onChange={e => setTrainingForm({ ...trainingForm, title: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
+              <div><label className="block font-semibold mb-1">Training Provider / Facilitator</label><input type="text" value={trainingForm.provider} onChange={e => setTrainingForm({ ...trainingForm, provider: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
               <div><label className="block font-semibold mb-1">Training Type</label>
-                <select value={trainingForm.type} onChange={e => setTrainingForm({ ...trainingForm, type: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2">
+                <select value={trainingForm.type} onChange={e => setTrainingForm({ ...trainingForm, type: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2">
                   {['CLINICAL_SKILLS', 'LEADERSHIP', 'COMPLIANCE', 'IT_SYSTEMS', 'HEALTH_SAFETY', 'GRANTS_MANAGEMENT', 'PROCUREMENT'].map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
-              <div><label className="block font-semibold mb-1">Date Attended</label><input type="date" required value={trainingForm.date} onChange={e => setTrainingForm({ ...trainingForm, date: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
+              <div><label className="block font-semibold mb-1">Date Attended</label><input type="date" required value={trainingForm.date} onChange={e => setTrainingForm({ ...trainingForm, date: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
               <div><label className="block font-semibold mb-1">Certification Obtained</label>
-                <select value={trainingForm.cert} onChange={e => setTrainingForm({ ...trainingForm, cert: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2">
+                <select value={trainingForm.cert} onChange={e => setTrainingForm({ ...trainingForm, cert: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2">
                   {['YES', 'NO', 'PENDING'].map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               {trainingForm.cert === 'YES' && (
-                <div><label className="block font-semibold mb-1">Expiry Date</label><input type="date" value={trainingForm.expiry} onChange={e => setTrainingForm({ ...trainingForm, expiry: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2" /></div>
+                <div><label className="block font-semibold mb-1">Expiry Date</label><input type="date" value={trainingForm.expiry} onChange={e => setTrainingForm({ ...trainingForm, expiry: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
               )}
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary text-xs">Cancel</button>
                 <button type="submit" className="btn-primary text-xs">Log Training</button>
               </div>
@@ -971,12 +1085,10 @@ export function HrWorkspace({ user }: { user: any }) {
       {viewReview && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg">
-            <h3 className="text-sm font-bold text-[#002045] mb-4">Performance Review — {viewReview.staff || viewReview.staffName}</h3>
+            <h3 className="text-sm font-bold text-[var(--primary)] mb-4">Performance Review — {staffName(viewReview.employeeId)}</h3>
             <div className="space-y-2 text-xs">
               <div><span className="font-semibold">Review Period:</span> {viewReview.period}</div>
-              <div><span className="font-semibold">Rating:</span> <span className={`px-2 py-0.5 rounded font-bold ${viewReview.rating === 'EXCEPTIONAL' ? 'bg-green-100 text-green-800' : viewReview.rating === 'NEEDS_IMPROVEMENT' ? 'bg-orange-100 text-orange-800' : viewReview.rating === 'UNSATISFACTORY' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>{viewReview.rating}</span></div>
-              <div><span className="font-semibold">Key Achievements:</span><p className="mt-1 text-gray-600 whitespace-pre-wrap">{viewReview.achievements}</p></div>
-              <div><span className="font-semibold">Areas for Development:</span><p className="mt-1 text-gray-600 whitespace-pre-wrap">{viewReview.development}</p></div>
+              <div><span className="font-semibold">Rating:</span> <span className={`px-2 py-0.5 rounded font-bold ${scoreToRating(viewReview.score) === 'EXCEPTIONAL' ? 'bg-green-100 text-green-800' : scoreToRating(viewReview.score) === 'NEEDS_IMPROVEMENT' ? 'bg-orange-100 text-orange-800' : scoreToRating(viewReview.score) === 'UNSATISFACTORY' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>{scoreToRating(viewReview.score)}</span></div>
               <div><span className="font-semibold">Reviewer Comments:</span><p className="mt-1 text-gray-600 whitespace-pre-wrap">{viewReview.comments}</p></div>
             </div>
             <button className="btn-secondary mt-4" onClick={() => setViewReview(null)}>Close</button>

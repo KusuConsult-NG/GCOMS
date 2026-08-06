@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Body, UseGuards, Request } from '@nestjs/common';
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { GovernanceService } from './governance.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -12,7 +20,10 @@ export class GovernanceController {
 
   @Post()
   @Roles('EXECUTIVE', 'BOARD')
-  scheduleMeeting(@Body() data: CreateGovernanceMeetingDto, @Request() req: any) {
+  scheduleMeeting(
+    @Body() data: CreateGovernanceMeetingDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.governanceService.scheduleMeeting(data, req.user.id);
   }
 
@@ -22,4 +33,3 @@ export class GovernanceController {
     return this.governanceService.getMeetings();
   }
 }
-

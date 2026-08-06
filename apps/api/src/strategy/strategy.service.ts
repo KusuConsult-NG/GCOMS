@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateStrategicGoalDto, UpdateStrategicGoalDto } from './dto/strategy.dto';
+import {
+  CreateStrategicGoalDto,
+  UpdateStrategicGoalDto,
+} from './dto/strategy.dto';
 
 @Injectable()
 export class StrategyService {
@@ -12,14 +15,14 @@ export class StrategyService {
         title: data.title,
         targetMetric: data.targetMetric,
         deadline: new Date(data.deadline),
-        status: 'ON_TRACK'
-      }
+        status: 'ON_TRACK',
+      },
     });
   }
 
   async getGoals() {
     return this.prisma.strategicGoal.findMany({
-      orderBy: { deadline: 'asc' }
+      orderBy: { deadline: 'asc' },
     });
   }
 
@@ -38,8 +41,8 @@ export class StrategyService {
       where: { id },
       data: {
         currentMetric: data.currentMetric,
-        status
-      }
+        status,
+      },
     });
   }
 }

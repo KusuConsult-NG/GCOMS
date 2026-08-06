@@ -1,47 +1,97 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
+import { Prisma } from '@prisma/client';
+import { BadRequestException } from '@nestjs/common';
+import {
+  CreateLeaveRequestDto,
+  UpdateLeaveRequestDto,
+  CreateAppraisalDto,
+  UpdateAppraisalDto,
+  CreateOnboardingDto,
+  UpdateOnboardingDto,
+} from './dto/hr-records.dto';
+import { CreateStaffRecordDto } from './dto/create-staff-record.dto';
+import { GRANTOR_ROLES, PRIVILEGED_ROLES } from '../auth/roles.constants';
+import type { Role } from '../auth/roles.constants';
+import type { AuthUser } from '../auth/authenticated-request';
+
+/** Matches UsersService; a staff account must not be cheaper to crack. */
+const BCRYPT_ROUNDS = 12;
 
 @Injectable()
 export class HrService {
   constructor(private prisma: PrismaService) {}
 
-  async createStaffRecord(data: any, hrManagerId: string) {
+  /**
+   * Onboards a staff member, creating their user account alongside the record.
+   *
+   * This was a second, unguarded route to creating a user. It bypassed
+   * everything POST /users enforces: it took the role straight off an untyped
+   * body with no check that the caller may grant it — so HR, which is not a
+   * grantor, could mint a SYSTEM_ADMIN — and it hashed the string literal
+   * 'password123' at ten rounds for every account it created. Between the two,
+   * any HR user could create themselves an executive account with a password
+   * they already knew.
+   *
+   * The privileged-role rule is the same one UsersService applies, repeated here
+   * rather than referenced, because this is a different entry point and must not
+   * depend on the other one being reached first.
+   */
+  async createStaffRecord(dto: CreateStaffRecordDto, actor: AuthUser) {
+    if (
+      PRIVILEGED_ROLES.includes(dto.role) &&
+      !GRANTOR_ROLES.includes(actor.role as Role)
+    ) {
+      throw new ForbiddenException(
+        `Only ${GRANTOR_ROLES.join(' or ')} may assign the ${dto.role} role`,
+      );
+    }
+
+    const email = dto.email.trim().toLowerCase();
+    const hashedPassword = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+
     return this.prisma.$transaction(async (prisma) => {
-      // 1. Create the user account with a default password (e.g., 'password123')
-      const existingUser = await prisma.user.findUnique({ where: { email: data.email } });
+      const existingUser = await prisma.user.findUnique({ where: { email } });
       if (existingUser) {
         throw new ConflictException('User with this email already exists');
       }
 
-      const hashedPassword = await bcrypt.hash('password123', 10);
       const user = await prisma.user.create({
         data: {
-          email: data.email,
+          email,
           password: hashedPassword,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          role: data.role, // Admin assigns role during onboarding
-        }
+          firstName: dto.firstName.trim(),
+          lastName: dto.lastName.trim(),
+          role: dto.role,
+        },
       });
 
-      // 2. Create the StaffRecord linked to the new user
-      const staffRecord = await prisma.staffRecord.create({
+      return prisma.staffRecord.create({
         data: {
           userId: user.id,
-          department: data.department,
-          employmentType: data.employmentType,
+          department: dto.department.trim(),
+          employmentType: dto.employmentType,
           status: 'ACTIVE',
-          managedById: hrManagerId,
+          managedById: actor.id,
         },
         include: {
           user: {
-            select: { id: true, firstName: true, lastName: true, email: true, role: true }
-          }
-        }
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              role: true,
+            },
+          },
+        },
       });
-
-      return staffRecord;
     });
   }
 
@@ -50,12 +100,187 @@ export class HrService {
       orderBy: { createdAt: 'desc' },
       include: {
         user: {
-          select: { id: true, firstName: true, lastName: true, email: true, role: true }
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
         },
         managedBy: {
-          select: { firstName: true, lastName: true }
-        }
-      }
+          select: { firstName: true, lastName: true },
+        },
+      },
+    });
+  }
+
+  /*
+   * LeaveRequest, Appraisal and OnboardingChecklist all existed as tables with
+   * no endpoint. The HR screens rendered hardcoded arrays instead.
+   *
+   * employeeId has no foreign key in the schema, so existence is enforced here
+   * rather than by the database. Adding real relations is the better fix and is
+   * left as a follow-up.
+   */
+
+  private async assertUserExists(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!user) throw new NotFoundException('Employee not found');
+  }
+
+  async listLeave(query: { employeeId?: string; status?: string }) {
+    const where: Prisma.LeaveRequestWhereInput = {};
+    if (query.employeeId) where.employeeId = query.employeeId;
+    if (query.status) where.status = query.status;
+    return this.prisma.leaveRequest.findMany({
+      where,
+      orderBy: { startDate: 'desc' },
+    });
+  }
+
+  async createLeave(dto: CreateLeaveRequestDto, requestedById: string) {
+    await this.assertUserExists(dto.employeeId);
+    if (new Date(dto.endDate) < new Date(dto.startDate)) {
+      throw new BadRequestException('endDate cannot be before startDate');
+    }
+
+    // Leave is one of the four resources with genuine approval semantics, so it
+    // raises an ApprovalRequest alongside itself and stays PENDING until the
+    // board resolves it.
+    return this.prisma.$transaction(async (tx) => {
+      const employee = await tx.user.findUnique({
+        where: { id: dto.employeeId },
+        select: { firstName: true, lastName: true },
+      });
+      const leave = await tx.leaveRequest.create({
+        data: {
+          employeeId: dto.employeeId,
+          startDate: new Date(dto.startDate),
+          endDate: new Date(dto.endDate),
+          type: dto.type ?? 'ANNUAL',
+          reason: dto.reason?.trim() || null,
+        },
+      });
+      await tx.approvalRequest.create({
+        data: {
+          title:
+            `${dto.type ?? 'ANNUAL'} leave: ${employee?.firstName ?? ''} ${employee?.lastName ?? ''}`.trim(),
+          description: `${dto.startDate} to ${dto.endDate}${dto.reason ? ` — ${dto.reason}` : ''}`,
+          resourceType: 'HR_LEAVE',
+          resourceId: leave.id,
+          requestedById,
+        },
+      });
+      return leave;
+    });
+  }
+
+  async updateLeave(id: string, dto: UpdateLeaveRequestDto) {
+    const existing = await this.prisma.leaveRequest.findUnique({
+      where: { id },
+    });
+    if (!existing) throw new NotFoundException('Leave request not found');
+
+    const start = dto.startDate ? new Date(dto.startDate) : existing.startDate;
+    const end = dto.endDate ? new Date(dto.endDate) : existing.endDate;
+    if (end < start)
+      throw new BadRequestException('endDate cannot be before startDate');
+
+    const data: Prisma.LeaveRequestUpdateInput = {};
+    if (dto.status !== undefined) data.status = dto.status;
+    if (dto.type !== undefined) data.type = dto.type;
+    if (dto.startDate !== undefined) data.startDate = start;
+    if (dto.endDate !== undefined) data.endDate = end;
+    return this.prisma.leaveRequest.update({ where: { id }, data });
+  }
+
+  async deleteLeave(id: string) {
+    const existing = await this.prisma.leaveRequest.findUnique({
+      where: { id },
+    });
+    if (!existing) throw new NotFoundException('Leave request not found');
+    await this.prisma.leaveRequest.delete({ where: { id } });
+    return { id, deleted: true };
+  }
+
+  async listAppraisals(employeeId?: string) {
+    return this.prisma.appraisal.findMany({
+      where: employeeId ? { employeeId } : {},
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createAppraisal(dto: CreateAppraisalDto, reviewerId: string) {
+    await this.assertUserExists(dto.employeeId);
+    if (dto.employeeId === reviewerId) {
+      throw new BadRequestException('An employee cannot appraise themselves');
+    }
+    return this.prisma.appraisal.create({
+      data: {
+        employeeId: dto.employeeId,
+        reviewerId,
+        period: dto.period.trim(),
+        score: dto.score,
+        comments: dto.comments?.trim() || null,
+      },
+    });
+  }
+
+  async updateAppraisal(id: string, dto: UpdateAppraisalDto) {
+    const existing = await this.prisma.appraisal.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Appraisal not found');
+    const data: Prisma.AppraisalUpdateInput = {};
+    if (dto.score !== undefined) data.score = dto.score;
+    if (dto.period !== undefined) data.period = dto.period.trim();
+    if (dto.comments !== undefined) data.comments = dto.comments.trim() || null;
+    return this.prisma.appraisal.update({ where: { id }, data });
+  }
+
+  async listOnboarding() {
+    return this.prisma.onboardingChecklist.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createOnboarding(dto: CreateOnboardingDto) {
+    return this.prisma.onboardingChecklist.create({
+      data: {
+        employeeName: dto.employeeName.trim(),
+        role: dto.role.trim(),
+        identityVerified: dto.identityVerified ?? false,
+        contractSigned: dto.contractSigned ?? false,
+        itProvisioned: dto.itProvisioned ?? false,
+        medicalCleared: dto.medicalCleared ?? false,
+        status: 'IN_PROGRESS',
+      },
+    });
+  }
+
+  async updateOnboarding(id: string, dto: UpdateOnboardingDto) {
+    const existing = await this.prisma.onboardingChecklist.findUnique({
+      where: { id },
+    });
+    if (!existing) throw new NotFoundException('Onboarding record not found');
+
+    const merged = {
+      identityVerified: dto.identityVerified ?? existing.identityVerified,
+      contractSigned: dto.contractSigned ?? existing.contractSigned,
+      itProvisioned: dto.itProvisioned ?? existing.itProvisioned,
+      medicalCleared: dto.medicalCleared ?? existing.medicalCleared,
+    };
+    // Status is derived, never sent by the client, so it cannot drift from the
+    // checkboxes it is meant to summarise.
+    const status = Object.values(merged).every(Boolean)
+      ? 'COMPLETED'
+      : 'IN_PROGRESS';
+
+    return this.prisma.onboardingChecklist.update({
+      where: { id },
+      data: { ...merged, status },
     });
   }
 }

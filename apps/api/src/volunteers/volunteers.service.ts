@@ -12,7 +12,11 @@ export class VolunteersService {
     });
   }
 
-  async assignTask(data: { outreachId: string; volunteerId: string; title: string }) {
+  async assignTask(data: {
+    outreachId: string;
+    volunteerId: string;
+    title: string;
+  }) {
     return this.prisma.volunteerTask.create({
       data: {
         outreachId: data.outreachId,
@@ -30,4 +34,3 @@ export class VolunteersService {
     });
   }
 }
-

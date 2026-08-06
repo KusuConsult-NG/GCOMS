@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { errorMessage } from '@/lib/errors';
+
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
-import { useAuthStore } from '@/store/authStore';
 
 interface FollowUp {
   id: string;
   scheduledDate: string;
   status: string;
   notes: string | null;
-  participant: { firstName: string; lastName: string; nationalId: string; phoneNumber: string | null };
+  participant: { firstName: string; lastName: string; registrationId: string; nationalId: string | null; phoneNumber: string | null };
   clinician: { firstName: string; lastName: string; role: string };
 }
 
@@ -29,7 +30,6 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function FollowUpPage() {
-  const { user } = useAuthStore();
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
   const [missed, setMissed] = useState<FollowUp[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -42,11 +42,8 @@ export default function FollowUpPage() {
   const [formMsg, setFormMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchAll();
-  }, [filterStatus]);
 
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
       const [fuRes, missedRes, statsRes] = await Promise.all([
@@ -62,7 +59,11 @@ export default function FollowUpPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterStatus]);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   const handleStatusUpdate = async (id: string, status: string) => {
     try {
@@ -83,8 +84,8 @@ export default function FollowUpPage() {
       setForm({ participantId: '', clinicianId: '', scheduledDate: '', notes: '' });
       fetchAll();
       setTimeout(() => setShowForm(false), 1500);
-    } catch (err: any) {
-      setFormMsg(err.response?.data?.message || 'Failed to schedule follow-up.');
+    } catch (err) {
+      setFormMsg(errorMessage(err, 'Failed to schedule follow-up.'));
     } finally {
       setSubmitting(false);
     }
@@ -199,7 +200,7 @@ export default function FollowUpPage() {
           {['all', 'upcoming', 'missed'].map(tab => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab as any)}
+              onClick={() => setActiveTab(tab as Parameters<typeof setActiveTab>[0])}
               className={`px-4 py-1.5 rounded-full text-xs font-bold capitalize transition-all ${
                 activeTab === tab ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
               }`}
@@ -243,7 +244,7 @@ export default function FollowUpPage() {
                 <tr key={fu.id} className="hover:bg-slate-50">
                   <td className="p-4">
                     <div className="font-bold text-slate-900">{fu.participant?.firstName} {fu.participant?.lastName}</div>
-                    <div className="text-slate-400 font-mono">{fu.participant?.nationalId}</div>
+                    <div className="text-slate-400 font-mono">{fu.participant?.registrationId ?? fu.participant?.nationalId ?? '—'}</div>
                   </td>
                   <td className="p-4">{fu.clinician?.firstName} {fu.clinician?.lastName}</td>
                   <td className="p-4 font-mono">{new Date(fu.scheduledDate).toLocaleString()}</td>

@@ -6,10 +6,17 @@ export class LocationsService {
   constructor(private prisma: PrismaService) {}
 
   async getAll() {
-    return this.prisma.location.findMany({ orderBy: { name: 'asc' } });
+    return this.prisma.location.findMany({
+      orderBy: { name: 'asc' },
+    });
   }
 
-  async create(data: { name: string; address?: string; lga?: string; state?: string }) {
+  async create(data: {
+    name: string;
+    address?: string;
+    lga?: string;
+    state?: string;
+  }) {
     return this.prisma.location.create({
       data: {
         name: data.name,

@@ -28,6 +28,9 @@ model User {
   approvedApprovals   ApprovalRequest[] @relation("ApprovedApprovals")
   financeTransactions FinanceTransaction[]
   procurementOrders   ProcurementOrder[]
+  createdPlanItems    ProcurementPlanItem[] @relation("CreatedPlanItems")
+  receivedGoods       GoodsReceivedNote[]   @relation("ReceivedGoods")
+  createdContracts    Contract[]            @relation("CreatedContracts")
   managedStaff        StaffRecord[]     @relation("ManagedStaff")
   staffRecord         StaffRecord?      @relation("UserStaffRecord")
   facilityRequests    FacilityRequest[]
@@ -39,6 +42,7 @@ model User {
   patientAssignments  PatientAssignment[]
   volunteerTasks      VolunteerTask[]
   appointments        Appointment[]     @relation("ClinicianAppointments")
+  volunteerProfile    VolunteerProfile?
 }
 
 model ApprovalRequest {
@@ -59,7 +63,7 @@ model ApprovalRequest {
 
 model FinanceTransaction {
   id            String   @id @default(uuid())
-  amount        Float
+  amount        Decimal
   type          String   // INCOME, EXPENSE
   category      String   // DONATION, SALARY, SUPPLIES, etc.
   description   String
@@ -74,13 +78,15 @@ model ProcurementOrder {
   id            String   @id @default(uuid())
   itemName      String
   quantity      Int
-  estimatedCost Float
+  estimatedCost Decimal
   vendor        String
   status        String   @default("PENDING") // PENDING, APPROVED, REJECTED
   requestedById String
   requestedBy   User     @relation(fields: [requestedById], references: [id])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  goodsReceived GoodsReceivedNote[]
 }
 
 model StaffRecord {
@@ -112,7 +118,7 @@ model Grant {
   id          String   @id @default(uuid())
   donorName   String
   grantName   String
-  amount      Float
+  amount      Decimal
   startDate   DateTime
   endDate     DateTime
   status      String   @default("ACTIVE") // ACTIVE, PENDING, EXHAUSTED
@@ -122,6 +128,7 @@ model Grant {
   updatedAt   DateTime @updatedAt
 
   milestones  GrantMilestone[]
+  reportSchedules GrantReportSchedule[]
 }
 
 model GrantMilestone {
@@ -130,9 +137,16 @@ model GrantMilestone {
   grant       Grant    @relation(fields: [grantId], references: [id])
   title       String
   dueDate     DateTime
-  status      String   @default("PENDING") // PENDING, COMPLETED
+  status      String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  // The milestone tracker already showed a target metric and percent complete,
+  // and its form collected a description; none had anywhere to live.
+  description String?
+  metric      String?
+  progress    Int      @default(0) // 0-100
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([grantId])
 }
 
 model Project {
@@ -142,13 +156,14 @@ model Project {
   startDate   DateTime
   endDate     DateTime
   status      String   @default("PLANNING") // PLANNING, ACTIVE, COMPLETED
-  budget      Float
+  budget      Decimal
   managedById String
   managedBy   User     @relation("ManagedProjects", fields: [managedById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   tasks       ProjectTask[]
+  risks       ProjectRisk[]
 }
 
 model ProjectTask {
@@ -157,8 +172,16 @@ model ProjectTask {
   project     Project  @relation(fields: [projectId], references: [id])
   title       String
   status      String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  // Added so the task board can persist what it already displayed from
+  // hardcoded browser state.
+  description String?
+  assignee    String?
+  dueDate     DateTime?
+  priority    String   @default("MEDIUM") // LOW, MEDIUM, HIGH
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
 }
 
 model InventoryItem {
@@ -168,18 +191,44 @@ model InventoryItem {
   quantity    Int
   unit        String
   location    String
+  /// The reorder point for this item. The stock screen has always shown and
+  /// used one, falling back to a hardcoded 10 for every item because there was
+  /// nowhere to store what the form collected.
+  minThreshold Int     @default(10)
+  /// Used for the reorder value estimate, which fell back to a flat ₦5,000 per
+  /// item — a fabricated number in a financial figure.
+  unitPrice   Decimal?
+  /// Fixed-asset register fields, for items of category EQUIPMENT/ASSET. The
+  /// asset tab rendered all five off an `assetDetails` object that no endpoint
+  /// ever returned, so every row showed "TAG-PENDING" and blanks.
+  assetTag        String?  @unique
+  serialNumber    String?
+  currentLocation String?
+  assignedTo      String?
+  condition       String?  // NEW, GOOD, FAIR, NEEDS_REPAIR, RETIRED
   status      String   @default("IN_STOCK") // IN_STOCK, LOW_STOCK, OUT_OF_STOCK
   managedById String
   managedBy   User     @relation("ManagedInventory", fields: [managedById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  movements   StockMovement[]
 }
 
 model DocumentRecord {
   id            String   @id @default(uuid())
   title         String
   documentType  String   // POLICY, GUIDELINE, REPORT
-  url           String
+  // External link, when the document lives elsewhere. Null for uploads.
+  url           String?
+  // Upload metadata. Files are stored outside the web root under a generated
+  // name and served only through an authenticated endpoint, because documents
+  // may contain patient or financial information.
+  storedName    String?  @unique
+  originalName  String?
+  mimeType      String?
+  sizeBytes     Int?
+  checksum      String?  // sha256, so a download can be proven intact
   version       String   @default("1.0")
   uploadedById  String
   uploadedBy    User     @relation("UploadedDocuments", fields: [uploadedById], references: [id])
@@ -197,6 +246,8 @@ model GovernanceMeeting {
   organizedBy   User     @relation("OrganizedMeetings", fields: [organizedById], references: [id])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  actions       BoardAction[]
 }
 
 model SystemConfig {
@@ -208,13 +259,24 @@ model SystemConfig {
 
 model Participant {
   id               String   @id @default(uuid())
-  nationalId       String   @unique
+  // System-assigned at registration. Previously the client generated this and
+  // wrote it into nationalId, which both collided and made it impossible to
+  // record a patient's actual National Identification Number.
+  registrationId   String   @unique
+  nationalId       String?  @unique
   firstName        String
   lastName         String
   dateOfBirth      DateTime
   gender           String
   phoneNumber      String?
   address          String?
+  // Structured outreach location. These were collected by the volunteer intake
+  // form and then flattened into `address` before ever reaching the database.
+  lga              String?
+  ward             String?
+  gpsCoordinates   String?
+  communityId      String?
+  community        Community? @relation(fields: [communityId], references: [id])
   consentGiven     Boolean  @default(true)
   registeredById   String
   registeredBy     User     @relation(fields: [registeredById], references: [id])
@@ -330,6 +392,9 @@ model Investigation {
   id                  String   @id @default(uuid())
   type                String
   results             String?
+  // "Make recommendations with regards to results from investigation" was a
+  // stated requirement with no field behind it.
+  recommendation      String?
   clinicalEncounterId String
   clinicalEncounter   ClinicalEncounter @relation(fields: [clinicalEncounterId], references: [id])
   createdAt           DateTime @default(now())
@@ -452,6 +517,8 @@ model Community {
   leaderName    String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  participants  Participant[]
 }
 
 model Appraisal {
@@ -472,6 +539,8 @@ model LeaveRequest {
   endDate       DateTime
   type          String   @default("ANNUAL")
   status        String   @default("PENDING")
+  // The leave screen already collected a reason with nowhere to store it.
+  reason        String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -481,7 +550,7 @@ model BankReconciliation {
   statementDate   DateTime
   bankBalance     Float
   ledgerBalance   Float
-  discrepancy     Float    @default(0)
+  discrepancy     Decimal  @default(0)
   status          String   @default("RECONCILED") // RECONCILED, DISCREPANCY, PENDING
   notes           String?
   createdAt       DateTime @default(now())
@@ -502,9 +571,18 @@ model EquipmentServiceLog {
 
 model BoardResolution {
   id              String   @id @default(uuid())
+  /// Allocated by the server. The screen used to mint RES-<year>-<count+1>,
+  /// which repeats as soon as two people table one against the same list — and
+  /// this column is unique.
   resolutionNo    String   @unique
   title           String
   description     String
+  /// Who moved it and who seconded it: the minimum a minuted resolution needs
+  /// to be traceable. The form collected both and discarded them.
+  resolutionType  String   @default("POLICY") // POLICY, FINANCIAL_APPROVAL, PROGRAMME_APPROVAL, PERSONNEL, GOVERNANCE_AMENDMENT
+  meetingDate     DateTime?
+  proposedBy      String?
+  secondedBy      String?
   votesFor        Int      @default(0)
   votesAgainst    Int      @default(0)
   abstentions     Int      @default(0)
@@ -528,10 +606,287 @@ model GrantProposal {
   id              String   @id @default(uuid())
   title           String
   donorName       String
-  requestedAmount Float
+  requestedAmount Decimal
   submissionDeadline DateTime
   status          String   @default("UNDER_REVIEW") // DRAFT, UNDER_REVIEW, SUBMITTED, AWARDED, REJECTED
   leadAuthor      String
   createdAt       DateTime @default(now())
 }
 
+
+// ---------------------------------------------------------------------------
+// Records that the UI has always displayed from hardcoded browser arrays. Field
+// shapes are taken from those arrays so nothing the screens already show is
+// lost. SQLite has no array type, so list-valued fields (committees, interests)
+// are stored comma-separated and documented as such.
+// ---------------------------------------------------------------------------
+
+model JobOpening {
+  id          String   @id @default(uuid())
+  title       String
+  department  String
+  employmentType String @default("FULL_TIME") // FULL_TIME, PART_TIME, CONTRACT
+  location    String
+  deadline    DateTime
+  description String?
+  status      String   @default("OPEN") // OPEN, CLOSED, FILLED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  applicants  JobApplicant[]
+}
+
+model JobApplicant {
+  id           String   @id @default(uuid())
+  jobOpeningId String
+  jobOpening   JobOpening @relation(fields: [jobOpeningId], references: [id], onDelete: Cascade)
+  name         String
+  email        String?
+  phone        String?
+  stage        String   @default("APPLIED") // APPLIED, INTERVIEW, OFFER, ACCEPTED, REJECTED
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([jobOpeningId])
+}
+
+model TrainingRecord {
+  id          String   @id @default(uuid())
+  staffId     String?  // User id when the trainee is a system user
+  staffName   String
+  title       String
+  provider    String?
+  type        String   @default("CLINICAL_SKILLS")
+  trainingDate DateTime
+  certified   Boolean  @default(false)
+  expiryDate  DateTime?
+  status      String   @default("ACTIVE") // ACTIVE, EXPIRED, PENDING
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model VolunteerProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lga       String
+  ward      String?
+  address   String?
+  stipend   Decimal  @default(0)
+  status    String   @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BoardMember {
+  id         String   @id @default(uuid())
+  name       String
+  title      String?
+  role       String   @default("MEMBER") // CHAIRPERSON, VICE_CHAIRPERSON, SECRETARY, MEMBER, PATRON
+  committees String?  // comma-separated; SQLite has no array type
+  phone      String?
+  email      String?
+  termStart  DateTime
+  termEnd    DateTime
+  status     String   @default("ACTIVE")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model BoardAction {
+  id          String   @id @default(uuid())
+  description String
+  responsible String
+  dueDate     DateTime
+  priority    String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  meetingId   String?
+  meeting     GovernanceMeeting? @relation(fields: [meetingId], references: [id])
+  status      String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([meetingId])
+}
+
+model StockMovement {
+  id              String   @id @default(uuid())
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  type            String   // STOCK_RECEIPT, STOCK_ISSUE, TRANSFER, ADJUSTMENT, DISPOSAL
+  quantity        Int
+  fromLocation    String?
+  toLocation      String?
+  reference       String?
+  authorisedBy    String?
+  movementDate    DateTime @default(now())
+  remarks         String?
+  createdAt       DateTime @default(now())
+
+  @@index([inventoryItemId])
+}
+
+model ProjectRisk {
+  id         String   @id @default(uuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title      String
+  category   String   @default("OPERATIONAL")
+  likelihood String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  impact     String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  score      Int      @default(0)        // derived from likelihood x impact
+  mitigation String?
+  owner      String?
+  status     String   @default("OPEN")   // OPEN, MITIGATING, CLOSED
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model Donor {
+  id          String   @id @default(uuid())
+  organisation String  @unique
+  country     String?
+  type        String   @default("MULTILATERAL") // MULTILATERAL, BILATERAL, FOUNDATION, CORPORATE, INDIVIDUAL
+  contactName String?
+  contactTitle String?
+  email       String?
+  phone       String?
+  interests   String?  // comma-separated
+  lastContact DateTime?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model GrantReportSchedule {
+  id        String   @id @default(uuid())
+  grantId   String
+  grant     Grant    @relation(fields: [grantId], references: [id], onDelete: Cascade)
+  title     String
+  type      String   @default("QUARTERLY") // QUARTERLY, SEMI_ANNUAL, ANNUAL, SPECIAL
+  dueDate   DateTime
+  officer   String?
+  status    String   @default("UPCOMING") // UPCOMING, SUBMITTED, LATE
+  submittedAt DateTime?
+  reference String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([grantId])
+}
+
+model Vendor {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  category  String?
+  rating    Float    @default(0)
+  taxId     String?
+  status    String   @default("PENDING") // PENDING, VERIFIED, SUSPENDED
+  email     String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quotes    RfqQuote[]
+  contracts Contract[]
+}
+
+model Rfq {
+  id          String   @id @default(uuid())
+  reference   String   @unique
+  description String
+  status      String   @default("OPEN") // OPEN, EVALUATION, COMPLETE, CANCELLED
+  closingDate DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  quotes      RfqQuote[]
+}
+
+model RfqQuote {
+  id        String   @id @default(uuid())
+  rfqId     String
+  rfq       Rfq      @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id])
+  price     Decimal
+  warranty  String?
+  score     Int      @default(0)
+  status    String   @default("SUBMITTED") // SUBMITTED, RECOMMENDED, REJECTED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([rfqId])
+  @@unique([rfqId, vendorId])
+}
+
+/// The annual procurement plan: what the organisation intends to buy this year,
+/// approved ahead of the individual requisitions that draw against it.
+model ProcurementPlanItem {
+  id          String   @id @default(uuid())
+  fiscalYear  Int
+  category    String
+  description String
+  quantity    Int
+  unitPrice   Decimal
+  /// No stored total. quantity x unitPrice is derived on read, so the two can
+  /// never disagree with a third column that was written once and never updated.
+  quarter     String   @default("Q1") // Q1, Q2, Q3, Q4
+  priority    String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  status      String   @default("PLANNED") // PLANNED, APPROVED, PROCURED, CANCELLED
+  createdById String
+  createdBy   User     @relation("CreatedPlanItems", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([fiscalYear])
+}
+
+/// Goods Received Note: the record that a delivery against a purchase order was
+/// inspected and accepted, and in what condition.
+model GoodsReceivedNote {
+  id                 String   @id @default(uuid())
+  reference          String   @unique
+  /// A GRN is always against a purchase order. This was previously a free-text
+  /// "poRef" string that matched nothing, so a note could name an order that did
+  /// not exist and nothing would object.
+  procurementOrderId String
+  procurementOrder   ProcurementOrder @relation(fields: [procurementOrderId], references: [id])
+  deliveryNote       String
+  itemsReceived      String
+  quantity           Int
+  condition          String   @default("GOOD") // GOOD, DAMAGED, PARTIAL
+  inspectionDate     DateTime
+  officer            String
+  remarks            String?
+  receivedById       String
+  receivedBy         User     @relation("ReceivedGoods", fields: [receivedById], references: [id])
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([procurementOrderId])
+}
+
+/// A supply contract awarded to a registered vendor.
+model Contract {
+  id           String   @id @default(uuid())
+  reference    String   @unique
+  /// A relation, not a vendor name copied in as text: renaming a vendor must not
+  /// silently orphan its contracts.
+  vendorId     String
+  vendor       Vendor   @relation(fields: [vendorId], references: [id])
+  title        String
+  value        Decimal
+  startDate    DateTime
+  endDate      DateTime
+  deliverables String?
+  status       String   @default("ACTIVE") // DRAFT, ACTIVE, COMPLETED, TERMINATED
+  createdById  String
+  createdBy    User     @relation("CreatedContracts", fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([vendorId])
+}

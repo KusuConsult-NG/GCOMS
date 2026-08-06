@@ -1,0 +1,36 @@
+# Node modules & dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+.next/
+**/.next/
+out/
+build/
+dist/
+**/dist/
+
+# Databases — never commit these. Recreate with:
+#   npx prisma migrate deploy && npx prisma db seed
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Logs & Environment
+*.log
+.env
+.env*.local
+.env.production
+.env.development
+
+# Generated service worker (next-pwa build output)
+apps/web/public/sw.js
+apps/web/public/workbox-*.js
+
+# OS generated files
+.DS_Store
+*.pem
+
+# TypeScript cache
+*.tsbuildinfo

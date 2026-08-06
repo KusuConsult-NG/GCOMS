@@ -1,35 +1,53 @@
-import { Controller, Post, Get, Patch, Body, Param, UseGuards, Request, UnauthorizedException } from '@nestjs/common';
+import { CreateApprovalRequestDto } from './dto/create-approval-request.dto';
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { ApprovalsService } from './approvals.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { APPROVAL_VIEW_ROLES, APPROVER_ROLES } from '../auth/roles.constants';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('approvals')
 export class ApprovalsController {
   constructor(private readonly approvalsService: ApprovalsService) {}
 
   @Post()
-  createRequest(@Body() data: any, @Request() req: any) {
+  createRequest(
+    @Body() data: CreateApprovalRequestDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.approvalsService.createRequest(data, req.user.id);
   }
 
   @Get()
-  getRequests(@Request() req: any) {
-    if (!['EXECUTIVE', 'ADMIN', 'SYSTEM_ADMIN'].includes(req.user.role)) {
-      throw new UnauthorizedException('Only Executive and Admin roles can view approvals');
-    }
+  @Roles(...APPROVAL_VIEW_ROLES)
+  getRequests() {
     return this.approvalsService.getPendingRequests();
   }
 
   @Get('pending')
-  getPendingRequests(@Request() req: any) {
-    return this.getRequests(req);
+  @Roles(...APPROVAL_VIEW_ROLES)
+  getPendingRequests() {
+    return this.getRequests();
   }
 
   @Patch(':id')
-  resolveRequest(@Param('id') id: string, @Body() data: { status: string }, @Request() req: any) {
-    if (req.user.role !== 'EXECUTIVE') {
-      throw new UnauthorizedException('Only Executives can resolve approvals');
-    }
-    return this.approvalsService.resolveRequest(id, data.status, req.user.id);
+  @Roles(...APPROVER_ROLES)
+  resolveRequest(
+    @Param('id') id: string,
+    @Body() data: { status: string },
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.approvalsService.resolveRequest(id, data.status, req.user);
   }
 }

@@ -1,11 +1,18 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { errorMessage, errorStatus } from '@/lib/errors';
+import Image from 'next/image';
+
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
-export default function Login() {
+function LoginForm() {
+  const searchParams = useSearchParams();
+  // Set by the api client when a request comes back 401, so an expired session
+  // explains itself instead of looking like a random logout.
+  const sessionExpired = searchParams.get('expired') === '1';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -29,10 +36,10 @@ export default function Login() {
       });
       setAuth(response.data.user, response.data.access_token);
       router.push('/');
-    } catch (err: any) {
+    } catch (err) {
       console.error('Login authentication error:', err);
-      const msg = err.response?.data?.message || err.message;
-      if (err.response?.status === 401) {
+      const msg = errorMessage(err, 'Sign-in failed.');
+      if (errorStatus(err) === 401) {
         setError('Invalid email or password. Please check your credentials.');
       } else {
         setError(typeof msg === 'string' ? msg : 'Unable to connect to authentication server.');
@@ -42,63 +49,76 @@ export default function Login() {
     }
   };
 
+  // Development only. These used to fill in a shared password that was hardcoded
+  // here and in prisma/seed.ts; seeded passwords are now generated at seed time,
+  // so this fills the email and leaves the password to whoever ran the seed.
+  const showDemoAccounts = process.env.NODE_ENV === 'development';
+
   const handleDemoLogin = (demoEmail: string) => {
     setEmail(demoEmail);
-    setPassword('Password123!');
+    setPassword('');
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f8f9ff] p-4 font-sans">
-      <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-sm border border-[#e2e8f0]">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--background)] p-4 font-sans">
+      <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-sm border border-[var(--outline)]">
 
         {/* Official Logo Header */}
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-full h-24 mb-3 flex items-center justify-center p-2 bg-white rounded border border-[#e2e8f0]">
-            <img
+          <div className="w-full h-24 mb-3 flex items-center justify-center p-2 bg-white rounded border border-[var(--outline)]">
+            <Image
               src="/georgel-logo.png"
               alt="Georgel Cancer Foundation Logo"
+              width={96}
+              height={96}
               className="w-full h-full object-contain"
             />
           </div>
-          <h1 className="text-xl font-bold text-[#002045] tracking-tight">GCOMS</h1>
-          <p className="text-[#13696a] font-semibold text-xs mt-0.5">Clinical Trust Management System — GCOMS</p>
+          <h1 className="text-xl font-bold text-[var(--primary)] tracking-tight">GCOMS</h1>
+          <p className="text-[var(--secondary)] font-semibold text-xs mt-0.5">Clinical Trust Management System — GCOMS</p>
         </div>
+
+        {sessionExpired && !error && (
+          <div className="bg-[var(--risk-mod-bg)] border border-[var(--outline)] text-[var(--risk-mod-text)] p-3 rounded text-xs text-center font-medium mb-5">
+            Your session has expired. Please sign in again.
+          </div>
+        )}
 
         {/* Error Alert */}
         {error && (
-          <div className="bg-[#ffdad6] border border-[#ba1a1a]/20 text-[#93000a] p-3 rounded text-xs text-center font-medium mb-5">
+          <div className="bg-[var(--risk-high-bg)] border border-[var(--risk-high-text)]/20 text-[var(--risk-high-text)] p-3 rounded text-xs text-center font-medium mb-5">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 text-sm">
           <div>
-            <label className="block text-xs font-semibold text-[#0d1c2e] mb-1">Email Address</label>
+            <label className="block text-xs font-semibold text-[var(--on-background)] mb-1">Email Address</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] focus:ring-2 focus:ring-[#13696a]/20 text-[#0d1c2e] outline-none text-xs"
+              className="w-full px-3.5 py-2.5 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] focus:ring-2 focus:ring-[var(--secondary)]/20 text-[var(--on-background)] outline-none text-xs"
               placeholder="e.g. executive@gcoms.org"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#0d1c2e] mb-1">Password</label>
+            <label className="block text-xs font-semibold text-[var(--on-background)] mb-1">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] focus:ring-2 focus:ring-[#13696a]/20 text-[#0d1c2e] outline-none text-xs pr-10"
+                className="w-full px-3.5 py-2.5 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] focus:ring-2 focus:ring-[var(--secondary)]/20 text-[var(--on-background)] outline-none text-xs pr-10"
                 placeholder="••••••••"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#13696a] hover:text-[#002045] focus:outline-none transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[var(--secondary)] hover:text-[var(--primary)] focus:outline-none transition-colors"
                 title={showPassword ? 'Hide password' : 'Show password'}
                 tabIndex={-1}
               >
@@ -119,79 +139,92 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 bg-[#13696a] hover:bg-[#0f5455] text-white font-semibold text-xs rounded shadow-sm transition-all disabled:opacity-50 mt-2"
+            className="w-full py-2.5 bg-[var(--secondary)] hover:bg-[var(--secondary-hover)] text-white font-semibold text-xs rounded shadow-sm transition-all disabled:opacity-50 mt-2"
           >
             {loading ? 'Authenticating...' : 'Sign In to GCOMS'}
           </button>
         </form>
 
-        {/* Fast-Fill Demo Shortcuts */}
-        <div className="mt-6 pt-5 border-t border-[#e2e8f0] text-center">
-          <p className="text-[11px] text-[#74777f] font-medium mb-2">Select a Demo Account to Fast-Fill:</p>
-          <div className="flex flex-wrap justify-center gap-1.5 text-[10px]">
-            <button
-              onClick={() => handleDemoLogin('executive@gcoms.org')}
-              className="px-2 py-1 bg-[#e5eeff] text-[#002045] font-semibold rounded hover:bg-[#dce9ff]"
-            >
-              Executive
-            </button>
-            <button
-              onClick={() => handleDemoLogin('admin@gcoms.org')}
-              className="px-2 py-1 bg-slate-100 text-slate-700 font-semibold rounded hover:bg-slate-200"
-            >
-              Admin
-            </button>
-            <button
-              onClick={() => handleDemoLogin('clinician@gcoms.org')}
-              className="px-2 py-1 bg-[#a2eded]/30 text-[#13696a] font-semibold rounded hover:bg-[#a2eded]/50"
-            >
-              Clinician
-            </button>
-            <button
-              onClick={() => handleDemoLogin('volunteer@gcoms.org')}
-              className="px-2 py-1 bg-pink-100 text-pink-700 font-semibold rounded hover:bg-pink-200"
-            >
-              Volunteer
-            </button>
-            <button
-              onClick={() => handleDemoLogin('finance@gcoms.org')}
-              className="px-2 py-1 bg-purple-100 text-purple-700 font-semibold rounded hover:bg-purple-200"
-            >
-              Finance
-            </button>
-            <button
-              onClick={() => handleDemoLogin('procurement@gcoms.org')}
-              className="px-2 py-1 bg-orange-100 text-orange-700 font-semibold rounded hover:bg-orange-200"
-            >
-              Procurement
-            </button>
-            <button
-              onClick={() => handleDemoLogin('grant_manager@gcoms.org')}
-              className="px-2 py-1 bg-yellow-100 text-yellow-700 font-semibold rounded hover:bg-yellow-200"
-            >
-              Grants
-            </button>
-            <button
-              onClick={() => handleDemoLogin('project_manager@gcoms.org')}
-              className="px-2 py-1 bg-indigo-100 text-indigo-700 font-semibold rounded hover:bg-indigo-200"
-            >
-              Projects
-            </button>
-            <button
-              onClick={() => handleDemoLogin('inventory_manager@gcoms.org')}
-              className="px-2 py-1 bg-blue-100 text-blue-700 font-semibold rounded hover:bg-blue-200"
-            >
-              Inventory
-            </button>
-            <button
-              onClick={() => handleDemoLogin('hr@gcoms.org')}
-              className="px-2 py-1 bg-amber-100 text-amber-700 font-semibold rounded hover:bg-amber-200"
-            >
-              HR
-            </button>
+        {/* Fast-Fill Demo Shortcuts — development builds only. Fills the email;
+            the password comes from whoever ran `npm run db:seed`. */}
+        {showDemoAccounts && (
+          <>
+          <div className="mt-6 pt-5 border-t border-[var(--outline)] text-center">
+            <p className="text-[11px] text-[var(--muted)] font-medium mb-2">Select a Demo Account to Fast-Fill:</p>
+            <div className="flex flex-wrap justify-center gap-1.5 text-[10px]">
+              <button
+                onClick={() => handleDemoLogin('executive@gcoms.org')}
+                className="px-2 py-1 bg-[var(--primary-surface)] text-[var(--primary)] font-semibold rounded hover:bg-[var(--primary-surface)]"
+              >
+                Executive
+              </button>
+              <button
+                onClick={() => handleDemoLogin('admin@gcoms.org')}
+                className="px-2 py-1 bg-slate-100 text-slate-700 font-semibold rounded hover:bg-slate-200"
+              >
+                Admin
+              </button>
+              <button
+                onClick={() => handleDemoLogin('clinician@gcoms.org')}
+                className="px-2 py-1 bg-[var(--secondary-container)]/30 text-[var(--secondary)] font-semibold rounded hover:bg-[var(--secondary-container)]/50"
+              >
+                Clinician
+              </button>
+              <button
+                onClick={() => handleDemoLogin('volunteer@gcoms.org')}
+                className="px-2 py-1 bg-pink-100 text-pink-700 font-semibold rounded hover:bg-pink-200"
+              >
+                Volunteer
+              </button>
+              <button
+                onClick={() => handleDemoLogin('finance@gcoms.org')}
+                className="px-2 py-1 bg-purple-100 text-purple-700 font-semibold rounded hover:bg-purple-200"
+              >
+                Finance
+              </button>
+              <button
+                onClick={() => handleDemoLogin('procurement@gcoms.org')}
+                className="px-2 py-1 bg-orange-100 text-orange-700 font-semibold rounded hover:bg-orange-200"
+              >
+                Procurement
+              </button>
+              <button
+                onClick={() => handleDemoLogin('grant_manager@gcoms.org')}
+                className="px-2 py-1 bg-yellow-100 text-yellow-700 font-semibold rounded hover:bg-yellow-200"
+              >
+                Grants
+              </button>
+              <button
+                onClick={() => handleDemoLogin('project_manager@gcoms.org')}
+                className="px-2 py-1 bg-indigo-100 text-indigo-700 font-semibold rounded hover:bg-indigo-200"
+              >
+                Projects
+              </button>
+              <button
+                onClick={() => handleDemoLogin('inventory_manager@gcoms.org')}
+                className="px-2 py-1 bg-blue-100 text-blue-700 font-semibold rounded hover:bg-blue-200"
+              >
+                Inventory
+              </button>
+              <button
+                onClick={() => handleDemoLogin('hr@gcoms.org')}
+                className="px-2 py-1 bg-amber-100 text-amber-700 font-semibold rounded hover:bg-amber-200"
+              >
+                HR
+              </button>
+            </div>
           </div>
-        </div>
+          </>
+        )}
       </div>
     </div>
+  );
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

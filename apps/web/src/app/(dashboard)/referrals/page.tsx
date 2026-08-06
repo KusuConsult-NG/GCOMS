@@ -1,11 +1,13 @@
 'use client';
 
+import type { Participant, Referral } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
 export default function ReferralsPage() {
-  const [referrals, setReferrals] = useState<any[]>([]);
-  const [participants, setParticipants] = useState<any[]>([]);
+  const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [participantId, setParticipantId] = useState('');
@@ -67,8 +69,8 @@ export default function ReferralsPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-[#002045]">Referral Network</h1>
-          <p className="text-[#43474e] text-xs mt-1">Coordinate patient transfers to partner tertiary hospitals & oncology units.</p>
+          <h1 className="text-2xl font-bold text-[var(--primary)]">Referral Network</h1>
+          <p className="text-[var(--on-surface-variant)] text-xs mt-1">Coordinate patient transfers to partner tertiary hospitals & oncology units.</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
@@ -80,34 +82,34 @@ export default function ReferralsPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-[#002045]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[#e2e8f0] space-y-4">
-            <div className="flex justify-between items-center border-b border-[#e2e8f0] pb-3">
-              <h2 className="text-base font-bold text-[#002045]">Submit Hospital Referral</h2>
-              <button onClick={() => setShowModal(false)} className="text-[#74777f] font-bold">✕</button>
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
+            <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
+              <h2 className="text-base font-bold text-[var(--primary)]">Submit Hospital Referral</h2>
+              <button onClick={() => setShowModal(false)} className="text-[var(--muted)] font-bold">✕</button>
             </div>
             <form onSubmit={handleCreate} className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Select Patient *</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Select Patient *</label>
                 <select
                   value={participantId}
                   onChange={(e) => setParticipantId(e.target.value)}
-                  className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs focus:border-[#13696a] outline-none text-[#0d1c2e]"
+                  className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs focus:border-[var(--secondary)] outline-none text-[var(--on-background)]"
                   required
                 >
                   {participants.map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.firstName} {p.lastName} ({p.nationalId})
+                      {p.firstName} {p.lastName} ({p.registrationId ?? p.nationalId ?? '—'})
                     </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Referred Hospital / Unit *</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Referred Hospital / Unit *</label>
                 <select
                   value={referredTo}
                   onChange={(e) => setReferredTo(e.target.value)}
-                  className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs focus:border-[#13696a] outline-none text-[#0d1c2e]"
+                  className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs focus:border-[var(--secondary)] outline-none text-[var(--on-background)]"
                 >
                   <option value="JUTH Oncology Department">Jos University Teaching Hospital (JUTH)</option>
                   <option value="Plateau State Specialist Hospital">Plateau State Specialist Hospital</option>
@@ -116,17 +118,17 @@ export default function ReferralsPage() {
                 </select>
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Clinical Notes & Reason *</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Clinical Notes & Reason *</label>
                 <textarea
                   required
                   rows={3}
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="Suspicious lesion biopsy request / stage 2 evaluation..."
-                  className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs focus:border-[#13696a] outline-none text-[#0d1c2e]"
+                  className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs focus:border-[var(--secondary)] outline-none text-[var(--on-background)]"
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
@@ -150,28 +152,28 @@ export default function ReferralsPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Total Referrals</span>
-          <p className="text-3xl font-bold text-[#002045] mt-1 tabular-nums">{referrals.length}</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Total Referrals</span>
+          <p className="text-3xl font-bold text-[var(--primary)] mt-1 tabular-nums">{referrals.length}</p>
         </div>
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Pending Confirmation</span>
-          <p className="text-3xl font-bold text-[#92400e] mt-1 tabular-nums">{referrals.filter(r => r.status === 'PENDING').length}</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Pending Confirmation</span>
+          <p className="text-3xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">{referrals.filter(r => r.status === 'PENDING').length}</p>
         </div>
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Completed Transfers</span>
-          <p className="text-3xl font-bold text-[#22543d] mt-1 tabular-nums">{referrals.filter(r => r.status === 'COMPLETED').length}</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Completed Transfers</span>
+          <p className="text-3xl font-bold text-[var(--risk-low-text)] mt-1 tabular-nums">{referrals.filter(r => r.status === 'COMPLETED').length}</p>
         </div>
       </div>
 
       {/* Referrals Directory Table */}
-      <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden">
+      <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-xs text-[#74777f]">Loading referral directory...</div>
+          <div className="p-8 text-center text-xs text-[var(--muted)]">Loading referral directory...</div>
         ) : referrals.length === 0 ? (
-          <div className="p-8 text-center text-xs text-[#74777f]">No referrals logged yet.</div>
+          <div className="p-8 text-center text-xs text-[var(--muted)]">No referrals logged yet.</div>
         ) : (
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+            <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
               <tr>
                 <th className="p-3">Patient Name</th>
                 <th className="p-3">Referred To</th>
@@ -181,23 +183,23 @@ export default function ReferralsPage() {
                 <th className="p-3">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#e2e8f0] font-medium text-[#0d1c2e]">
+            <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
               {referrals.map((r) => (
-                <tr key={r.id} className="hover:bg-[#e5eeff]">
-                  <td className="p-3 font-bold text-[#002045]">
+                <tr key={r.id} className="hover:bg-[var(--primary-surface)]">
+                  <td className="p-3 font-bold text-[var(--primary)]">
                     {r.participant ? `${r.participant.firstName} ${r.participant.lastName}` : 'N/A'}
-                    <div className="text-[10px] text-[#74777f] font-mono tabular-nums">{r.participant?.nationalId}</div>
+                    <div className="text-[10px] text-[var(--muted)] font-mono tabular-nums">{r.participant?.registrationId ?? r.participant?.nationalId ?? '—'}</div>
                   </td>
-                  <td className="p-3 font-semibold text-[#13696a]">{r.referredTo}</td>
+                  <td className="p-3 font-semibold text-[var(--secondary)]">{r.referredTo}</td>
                   <td className="p-3">{r.reason}</td>
-                  <td className="p-3 text-[#43474e]">{r.referredBy ? `${r.referredBy.firstName} ${r.referredBy.lastName}` : 'System'}</td>
-                  <td className="p-3 text-[#74777f] tabular-nums">{new Date(r.createdAt).toLocaleDateString()}</td>
+                  <td className="p-3 text-[var(--on-surface-variant)]">{r.referredBy ? `${r.referredBy.firstName} ${r.referredBy.lastName}` : 'System'}</td>
+                  <td className="p-3 text-[var(--muted)] tabular-nums">{new Date(r.createdAt).toLocaleDateString()}</td>
                   <td className="p-3">
                     <select
                       value={r.status}
                       onChange={(e) => updateStatus(r.id, e.target.value)}
                       className={`text-xs font-semibold px-2 py-1 rounded outline-none ${
-                        r.status === 'COMPLETED' ? 'bg-[#c6f6d5] text-[#22543d]' : r.status === 'PENDING' ? 'bg-[#fef3c7] text-[#92400e]' : 'bg-[#ffdad6] text-[#ba1a1a]'
+                        r.status === 'COMPLETED' ? 'bg-[var(--risk-low-bg)] text-[var(--risk-low-text)]' : r.status === 'PENDING' ? 'bg-[var(--risk-mod-bg)] text-[var(--risk-mod-text)]' : 'bg-[var(--risk-high-bg)] text-[var(--risk-high-text)]'
                       }`}
                     >
                       <option value="PENDING">PENDING</option>

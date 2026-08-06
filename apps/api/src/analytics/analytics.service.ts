@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { money, sumBy } from '../common/money';
 
 @Injectable()
 export class AnalyticsService {
@@ -34,8 +35,10 @@ export class AnalyticsService {
       this.prisma.patientAssignment.count({ where: { status: 'ACTIVE' } }),
     ]);
 
-    const positiveScreenings = allScreenings.filter(s => s.result && s.result.toLowerCase().includes('positive')).length;
-    const totalFunding = allGrants.reduce((sum, g) => sum + (g.amount || 0), 0);
+    const positiveScreenings = allScreenings.filter(
+      (s) => s.result && s.result.toLowerCase().includes('positive'),
+    ).length;
+    const totalFunding = money(sumBy(allGrants, (g) => g.amount));
 
     return {
       totalScreenings,

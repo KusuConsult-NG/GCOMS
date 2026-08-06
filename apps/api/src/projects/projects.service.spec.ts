@@ -1,18 +1,110 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { callArg, dataOf } from '../testing/mock-args';
+import { NotFoundException } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { PrismaService } from '../prisma/prisma.service';
 import { ProjectsService } from './projects.service';
 
-describe('ProjectsService', () => {
+function prismaMock() {
+  return {
+    project: {
+      findUnique: jest.fn().mockResolvedValue({ id: 'proj-1' }),
+      findMany: jest.fn(),
+      create: jest.fn(),
+    },
+    projectTask: {
+      findUnique: jest.fn().mockResolvedValue({ id: 'task-1' }),
+      findMany: jest.fn().mockResolvedValue([]),
+      create: jest
+        .fn()
+        .mockImplementation(({ data }: { data: Record<string, unknown> }) => ({
+          id: 't',
+          ...data,
+        })),
+      update: jest
+        .fn()
+        .mockImplementation(({ data }: { data: Record<string, unknown> }) => ({
+          id: 'task-1',
+          ...data,
+        })),
+      delete: jest.fn().mockResolvedValue({}),
+    },
+  };
+}
+
+describe('ProjectsService tasks', () => {
   let service: ProjectsService;
+  let prisma: ReturnType<typeof prismaMock>;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ProjectsService],
+    prisma = prismaMock();
+    const module = await Test.createTestingModule({
+      providers: [
+        ProjectsService,
+        { provide: PrismaService, useValue: prisma },
+      ],
     }).compile();
-
-    service = module.get<ProjectsService>(ProjectsService);
+    service = module.get(ProjectsService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('defaults status and priority on create', async () => {
+    await service.createTask({ projectId: 'proj-1', title: ' Task ' });
+    expect(
+      dataOf<Record<string, unknown>>(prisma.projectTask.create, 0),
+    ).toMatchObject({
+      title: 'Task',
+      status: 'PENDING',
+      priority: 'MEDIUM',
+      assignee: null,
+      dueDate: null,
+    });
+  });
+
+  it('404s for an unknown project instead of a foreign-key error', async () => {
+    prisma.project.findUnique.mockResolvedValue(null);
+    await expect(
+      service.createTask({ projectId: 'nope', title: 'x' }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  // A status flick on the board sends only `status`; it must not blank the rest.
+  it('writes only the fields supplied', async () => {
+    await service.updateTask('task-1', { status: 'IN_PROGRESS' });
+    expect(
+      dataOf<Record<string, unknown>>(prisma.projectTask.update, 0),
+    ).toEqual({
+      status: 'IN_PROGRESS',
+    });
+  });
+
+  it('clears an assignee when explicitly blanked', async () => {
+    await service.updateTask('task-1', { assignee: '   ' });
+    expect(
+      dataOf<Record<string, unknown>>(prisma.projectTask.update, 0),
+    ).toEqual({
+      assignee: null,
+    });
+  });
+
+  it('404s when updating or deleting an unknown task', async () => {
+    prisma.projectTask.findUnique.mockResolvedValue(null);
+    await expect(service.updateTask('ghost', {})).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    await expect(service.deleteTask('ghost')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it('filters by project and status', async () => {
+    await service.listTasks({
+      projectId: 'proj-1',
+      status: 'COMPLETED',
+    });
+    expect(
+      callArg<Record<string, unknown>>(prisma.projectTask.findMany, 0).where,
+    ).toEqual({
+      projectId: 'proj-1',
+      status: 'COMPLETED',
+    });
   });
 });

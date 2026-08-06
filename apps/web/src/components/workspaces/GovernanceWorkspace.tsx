@@ -1,16 +1,18 @@
 'use client';
 
+import type { BoardAction, BoardMember, BoardResolution, GovernanceMeeting } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 
-export function GovernanceWorkspace({ user }: { user: any }) {
+export function GovernanceWorkspace() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'meetings' | 'members' | 'resolutions' | 'actions'>('meetings');
-  const [meetings, setMeetings] = useState<any[]>([]);
+  const [meetings, setMeetings] = useState<GovernanceMeeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState<null | 'meeting' | 'minutes' | 'member' | 'resolution' | 'action'>(null);
-  const [activeVoteModal, setActiveVoteModal] = useState<any | null>(null);
+  const [activeVoteModal, setActiveVoteModal] = useState<BoardResolution | null>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -20,40 +22,48 @@ export function GovernanceWorkspace({ user }: { user: any }) {
   const [submitting, setSubmitting] = useState(false);
 
   // Local Seeded States
-  const [boardMembers, setBoardMembers] = useState<any[]>([
-    { id: 1, name: 'Dr. George A. Adaeze', title: 'Medical Director, JUTH', role: 'CHAIRPERSON', committees: ['Clinical Governance', 'Programme & Strategy'], phone: '+234-803-111-2222', email: 'gadaeze@juth.gov.ng', termStart: '2024-01-01', termEnd: '2027-12-31' },
-    { id: 2, name: 'Prof. Maryam B. Bello', title: 'Professor of Public Health, UniJos', role: 'VICE_CHAIRPERSON', committees: ['Programme & Strategy', 'HR & Remuneration'], phone: '+234-803-222-3333', email: 'mbello@unijos.edu.ng', termStart: '2024-01-01', termEnd: '2027-12-31' },
-    { id: 3, name: 'Engr. Patrick K. Nwachukwu', title: 'Director, Plateau State MOH', role: 'MEMBER', committees: ['Finance & Audit', 'Risk & Compliance'], phone: '+234-805-333-4444', email: 'pnwachukwu@plateaumoh.gov.ng', termStart: '2024-01-01', termEnd: '2026-12-31' },
-    { id: 4, name: 'Mrs. Blessing O. Yakubu', title: 'Executive Director, GCOMS', role: 'SECRETARY', committees: ['Finance & Audit', 'HR & Remuneration'], phone: '+234-806-444-5555', email: 'byakubu@gcoms.org', termStart: '2024-01-01', termEnd: '2027-12-31' },
-    { id: 5, name: 'Dr. Emmanuel S. Lawal', title: 'Country Director, WHO Nigeria', role: 'PATRON', committees: ['Clinical Governance'], phone: '+234-809-555-6666', email: 'elawal@who.int', termStart: '2024-01-01', termEnd: '2025-12-31' }
-  ]);
+  const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
 
-  const [resolutions, setResolutions] = useState<any[]>([
-    { id: 1, resNum: 'RES-2026-001', title: 'Approval of FY2026 Annual Budget of ₦120,000,000', type: 'FINANCIAL_APPROVAL', meetingDate: '2026-01-15', proposedBy: 'Mrs. Blessing O. Yakubu', secondedBy: 'Dr. George A. Adaeze', text: 'RESOLVED that the Board approves the organizational budget of ₦120,000,000 for the financial year 2026...', status: 'PASSED', votes: { favour: 5, against: 0, abstain: 0 } },
-    { id: 2, resNum: 'RES-2026-002', title: 'Adoption of Clinical Governance Policy Framework', type: 'POLICY', meetingDate: '2026-03-10', proposedBy: 'Dr. George A. Adaeze', secondedBy: 'Prof. Maryam B. Bello', text: 'RESOLVED that the Board adopts the Clinical Governance Policy Framework...', status: 'PASSED', votes: { favour: 4, against: 0, abstain: 1 } },
-    { id: 3, resNum: 'RES-2026-003', title: 'Approval of Global Fund Grant Application - Cervical Cancer Initiative', type: 'PROGRAMME_APPROVAL', meetingDate: '2026-06-20', proposedBy: 'Mrs. Blessing O. Yakubu', secondedBy: 'Prof. Maryam B. Bello', text: 'RESOLVED that the Board approves the submission of grant application to the Global Fund...', status: 'TABLED', votes: { favour: 0, against: 0, abstain: 0 } }
-  ]);
+  const [resolutions, setResolutions] = useState<BoardResolution[]>([]);
 
-  const [actions, setActions] = useState<any[]>([
-    { id: 1, description: 'Circulate revised HR policy', responsible: 'Mrs. Blessing O. Yakubu', due: '2026-08-15', priority: 'HIGH', meeting: 'Q2 Executive Board', status: 'PENDING' },
-    { id: 2, description: 'Finalize JUTH MOU', responsible: 'Dr. George A. Adaeze', due: '2026-09-01', priority: 'HIGH', meeting: 'Q2 Executive Board', status: 'COMPLETED' },
-    { id: 3, description: 'Review Q3 Budget Variance', responsible: 'Engr. Patrick K. Nwachukwu', due: '2026-10-15', priority: 'MEDIUM', meeting: 'Audit Committee', status: 'PENDING' }
-  ]);
+  const [actions, setActions] = useState<BoardAction[]>([]);
 
   // Form States
   const [memberForm, setMemberForm] = useState({ name: '', title: '', role: 'MEMBER', committees: [] as string[], phone: '', email: '', termStart: '', termEnd: '' });
-  const [resolutionForm, setResolutionForm] = useState({ title: '', meetingDate: '', type: 'POLICY', text: '', proposedBy: '', secondedBy: '' });
-  const [actionForm, setActionForm] = useState({ description: '', responsible: '', due: '', priority: 'MEDIUM', meeting: '', status: 'PENDING' });
+  const [resolutionForm, setResolutionForm] = useState({ title: '', meetingDate: '', resolutionType: 'POLICY', description: '', proposedBy: '', secondedBy: '' });
+  const [actionForm, setActionForm] = useState({ description: '', responsible: '', due: '', priority: 'MEDIUM', meetingId: '', status: 'PENDING' });
 
   // Vote State for activeVoteModal
-  const [currentVotes, setCurrentVotes] = useState<Record<number, string>>({});
+  const [currentVotes, setCurrentVotes] = useState<Record<string, string>>({});
+
+  const fetchBoardMembers = async () => {
+    try { setBoardMembers((await api.get('/operations/board-members')).data); }
+    catch (err) { console.error('Failed to fetch board members', err); }
+  };
+  const fetchActions = async () => {
+    try { setActions((await api.get('/operations/board-actions')).data); }
+    catch (err) { console.error('Failed to fetch board actions', err); }
+  };
+
+  const fetchResolutions = async () => {
+    try {
+      const res = await api.get('/governance/resolutions');
+      setResolutions(res.data);
+    } catch (err) { console.error('Failed to fetch resolutions', err); }
+  };
+
+  useEffect(() => {
+    fetchResolutions();
+    fetchBoardMembers();
+    fetchActions();
+  }, []);
 
   useEffect(() => {
     const tabParam = searchParams.get('tab');
     const actionParam = searchParams.get('action');
 
     if (tabParam && ['meetings', 'members', 'resolutions', 'actions'].includes(tabParam)) {
-      setActiveTab(tabParam as any);
+      setActiveTab(tabParam as Parameters<typeof setActiveTab>[0]);
     }
     if (actionParam) {
       if (actionParam === 'new-meeting') setActiveModal('meeting');
@@ -92,11 +102,33 @@ export function GovernanceWorkspace({ user }: { user: any }) {
     }
   };
 
-  const handleMemberSubmit = (e: React.FormEvent) => {
+  // Was `setBoardMembers([...boardMembers, { ...memberForm, id: Date.now() }])`:
+  // the record existed in this tab only and the id was a millisecond timestamp.
+  // GET already read the real table, so the list looked live while every
+  // addition disappeared on reload.
+  const handleMemberSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setBoardMembers([...boardMembers, { ...memberForm, id: Date.now() }]);
-    setActiveModal(null);
-    setMemberForm({ name: '', title: '', role: 'MEMBER', committees: [], phone: '', email: '', termStart: '', termEnd: '' });
+    setSubmitting(true);
+    try {
+      await api.post('/operations/board-members', {
+        name: memberForm.name,
+        title: memberForm.title || undefined,
+        role: memberForm.role,
+        // The column is a comma-separated string; SQLite has no array type.
+        committees: memberForm.committees.join(',') || undefined,
+        phone: memberForm.phone || undefined,
+        email: memberForm.email || undefined,
+        termStart: new Date(memberForm.termStart).toISOString(),
+        termEnd: new Date(memberForm.termEnd).toISOString(),
+      });
+      setActiveModal(null);
+      setMemberForm({ name: '', title: '', role: 'MEMBER', committees: [], phone: '', email: '', termStart: '', termEnd: '' });
+      await fetchBoardMembers();
+    } catch (err) {
+      console.error('Failed to add board member', err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleCommitteeToggle = (c: string) => {
@@ -106,19 +138,53 @@ export function GovernanceWorkspace({ user }: { user: any }) {
     }));
   };
 
-  const handleResolutionSubmit = (e: React.FormEvent) => {
+  // The resolution number was minted here as RES-2026-<count+1>, which repeats
+  // the moment two people table a resolution against the same list — and the
+  // column is unique. The server owns it.
+  const handleResolutionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const resNum = `RES-2026-${(resolutions.length + 1).toString().padStart(3, '0')}`;
-    setResolutions([...resolutions, { ...resolutionForm, resNum, status: 'TABLED', votes: { favour: 0, against: 0, abstain: 0 }, id: Date.now() }]);
-    setActiveModal(null);
-    setResolutionForm({ title: '', meetingDate: '', type: 'POLICY', text: '', proposedBy: '', secondedBy: '' });
+    setSubmitting(true);
+    try {
+      await api.post('/governance/resolutions', {
+        title: resolutionForm.title,
+        description: resolutionForm.description,
+        resolutionType: resolutionForm.resolutionType,
+        meetingDate: resolutionForm.meetingDate
+          ? new Date(resolutionForm.meetingDate).toISOString()
+          : undefined,
+        proposedBy: resolutionForm.proposedBy || undefined,
+        secondedBy: resolutionForm.secondedBy || undefined,
+        status: 'PENDING',
+      });
+      setActiveModal(null);
+      setResolutionForm({ title: '', meetingDate: '', resolutionType: 'POLICY', description: '', proposedBy: '', secondedBy: '' });
+      await fetchResolutions();
+    } catch (err) {
+      console.error('Failed to table resolution', err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleActionSubmit = (e: React.FormEvent) => {
+  const handleActionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setActions([...actions, { ...actionForm, id: Date.now() }]);
-    setActiveModal(null);
-    setActionForm({ description: '', responsible: '', due: '', priority: 'MEDIUM', meeting: '', status: 'PENDING' });
+    setSubmitting(true);
+    try {
+      await api.post('/operations/board-actions', {
+        description: actionForm.description,
+        responsible: actionForm.responsible,
+        dueDate: new Date(actionForm.due).toISOString(),
+        priority: actionForm.priority,
+        meetingId: actionForm.meetingId || undefined,
+      });
+      setActiveModal(null);
+      setActionForm({ description: '', responsible: '', due: '', priority: 'MEDIUM', meetingId: '', status: 'PENDING' });
+      await fetchActions();
+    } catch (err) {
+      console.error('Failed to add board action', err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleCloseVoting = () => {
@@ -138,26 +204,26 @@ export function GovernanceWorkspace({ user }: { user: any }) {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-[#002045] text-white p-5 rounded-lg border border-[#1a365d] shadow-sm">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm">
         <div>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#13696a] text-white uppercase tracking-wider">
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
             Enterprise Governance & Board Software • GCOMS
           </span>
           <h1 className="text-2xl font-bold mt-1 text-white">Board Governance & Oversight</h1>
           <p className="text-slate-300 text-xs mt-0.5">Manage board convenings, official resolutions, committee memberships, and minutes logs.</p>
         </div>
         <div className="mt-3 lg:mt-0 flex flex-wrap gap-2">
-          <button onClick={() => setActiveModal('meeting')} className="btn-primary text-xs bg-[#13696a] hover:bg-[#0f5455]">
+          <button onClick={() => setActiveModal('meeting')} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">
             + Convene Board Meeting
           </button>
-          <button onClick={() => setActiveModal('resolution')} className="btn-primary text-xs bg-[#001733] border border-amber-800/40 text-amber-300">
+          <button onClick={() => setActiveModal('resolution')} className="btn-primary text-xs bg-[var(--primary-dark)] border border-amber-800/40 text-amber-300">
             + Table New Resolution
           </button>
         </div>
       </div>
 
       {/* Sub-Tabs */}
-      <div className="flex border-b border-[#e2e8f0] gap-2 text-xs font-semibold overflow-x-auto">
+      <div className="flex border-b border-[var(--outline)] gap-2 text-xs font-semibold overflow-x-auto">
         {[
           { id: 'meetings', label: '🏛 Board Meetings' },
           { id: 'members', label: '👥 Board Members' },
@@ -166,9 +232,9 @@ export function GovernanceWorkspace({ user }: { user: any }) {
         ].map(t => (
           <button
             key={t.id}
-            onClick={() => setActiveTab(t.id as any)}
+            onClick={() => setActiveTab(t.id as Parameters<typeof setActiveTab>[0])}
             className={`py-2.5 px-4 rounded-t border-b-2 transition-all whitespace-nowrap ${
-              activeTab === t.id ? 'border-[#13696a] text-[#13696a] bg-white font-bold' : 'border-transparent text-[#74777f]'
+              activeTab === t.id ? 'border-[var(--secondary)] text-[var(--secondary)] bg-white font-bold' : 'border-transparent text-[var(--muted)]'
             }`}
           >
             {t.label}
@@ -178,26 +244,26 @@ export function GovernanceWorkspace({ user }: { user: any }) {
 
       {/* MODALS */}
       {activeModal === 'meeting' && (
-        <div className="fixed inset-0 bg-[#002045]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[#e2e8f0] space-y-4">
-            <div className="flex justify-between items-center border-b border-[#e2e8f0] pb-3">
-              <h2 className="text-base font-bold text-[#002045]">Schedule Board Convening</h2>
-              <button onClick={() => setActiveModal(null)} className="text-[#74777f] font-bold">✕</button>
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
+            <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
+              <h2 className="text-base font-bold text-[var(--primary)]">Schedule Board Convening</h2>
+              <button onClick={() => setActiveModal(null)} className="text-[var(--muted)] font-bold">✕</button>
             </div>
             <form onSubmit={handleMeetingSubmit} className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Meeting Title *</label>
-                <input type="text" required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Meeting Title *</label>
+                <input type="text" required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Convening Date *</label>
-                <input type="date" required value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs tabular-nums" />
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Convening Date *</label>
+                <input type="date" required value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs tabular-nums" />
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Minutes / Agenda Document Link</label>
-                <input type="url" value={formData.minutesUrl} onChange={e => setFormData({ ...formData, minutesUrl: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Minutes / Agenda Document Link</label>
+                <input type="url" value={formData.minutesUrl} onChange={e => setFormData({ ...formData, minutesUrl: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
               </div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary text-xs">Cancel</button>
                 <button type="submit" disabled={submitting} className="btn-primary text-xs disabled:opacity-50">{submitting ? 'Scheduling...' : 'Schedule Meeting'}</button>
               </div>
@@ -207,24 +273,24 @@ export function GovernanceWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'member' && (
-        <div className="fixed inset-0 bg-[#002045]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[#e2e8f0] space-y-4 h-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-[#e2e8f0] pb-3">
-              <h2 className="text-base font-bold text-[#002045]">Add Board Member</h2>
-              <button onClick={() => setActiveModal(null)} className="text-[#74777f] font-bold">✕</button>
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4 h-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
+              <h2 className="text-base font-bold text-[var(--primary)]">Add Board Member</h2>
+              <button onClick={() => setActiveModal(null)} className="text-[var(--muted)] font-bold">✕</button>
             </div>
             <form onSubmit={handleMemberSubmit} className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Full Name *</label>
-                <input type="text" required value={memberForm.name} onChange={e => setMemberForm({ ...memberForm, name: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Full Name *</label>
+                <input type="text" required value={memberForm.name} onChange={e => setMemberForm({ ...memberForm, name: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Title / Designation *</label>
-                <input type="text" required value={memberForm.title} onChange={e => setMemberForm({ ...memberForm, title: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Title / Designation *</label>
+                <input type="text" required value={memberForm.title} onChange={e => setMemberForm({ ...memberForm, title: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Role on Board *</label>
-                <select required value={memberForm.role} onChange={e => setMemberForm({ ...memberForm, role: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Role on Board *</label>
+                <select required value={memberForm.role} onChange={e => setMemberForm({ ...memberForm, role: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                   <option value="CHAIRPERSON">CHAIRPERSON</option>
                   <option value="VICE_CHAIRPERSON">VICE_CHAIRPERSON</option>
                   <option value="SECRETARY">SECRETARY</option>
@@ -234,7 +300,7 @@ export function GovernanceWorkspace({ user }: { user: any }) {
                 </select>
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Committee Membership</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Committee Membership</label>
                 <div className="space-y-1">
                   {['Finance & Audit', 'Programme & Strategy', 'HR & Remuneration', 'Clinical Governance', 'Risk & Compliance'].map(c => (
                     <label key={c} className="flex items-center gap-2">
@@ -246,25 +312,25 @@ export function GovernanceWorkspace({ user }: { user: any }) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[#0d1c2e] mb-1">Phone</label>
-                  <input type="tel" value={memberForm.phone} onChange={e => setMemberForm({ ...memberForm, phone: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                  <label className="block font-semibold text-[var(--on-background)] mb-1">Phone</label>
+                  <input type="tel" value={memberForm.phone} onChange={e => setMemberForm({ ...memberForm, phone: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
                 </div>
                 <div>
-                  <label className="block font-semibold text-[#0d1c2e] mb-1">Email</label>
-                  <input type="email" value={memberForm.email} onChange={e => setMemberForm({ ...memberForm, email: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                  <label className="block font-semibold text-[var(--on-background)] mb-1">Email</label>
+                  <input type="email" value={memberForm.email} onChange={e => setMemberForm({ ...memberForm, email: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[#0d1c2e] mb-1">Term Start Date *</label>
-                  <input type="date" required value={memberForm.termStart} onChange={e => setMemberForm({ ...memberForm, termStart: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs tabular-nums" />
+                  <label className="block font-semibold text-[var(--on-background)] mb-1">Term Start Date *</label>
+                  <input type="date" required value={memberForm.termStart} onChange={e => setMemberForm({ ...memberForm, termStart: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs tabular-nums" />
                 </div>
                 <div>
-                  <label className="block font-semibold text-[#0d1c2e] mb-1">Term End Date *</label>
-                  <input type="date" required value={memberForm.termEnd} onChange={e => setMemberForm({ ...memberForm, termEnd: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs tabular-nums" />
+                  <label className="block font-semibold text-[var(--on-background)] mb-1">Term End Date *</label>
+                  <input type="date" required value={memberForm.termEnd} onChange={e => setMemberForm({ ...memberForm, termEnd: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs tabular-nums" />
                 </div>
               </div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary text-xs">Cancel</button>
                 <button type="submit" className="btn-primary text-xs">Add Member</button>
               </div>
@@ -274,24 +340,24 @@ export function GovernanceWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'resolution' && (
-        <div className="fixed inset-0 bg-[#002045]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[#e2e8f0] space-y-4 h-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-[#e2e8f0] pb-3">
-              <h2 className="text-base font-bold text-[#002045]">Table New Resolution</h2>
-              <button onClick={() => setActiveModal(null)} className="text-[#74777f] font-bold">✕</button>
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4 h-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
+              <h2 className="text-base font-bold text-[var(--primary)]">Table New Resolution</h2>
+              <button onClick={() => setActiveModal(null)} className="text-[var(--muted)] font-bold">✕</button>
             </div>
             <form onSubmit={handleResolutionSubmit} className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Resolution Title *</label>
-                <input type="text" required value={resolutionForm.title} onChange={e => setResolutionForm({ ...resolutionForm, title: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Resolution Title *</label>
+                <input type="text" required value={resolutionForm.title} onChange={e => setResolutionForm({ ...resolutionForm, title: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Meeting Date *</label>
-                <input type="date" required value={resolutionForm.meetingDate} onChange={e => setResolutionForm({ ...resolutionForm, meetingDate: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs tabular-nums" />
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Meeting Date *</label>
+                <input type="date" required value={resolutionForm.meetingDate} onChange={e => setResolutionForm({ ...resolutionForm, meetingDate: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs tabular-nums" />
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Resolution Type *</label>
-                <select required value={resolutionForm.type} onChange={e => setResolutionForm({ ...resolutionForm, type: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Resolution Type *</label>
+                <select required value={resolutionForm.resolutionType} onChange={e => setResolutionForm({ ...resolutionForm, resolutionType: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                   <option value="POLICY">POLICY</option>
                   <option value="FINANCIAL_APPROVAL">FINANCIAL APPROVAL</option>
                   <option value="PROGRAMME_APPROVAL">PROGRAMME APPROVAL</option>
@@ -300,24 +366,24 @@ export function GovernanceWorkspace({ user }: { user: any }) {
                 </select>
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Proposed By *</label>
-                <select required value={resolutionForm.proposedBy} onChange={e => setResolutionForm({ ...resolutionForm, proposedBy: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Proposed By *</label>
+                <select required value={resolutionForm.proposedBy} onChange={e => setResolutionForm({ ...resolutionForm, proposedBy: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                   <option value="">Select Board Member</option>
                   {boardMembers.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Seconded By *</label>
-                <select required value={resolutionForm.secondedBy} onChange={e => setResolutionForm({ ...resolutionForm, secondedBy: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Seconded By *</label>
+                <select required value={resolutionForm.secondedBy} onChange={e => setResolutionForm({ ...resolutionForm, secondedBy: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                   <option value="">Select Board Member</option>
                   {boardMembers.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Resolution Text *</label>
-                <textarea required rows={4} value={resolutionForm.text} onChange={e => setResolutionForm({ ...resolutionForm, text: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs"></textarea>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Resolution Text *</label>
+                <textarea required rows={4} value={resolutionForm.description} onChange={e => setResolutionForm({ ...resolutionForm, description: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs"></textarea>
               </div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary text-xs">Cancel</button>
                 <button type="submit" className="btn-primary text-xs">Table Resolution</button>
               </div>
@@ -327,32 +393,32 @@ export function GovernanceWorkspace({ user }: { user: any }) {
       )}
 
       {activeModal === 'action' && (
-        <div className="fixed inset-0 bg-[#002045]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[#e2e8f0] space-y-4">
-            <div className="flex justify-between items-center border-b border-[#e2e8f0] pb-3">
-              <h2 className="text-base font-bold text-[#002045]">Add Action Item</h2>
-              <button onClick={() => setActiveModal(null)} className="text-[#74777f] font-bold">✕</button>
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
+            <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
+              <h2 className="text-base font-bold text-[var(--primary)]">Add Action Item</h2>
+              <button onClick={() => setActiveModal(null)} className="text-[var(--muted)] font-bold">✕</button>
             </div>
             <form onSubmit={handleActionSubmit} className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Action Description *</label>
-                <input type="text" required value={actionForm.description} onChange={e => setActionForm({ ...actionForm, description: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Action Description *</label>
+                <input type="text" required value={actionForm.description} onChange={e => setActionForm({ ...actionForm, description: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Responsible Person *</label>
-                <select required value={actionForm.responsible} onChange={e => setActionForm({ ...actionForm, responsible: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Responsible Person *</label>
+                <select required value={actionForm.responsible} onChange={e => setActionForm({ ...actionForm, responsible: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                   <option value="">Select Board Member</option>
                   {boardMembers.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[#0d1c2e] mb-1">Due Date *</label>
-                  <input type="date" required value={actionForm.due} onChange={e => setActionForm({ ...actionForm, due: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs tabular-nums" />
+                  <label className="block font-semibold text-[var(--on-background)] mb-1">Due Date *</label>
+                  <input type="date" required value={actionForm.due} onChange={e => setActionForm({ ...actionForm, due: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs tabular-nums" />
                 </div>
                 <div>
-                  <label className="block font-semibold text-[#0d1c2e] mb-1">Priority *</label>
-                  <select required value={actionForm.priority} onChange={e => setActionForm({ ...actionForm, priority: e.target.value })} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
+                  <label className="block font-semibold text-[var(--on-background)] mb-1">Priority *</label>
+                  <select required value={actionForm.priority} onChange={e => setActionForm({ ...actionForm, priority: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                     <option value="HIGH">HIGH</option>
                     <option value="MEDIUM">MEDIUM</option>
                     <option value="LOW">LOW</option>
@@ -360,10 +426,15 @@ export function GovernanceWorkspace({ user }: { user: any }) {
                 </div>
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Source Meeting *</label>
-                <input type="text" required value={actionForm.meeting} onChange={e => setActionForm({ ...actionForm, meeting: e.target.value })} placeholder="e.g. Q3 Executive Board" className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" />
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Source Meeting *</label>
+                <select value={actionForm.meetingId} onChange={e => setActionForm({ ...actionForm, meetingId: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
+                  <option value="">Not tied to a meeting</option>
+                  {meetings.map(m => (
+                    <option key={m.id} value={m.id}>{m.title} — {new Date(m.meetingDate).toLocaleDateString()}</option>
+                  ))}
+                </select>
               </div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary text-xs">Cancel</button>
                 <button type="submit" className="btn-primary text-xs">Add Action</button>
               </div>
@@ -373,11 +444,11 @@ export function GovernanceWorkspace({ user }: { user: any }) {
       )}
 
       {activeVoteModal && (
-        <div className="fixed inset-0 bg-[#002045]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full shadow-lg border border-[#e2e8f0] space-y-4">
-            <div className="flex justify-between items-center border-b border-[#e2e8f0] pb-3">
-              <h2 className="text-base font-bold text-[#002045]">Open Voting: {activeVoteModal.resNum}</h2>
-              <button onClick={() => setActiveVoteModal(null)} className="text-[#74777f] font-bold">✕</button>
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full shadow-lg border border-[var(--outline)] space-y-4">
+            <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
+              <h2 className="text-base font-bold text-[var(--primary)]">Open Voting: {activeVoteModal.resolutionNo}</h2>
+              <button onClick={() => setActiveVoteModal(null)} className="text-[var(--muted)] font-bold">✕</button>
             </div>
             <div className="text-xs space-y-4">
               <div className="p-3 bg-slate-50 rounded border">{activeVoteModal.title}</div>
@@ -393,15 +464,15 @@ export function GovernanceWorkspace({ user }: { user: any }) {
                   </div>
                 ))}
               </div>
-              <div className="flex justify-between items-center p-3 bg-[#f8f9ff] rounded border font-bold">
+              <div className="flex justify-between items-center p-3 bg-[var(--background)] rounded border font-bold">
                 <span>Tallying Votes:</span>
                 <span className="text-emerald-700">In Favour: {Object.values(currentVotes).filter(v => v === 'FAVOUR').length}</span>
                 <span className="text-red-700">Against: {Object.values(currentVotes).filter(v => v === 'AGAINST').length}</span>
                 <span className="text-gray-700">Abstain: {Object.values(currentVotes).filter(v => v === 'ABSTAIN').length}</span>
               </div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setActiveVoteModal(null)} className="btn-secondary text-xs">Cancel</button>
-                <button onClick={handleCloseVoting} className="btn-primary text-xs bg-[#002045]">Close Voting & Record Result</button>
+                <button onClick={handleCloseVoting} className="btn-primary text-xs bg-[var(--nav-surface)]">Close Voting & Record Result</button>
               </div>
             </div>
           </div>
@@ -411,36 +482,36 @@ export function GovernanceWorkspace({ user }: { user: any }) {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[#74777f] uppercase">Board Convenings</span>
-          <p className="text-3xl font-bold text-[#002045] mt-1 tabular-nums">{meetings.length}</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase">Board Convenings</span>
+          <p className="text-3xl font-bold text-[var(--primary)] mt-1 tabular-nums">{meetings.length}</p>
         </div>
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[#74777f] uppercase">Board Members</span>
-          <p className="text-3xl font-bold text-[#13696a] mt-1 tabular-nums">{boardMembers.length}</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase">Board Members</span>
+          <p className="text-3xl font-bold text-[var(--secondary)] mt-1 tabular-nums">{boardMembers.length}</p>
         </div>
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[#74777f] uppercase">Passed Resolutions</span>
-          <p className="text-3xl font-bold text-[#22543d] mt-1 tabular-nums">{resolutions.filter(r => r.status === 'PASSED').length}</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase">Passed Resolutions</span>
+          <p className="text-3xl font-bold text-[var(--risk-low-text)] mt-1 tabular-nums">{resolutions.filter(r => r.status === 'PASSED').length}</p>
         </div>
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[#74777f] uppercase">Pending Actions</span>
-          <p className="text-3xl font-bold text-[#92400e] mt-1 tabular-nums">{actions.filter(a => a.status === 'PENDING').length}</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase">Pending Actions</span>
+          <p className="text-3xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">{actions.filter(a => a.status === 'PENDING').length}</p>
         </div>
       </div>
 
       {/* TAB 1: MEETINGS */}
       {activeTab === 'meetings' && (
-        <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden">
-          <div className="p-4 border-b border-[#e2e8f0] font-bold text-[#002045] text-sm bg-[#f8f9ff]">
+        <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
+          <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
             🏛 Board Meetings & Minutes Log
           </div>
           {loading ? (
-            <div className="p-8 text-center text-xs text-[#74777f]">Loading board meetings...</div>
+            <div className="p-8 text-center text-xs text-[var(--muted)]">Loading board meetings...</div>
           ) : meetings.length === 0 ? (
-            <div className="p-8 text-center text-xs text-[#74777f]">No board meetings recorded yet.</div>
+            <div className="p-8 text-center text-xs text-[var(--muted)]">No board meetings recorded yet.</div>
           ) : (
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+              <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
                 <tr>
                   <th className="p-3">Meeting Title</th>
                   <th className="p-3">Convening Date</th>
@@ -448,18 +519,18 @@ export function GovernanceWorkspace({ user }: { user: any }) {
                   <th className="p-3">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#e2e8f0] font-medium text-[#0d1c2e]">
+              <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
                 {meetings.map((m) => (
-                  <tr key={m.id} className="hover:bg-[#e5eeff]">
-                    <td className="p-3 font-bold text-[#002045]">{m.title}</td>
-                    <td className="p-3 text-[#74777f] tabular-nums">{new Date(m.date || m.meetingDate).toLocaleDateString()}</td>
+                  <tr key={m.id} className="hover:bg-[var(--primary-surface)]">
+                    <td className="p-3 font-bold text-[var(--primary)]">{m.title}</td>
+                    <td className="p-3 text-[var(--muted)] tabular-nums">{new Date(m.meetingDate).toLocaleDateString()}</td>
                     <td className="p-3">
                       {m.minutesUrl ? (
-                        <a href={m.minutesUrl} target="_blank" rel="noreferrer" className="text-[#13696a] font-bold hover:underline">
+                        <a href={m.minutesUrl} target="_blank" rel="noreferrer" className="text-[var(--secondary)] font-bold hover:underline">
                           📄 View Minutes
                         </a>
                       ) : (
-                        <span className="text-[#74777f]">Pending Upload</span>
+                        <span className="text-[var(--muted)]">Pending Upload</span>
                       )}
                     </td>
                     <td className="p-3"><span className="badge-low-risk">{m.status || 'SCHEDULED'}</span></td>
@@ -473,26 +544,26 @@ export function GovernanceWorkspace({ user }: { user: any }) {
 
       {/* TAB 2: BOARD MEMBERS */}
       {activeTab === 'members' && (
-        <div className="bg-white rounded-lg border border-[#e2e8f0] p-5 space-y-4">
-          <div className="flex justify-between items-center border-b border-[#e2e8f0] pb-2">
-            <h2 className="font-bold text-[#002045] text-sm">👥 Board of Directors & Standing Committees</h2>
-            <button onClick={() => setActiveModal('member')} className="btn-primary text-xs bg-[#13696a] hover:bg-[#0f5455]">+ Add Board Member</button>
+        <div className="bg-white rounded-lg border border-[var(--outline)] p-5 space-y-4">
+          <div className="flex justify-between items-center border-b border-[var(--outline)] pb-2">
+            <h2 className="font-bold text-[var(--primary)] text-sm">👥 Board of Directors & Standing Committees</h2>
+            <button onClick={() => setActiveModal('member')} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">+ Add Board Member</button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
             {boardMembers.map((b) => (
-              <div key={b.id} className="p-4 bg-[#f8f9ff] border border-[#e2e8f0] rounded space-y-2">
+              <div key={b.id} className="p-4 bg-[var(--background)] border border-[var(--outline)] rounded space-y-2">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="font-bold text-[#002045] text-sm">{b.name}</p>
-                    <p className="text-[#74777f]">{b.title}</p>
+                    <p className="font-bold text-[var(--primary)] text-sm">{b.name}</p>
+                    <p className="text-[var(--muted)]">{b.title}</p>
                   </div>
-                  <span className="px-1.5 py-0.5 bg-[#e5eeff] text-[#002045] rounded font-bold text-[9px]">{b.role}</span>
+                  <span className="px-1.5 py-0.5 bg-[var(--primary-surface)] text-[var(--primary)] rounded font-bold text-[9px]">{b.role}</span>
                 </div>
                 <div className="pt-2 border-t">
-                  <p className="text-[10px] text-[#74777f] font-bold">Committees:</p>
-                  <p className="text-[#13696a] font-semibold">{b.committees.join(', ')}</p>
+                  <p className="text-[10px] text-[var(--muted)] font-bold">Committees:</p>
+                  <p className="text-[var(--secondary)] font-semibold">{b.committees || 'None assigned'}</p>
                 </div>
-                <div className="text-[10px] text-[#74777f] space-y-0.5">
+                <div className="text-[10px] text-[var(--muted)] space-y-0.5">
                   <p>📞 {b.phone}</p>
                   <p>✉️ {b.email}</p>
                   <p>🗓 Term: {b.termStart} to {b.termEnd}</p>
@@ -505,15 +576,15 @@ export function GovernanceWorkspace({ user }: { user: any }) {
 
       {/* TAB 3: RESOLUTIONS */}
       {activeTab === 'resolutions' && (
-        <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden">
-          <div className="p-4 border-b border-[#e2e8f0] flex justify-between items-center bg-[#f8f9ff]">
-            <div className="font-bold text-[#002045] text-sm">📜 Official Board Resolutions</div>
-            <button onClick={() => setActiveModal('resolution')} className="btn-primary text-xs bg-[#001733] text-white">
+        <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
+          <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
+            <div className="font-bold text-[var(--primary)] text-sm">📜 Official Board Resolutions</div>
+            <button onClick={() => setActiveModal('resolution')} className="btn-primary text-xs bg-[var(--primary-dark)] text-white">
               + Table New Resolution
             </button>
           </div>
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+            <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
               <tr>
                 <th className="p-3">Res No. & Title</th>
                 <th className="p-3">Type</th>
@@ -523,27 +594,27 @@ export function GovernanceWorkspace({ user }: { user: any }) {
                 <th className="p-3">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#e2e8f0] font-medium text-[#0d1c2e]">
+            <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
               {resolutions.map((r) => (
-                <tr key={r.id} className="hover:bg-[#e5eeff] align-top">
+                <tr key={r.id} className="hover:bg-[var(--primary-surface)] align-top">
                   <td className="p-3 w-64">
-                    <span className="font-bold text-[#13696a]">{r.resNum}</span>
-                    <p className="font-bold text-[#002045] mt-0.5">{r.title}</p>
-                    <p className="text-[10px] text-[#74777f] mt-1 line-clamp-2" title={r.text}>{r.text}</p>
+                    <span className="font-bold text-[var(--secondary)]">{r.resolutionNo}</span>
+                    <p className="font-bold text-[var(--primary)] mt-0.5">{r.title}</p>
+                    <p className="text-[10px] text-[var(--muted)] mt-1 line-clamp-2" title={r.description}>{r.description}</p>
                   </td>
-                  <td className="p-3">{r.type}</td>
-                  <td className="p-3 tabular-nums">{r.meetingDate}</td>
+                  <td className="p-3">{r.resolutionType}</td>
+                  <td className="p-3 tabular-nums">{r.meetingDate ? new Date(r.meetingDate).toLocaleDateString() : '—'}</td>
                   <td className="p-3 text-[10px]">
-                    <p>P: {r.proposedBy}</p>
-                    <p>S: {r.secondedBy}</p>
+                    <p>P: {r.proposedBy || '—'}</p>
+                    <p>S: {r.secondedBy || '—'}</p>
                   </td>
                   <td className="p-3">
                     <span className={`px-2 py-1 rounded text-[10px] font-bold ${r.status === 'PASSED' ? 'bg-emerald-100 text-emerald-800' : r.status === 'REJECTED' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
                       {r.status}
                     </span>
                     {r.status !== 'TABLED' && (
-                      <p className="text-[9px] mt-1 text-[#74777f]">
-                        {r.votes.favour} In Favour, {r.votes.against} Against, {r.votes.abstain} Abstain
+                      <p className="text-[9px] mt-1 text-[var(--muted)]">
+                        {r.votesFor} In Favour, {r.votesAgainst} Against, {r.abstentions} Abstain
                       </p>
                     )}
                   </td>
@@ -563,15 +634,15 @@ export function GovernanceWorkspace({ user }: { user: any }) {
 
       {/* TAB 4: ACTIONS */}
       {activeTab === 'actions' && (
-        <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden">
-          <div className="p-4 border-b border-[#e2e8f0] flex justify-between items-center bg-[#f8f9ff]">
-            <div className="font-bold text-[#002045] text-sm">✅ Action Tracker</div>
-            <button onClick={() => setActiveModal('action')} className="btn-primary text-xs bg-[#13696a] hover:bg-[#0f5455]">
+        <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
+          <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
+            <div className="font-bold text-[var(--primary)] text-sm">✅ Action Tracker</div>
+            <button onClick={() => setActiveModal('action')} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">
               + Add Action Item
             </button>
           </div>
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+            <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
               <tr>
                 <th className="p-3">Action Description</th>
                 <th className="p-3">Responsible</th>
@@ -581,25 +652,25 @@ export function GovernanceWorkspace({ user }: { user: any }) {
                 <th className="p-3">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#e2e8f0] font-medium text-[#0d1c2e]">
+            <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
               {actions.map((a) => (
-                <tr key={a.id} className={`hover:bg-[#e5eeff] ${a.status === 'COMPLETED' ? 'opacity-60' : ''}`}>
-                  <td className="p-3 font-bold text-[#002045] w-64">{a.description}</td>
+                <tr key={a.id} className={`hover:bg-[var(--primary-surface)] ${a.status === 'COMPLETED' ? 'opacity-60' : ''}`}>
+                  <td className="p-3 font-bold text-[var(--primary)] w-64">{a.description}</td>
                   <td className="p-3">{a.responsible}</td>
-                  <td className="p-3 tabular-nums">{a.due}</td>
+                  <td className="p-3 tabular-nums">{String(a.dueDate ?? '').slice(0, 10)}</td>
                   <td className="p-3">
                     <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${a.priority === 'HIGH' ? 'bg-red-100 text-red-700' : a.priority === 'MEDIUM' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
                       {a.priority}
                     </span>
                   </td>
-                  <td className="p-3 text-[#74777f]">{a.meeting}</td>
+                  <td className="p-3 text-[var(--muted)]">{a.meeting?.title ?? '—'}</td>
                   <td className="p-3">
                     {a.status === 'PENDING' ? (
                       <button onClick={() => setActions(actions.map(x => x.id === a.id ? { ...x, status: 'COMPLETED' } : x))} className="text-emerald-700 font-bold hover:underline border border-emerald-700 px-2 py-1 rounded">
                         Mark Complete
                       </button>
                     ) : (
-                      <span className="text-[#22543d] font-bold px-2 py-1">✓ Completed</span>
+                      <span className="text-[var(--risk-low-text)] font-bold px-2 py-1">✓ Completed</span>
                     )}
                   </td>
                 </tr>

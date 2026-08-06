@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsOptional, IsUrl, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsUrl,
+  IsDateString,
+} from 'class-validator';
 
 export class CreateGovernanceMeetingDto {
   @IsString()

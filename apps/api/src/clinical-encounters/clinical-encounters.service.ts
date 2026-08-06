@@ -1,18 +1,27 @@
+import { AssignPatientDto, CreateEncounterDto } from './dto/encounter.dto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PhiAccessService, PhiActor } from '../phi/phi-access.service';
+import {
+  CreateInvestigationDto,
+  UpdateInvestigationDto,
+} from './dto/investigation.dto';
 
 @Injectable()
 export class ClinicalEncountersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private phi: PhiAccessService,
+  ) {}
 
-  async createEncounter(data: any, userId: string) {
+  async createEncounter(data: CreateEncounterDto, userId: string) {
     return this.prisma.clinicalEncounter.create({
       data: {
         notes: data.notes,
         prognosis: data.prognosis,
         participantId: data.participantId,
         clinicianId: userId,
-      }
+      },
     });
   }
 
@@ -22,15 +31,28 @@ export class ClinicalEncountersService {
       orderBy: { createdAt: 'desc' },
       include: {
         clinician: {
-          select: { firstName: true, lastName: true }
-        }
-      }
+          select: { firstName: true, lastName: true },
+        },
+      },
     });
   }
 
-  async editEncounter(id: string, newNotes: string, userId: string) {
-    const encounter = await this.prisma.clinicalEncounter.findUnique({ where: { id } });
+  async editEncounter(
+    id: string,
+    newNotes: string,
+    userId: string,
+    actor: PhiActor,
+  ) {
+    const encounter = await this.prisma.clinicalEncounter.findUnique({
+      where: { id },
+    });
     if (!encounter) throw new NotFoundException('Encounter not found');
+
+    await this.phi.assertParticipantAccess(
+      actor,
+      encounter.participantId,
+      'PATCH /clinical-encounters/:id',
+    );
 
     return this.prisma.$transaction(async (tx) => {
       // Create Audit Log
@@ -41,24 +63,48 @@ export class ClinicalEncountersService {
           newData: newNotes,
           userId,
           clinicalEncounterId: id,
-        }
+        },
       });
 
       // Update Encounter
       return tx.clinicalEncounter.update({
         where: { id },
-        data: { notes: newNotes }
+        data: { notes: newNotes },
       });
     });
   }
 
-  async assignPatient(data: any, assignedBy: string) {
-    return this.prisma.patientAssignment.create({
-      data: {
-        participantId: data.participantId,
-        clinicianId: data.clinicianId,
-        status: 'ACTIVE'
-      }
+  /**
+   * Puts a clinician on a patient's caseload.
+   *
+   * `assignedBy` used to be accepted and then dropped on the floor: the
+   * PatientAssignment row has no column for it, so there was no record of who
+   * granted the access. It is written to the audit log instead, in the same
+   * transaction, because an assignment is what widens a clinician's PHI scope.
+   */
+  async assignPatient(data: AssignPatientDto, assignedBy: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const assignment = await tx.patientAssignment.create({
+        data: {
+          participantId: data.participantId,
+          clinicianId: data.clinicianId,
+          status: 'ACTIVE',
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          action: 'ASSIGN_PATIENT',
+          userId: assignedBy,
+          newData: JSON.stringify({
+            participantId: data.participantId,
+            clinicianId: data.clinicianId,
+            assignmentId: assignment.id,
+          }),
+        },
+      });
+
+      return assignment;
     });
   }
 
@@ -69,8 +115,87 @@ export class ClinicalEncountersService {
       orderBy: { assignedAt: 'desc' },
       include: {
         participant: true,
-        clinician: { select: { firstName: true, lastName: true, role: true } }
-      }
+        clinician: { select: { firstName: true, lastName: true, role: true } },
+      },
     });
+  }
+
+  /*
+   * Investigations. The table existed with no endpoint, so results and the
+   * recommendations drawn from them had nowhere to live.
+   *
+   * These are patient records, so every path resolves the owning participant
+   * and runs the same check as the rest of the clinical module — including the
+   * audited break-glass route for a patient outside the caller's caseload.
+   */
+
+  private async encounterParticipant(encounterId: string): Promise<string> {
+    const encounter = await this.prisma.clinicalEncounter.findUnique({
+      where: { id: encounterId },
+      select: { participantId: true },
+    });
+    if (!encounter) throw new NotFoundException('Encounter not found');
+    return encounter.participantId;
+  }
+
+  async listInvestigations(encounterId: string, actor: PhiActor) {
+    const participantId = await this.encounterParticipant(encounterId);
+    await this.phi.assertParticipantAccess(
+      actor,
+      participantId,
+      'GET /clinical-encounters/:id/investigations',
+    );
+    return this.prisma.investigation.findMany({
+      where: { clinicalEncounterId: encounterId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createInvestigation(dto: CreateInvestigationDto, actor: PhiActor) {
+    const participantId = await this.encounterParticipant(
+      dto.clinicalEncounterId,
+    );
+    await this.phi.assertParticipantAccess(
+      actor,
+      participantId,
+      'POST /clinical-encounters/investigations',
+    );
+    return this.prisma.investigation.create({
+      data: {
+        clinicalEncounterId: dto.clinicalEncounterId,
+        type: dto.type.trim(),
+        results: dto.results?.trim() || null,
+        recommendation: dto.recommendation?.trim() || null,
+      },
+    });
+  }
+
+  async updateInvestigation(
+    id: string,
+    dto: UpdateInvestigationDto,
+    actor: PhiActor,
+  ) {
+    const existing = await this.prisma.investigation.findUnique({
+      where: { id },
+      select: { id: true, clinicalEncounterId: true },
+    });
+    if (!existing) throw new NotFoundException('Investigation not found');
+
+    const participantId = await this.encounterParticipant(
+      existing.clinicalEncounterId,
+    );
+    await this.phi.assertParticipantAccess(
+      actor,
+      participantId,
+      'PATCH /clinical-encounters/investigations/:id',
+    );
+
+    const data: Record<string, unknown> = {};
+    if (dto.type !== undefined) data.type = dto.type.trim();
+    if (dto.results !== undefined) data.results = dto.results.trim() || null;
+    if (dto.recommendation !== undefined)
+      data.recommendation = dto.recommendation.trim() || null;
+
+    return this.prisma.investigation.update({ where: { id }, data });
   }
 }

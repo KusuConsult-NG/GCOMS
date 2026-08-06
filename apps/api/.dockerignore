@@ -1,0 +1,12 @@
+node_modules
+dist
+test
+coverage
+*.db
+*.db-journal
+.env
+.env.*
+!.env.example
+**/*.spec.ts
+.agents
+.claude

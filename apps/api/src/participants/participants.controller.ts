@@ -1,34 +1,58 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { ParticipantsService } from './participants.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { Prisma } from '@prisma/client';
+import { PHI_READ_ROLES } from '../auth/roles.constants';
+import { CreateParticipantDto } from './dto/create-participant.dto';
+import { PaginationQueryDto } from '../common/pagination';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('participants')
 export class ParticipantsController {
   constructor(private readonly participantsService: ParticipantsService) {}
 
   @Post()
-  create(@Body() createParticipantDto: any, @Request() req: any) {
-    const data: Prisma.ParticipantCreateInput = {
-      ...createParticipantDto,
-      dateOfBirth: new Date(createParticipantDto.dateOfBirth),
-      registeredBy: {
-        connect: { id: req.user.id }
-      }
-    };
-    return this.participantsService.create(data);
+  @Roles(...PHI_READ_ROLES)
+  create(
+    @Body() dto: CreateParticipantDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.participantsService.create(dto, req.user.id);
   }
 
+  /**
+   * Scoped: front-line roles get their own caseload, oversight roles get
+   * everything. Search is scoped too, so this cannot be used to enumerate the
+   * patient index.
+   */
   @Get()
-  findAll(@Query('search') search?: string) {
-    return this.participantsService.findAll(search);
+  @Roles(...PHI_READ_ROLES)
+  findAll(
+    @Request() req: AuthenticatedRequest,
+    @Query() pagination: PaginationQueryDto,
+    @Query('search') search?: string,
+  ) {
+    return this.participantsService.findAll(req.user, search, pagination);
   }
 
+  /**
+   * Reachable by id for any patient, including outside the caller's caseload —
+   * see PhiAccessService.assertParticipantAccess for why, and what is logged.
+   */
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.participantsService.findOne(id);
+  @Roles(...PHI_READ_ROLES)
+  findOne(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    return this.participantsService.findOne(id, req.user);
   }
 }

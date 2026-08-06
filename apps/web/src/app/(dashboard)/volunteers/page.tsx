@@ -1,6 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import type { UserRecord, VolunteerProfile } from '@/types/api';
+
+import { api } from '@/lib/api';
+import React, { useState, useEffect } from 'react';
 
 const PLATEAU_LGAS = [
   'Barkin Ladi LGA',
@@ -23,99 +26,125 @@ const PLATEAU_LGAS = [
 ];
 
 export default function VolunteersPage() {
-  const [volunteers, setVolunteers] = useState<any[]>([
-    { id: 1, firstName: 'Grace', lastName: 'Gyang', email: 'grace.gyang@gcoms.org', phone: '08031112233', lga: 'Barkin Ladi LGA', ward: 'Gwol Ward', address: 'House 14, Main Street, Barkin Ladi', status: 'Active' },
-    { id: 2, firstName: 'Blessing', lastName: 'Pam', email: 'blessing.pam@gcoms.org', phone: '08032223344', lga: 'Jos North LGA', ward: 'Tudun Wada Ward', address: 'Plot 88, Ahmadu Bello Way, Jos', status: 'Active' },
-    { id: 3, firstName: 'Emmanuel', lastName: 'Luka', email: 'emmanuel.luka@gcoms.org', phone: '08033334455', lga: 'Mangu LGA', ward: 'Panyam Ward', address: 'Panyam Central Road, Mangu', status: 'Active' },
-    { id: 4, firstName: 'Ruth', lastName: 'Danladi', email: 'ruth.danladi@gcoms.org', phone: '08034445566', lga: 'Kanke LGA', ward: 'Kwal Ward', address: 'Near LGA Secretariate, Kanke', status: 'Active' },
-  ]);
+  // Volunteer rosters live in VolunteerProfile. This page made no API calls at
+  // all — every name on it was invented.
+  const [volunteers, setVolunteers] = useState<VolunteerProfile[]>([]);
+
 
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    lga: 'Barkin Ladi LGA',
-    ward: '',
-    address: '',
-  });
+  const [formData, setFormData] = useState({ userId: '', lga: 'Barkin Ladi LGA', ward: '', address: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const [candidates, setCandidates] = useState<UserRecord[]>([]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.lga) {
-      alert('Local Government Area (LGA) is mandatory!');
-      return;
+  // Flattened into a different shape on the way in, which is what made
+  // `v.firstName` look right. Kept as the API sends it instead.
+  const fetchVolunteers = async () => {
+    try {
+      setVolunteers((await api.get('/operations/volunteers')).data);
+    } catch (err) {
+      console.error('Failed to fetch volunteers', err);
     }
-    setVolunteers([
-      {
-        id: Date.now(),
-        ...formData,
-        status: 'Active',
-      },
-      ...volunteers,
-    ]);
-    setShowModal(false);
-    setFormData({ firstName: '', lastName: '', email: '', phone: '', lga: 'Barkin Ladi LGA', ward: '', address: '' });
+  };
+
+  const fetchCandidates = async () => {
+    try {
+      const res = await api.get('/users');
+      setCandidates(
+        (res.data as UserRecord[]).filter(
+          (u) => u.role === 'VOLUNTEER' && u.isActive,
+        ),
+      );
+    } catch (err) {
+      // Not every role that can see this page may list users; the picker simply
+      // stays empty rather than the page failing.
+      console.error('Failed to fetch volunteer accounts', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchVolunteers();
+    fetchCandidates();
+  }, []);
+
+  // A volunteer profile attaches to an existing user account, which is why the
+  // form now picks one rather than collecting a name and an email: this used to
+  // build a record in local state with `id: Date.now()` and never call the API,
+  // so a registration survived exactly as long as the tab stayed open.
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.userId || !formData.lga) return;
+    setSubmitting(true);
+    try {
+      await api.post('/operations/volunteers', {
+        userId: formData.userId,
+        lga: formData.lga,
+        ward: formData.ward || undefined,
+        address: formData.address || undefined,
+      });
+      setShowModal(false);
+      setFormData({ userId: '', lga: 'Barkin Ladi LGA', ward: '', address: '' });
+      await fetchVolunteers();
+    } catch (err) {
+      console.error('Failed to register volunteer', err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[#002045] text-white p-5 rounded-lg border border-[#1a365d]">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)]">
         <div>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#13696a] text-white uppercase tracking-wider">
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
             Field Volunteer & CHW Data Collection
           </span>
           <h1 className="text-2xl font-bold mt-1 text-white">Volunteer Operations & LGA Registry</h1>
           <p className="text-slate-300 text-xs mt-0.5">Mandatory LGA, Ward, and Address registration for field health workers.</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary text-xs mt-3 md:mt-0 bg-[#13696a] hover:bg-[#0f5455]">
+        <button onClick={() => setShowModal(true)} className="btn-primary text-xs mt-3 md:mt-0 bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">
           + Register New Field Volunteer
         </button>
       </div>
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-[#002045]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[#e2e8f0] space-y-4">
-            <div className="flex justify-between items-center border-b border-[#e2e8f0] pb-3">
-              <h2 className="text-base font-bold text-[#002045]">Field Volunteer Data Collection</h2>
-              <button onClick={() => setShowModal(false)} className="text-[#74777f] font-bold">✕</button>
+        <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
+            <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
+              <h2 className="text-base font-bold text-[var(--primary)]">Field Volunteer Data Collection</h2>
+              <button onClick={() => setShowModal(false)} className="text-[var(--muted)] font-bold">✕</button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block font-semibold text-[#0d1c2e] mb-1">First Name *</label>
-                  <input
-                    type="text"
+                  <label className="block font-semibold text-[var(--on-background)] mb-1">Volunteer account *</label>
+                  <select
                     required
-                    value={formData.firstName}
-                    onChange={e => setFormData({ ...formData, firstName: e.target.value })}
-                    placeholder="e.g. Grace"
-                    className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-[#0d1c2e] mb-1">Last Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.lastName}
-                    onChange={e => setFormData({ ...formData, lastName: e.target.value })}
-                    placeholder="e.g. Gyang"
-                    className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs"
-                  />
+                    value={formData.userId}
+                    onChange={e => setFormData({ ...formData, userId: e.target.value })}
+                    className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs"
+                  >
+                    <option value="">Select a volunteer account…</option>
+                    {candidates.map(u => (
+                      <option key={u.id} value={u.id}>{u.firstName} {u.lastName} — {u.email}</option>
+                    ))}
+                  </select>
+                  {candidates.length === 0 && (
+                    <p className="text-[10px] text-[var(--muted)] mt-1">
+                      No volunteer accounts available. An administrator creates the account first; this form attaches the field posting to it.
+                    </p>
+                  )}
                 </div>
               </div>
 
               {/* MANDATORY LGA SELECTION */}
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">LGA *</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">LGA *</label>
                 <select
                   required
                   value={formData.lga}
                   onChange={e => setFormData({ ...formData, lga: e.target.value })}
-                  className="w-full bg-white border-2 border-[#13696a] rounded px-3 py-2 text-xs font-bold text-[#002045]"
+                  className="w-full bg-white border-2 border-[var(--secondary)] rounded px-3 py-2 text-xs font-bold text-[var(--primary)]"
                 >
                   <option value="">-- Select LGA (Required) --</option>
                   {PLATEAU_LGAS.map((lga, idx) => (
@@ -126,55 +155,33 @@ export default function VolunteersPage() {
 
               {/* WARD */}
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Ward Name</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Ward Name</label>
                 <input
                   type="text"
                   value={formData.ward}
                   onChange={e => setFormData({ ...formData, ward: e.target.value })}
                   placeholder="e.g. Gwol Ward"
-                  className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs"
+                  className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs"
                 />
               </div>
 
               {/* ADDRESS */}
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Residential Street Address</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Residential Street Address</label>
                 <input
                   type="text"
                   value={formData.address}
                   onChange={e => setFormData({ ...formData, address: e.target.value })}
                   placeholder="e.g. House No 14, Main Street"
-                  className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs"
+                  className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block font-semibold text-[#0d1c2e] mb-1">Phone Number</label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="08030000000"
-                    className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-[#0d1c2e] mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="volunteer@gcoms.org"
-                    className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs font-mono"
-                  />
-                </div>
-              </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setShowModal(false)} className="btn-secondary text-xs">Cancel</button>
-                <button type="submit" className="btn-primary text-xs bg-[#13696a] hover:bg-[#0f5455]">
-                  Save Volunteer Record
+                <button type="submit" disabled={submitting} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)] disabled:opacity-50">
+                  {submitting ? 'Saving…' : 'Save Volunteer Record'}
                 </button>
               </div>
             </form>
@@ -183,12 +190,12 @@ export default function VolunteersPage() {
       )}
 
       {/* Roster Table */}
-      <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden">
-        <div className="p-4 border-b border-[#e2e8f0] font-bold text-[#002045] text-sm bg-[#f8f9ff]">
+      <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
+        <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
           🩺 Registered Volunteers with Mandatory LGA & Location Identifiers
         </div>
         <table className="w-full text-left text-xs">
-          <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+          <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
             <tr>
               <th className="p-3">Volunteer Name</th>
               <th className="p-3">Mandatory LGA</th>
@@ -198,18 +205,18 @@ export default function VolunteersPage() {
               <th className="p-3">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#e2e8f0] font-medium text-[#0d1c2e]">
+          <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
             {volunteers.map((v) => (
-              <tr key={v.id} className="hover:bg-[#e5eeff]">
-                <td className="p-3 font-bold text-[#002045]">{v.firstName} {v.lastName}</td>
+              <tr key={v.id} className="hover:bg-[var(--primary-surface)]">
+                <td className="p-3 font-bold text-[var(--primary)]">{v.user ? `${v.user.firstName} ${v.user.lastName}` : 'Unknown'}</td>
                 <td className="p-3">
-                  <span className="px-2 py-0.5 rounded bg-[#13696a] text-white text-[10px] font-bold">
+                  <span className="px-2 py-0.5 rounded bg-[var(--secondary)] text-white text-[10px] font-bold">
                     {v.lga}
                   </span>
                 </td>
-                <td className="p-3 font-semibold text-[#0d1c2e]">{v.ward || '—'}</td>
-                <td className="p-3 text-[#43474e]">{v.address || '—'}</td>
-                <td className="p-3 font-mono text-[#74777f]">{v.phone}</td>
+                <td className="p-3 font-semibold text-[var(--on-background)]">{v.ward || '—'}</td>
+                <td className="p-3 text-[var(--on-surface-variant)]">{v.address || '—'}</td>
+                <td className="p-3 font-mono text-[var(--muted)]">{v.user?.email ?? '—'}</td>
                 <td className="p-3"><span className="badge-low-risk">{v.status}</span></td>
               </tr>
             ))}

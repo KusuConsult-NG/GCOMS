@@ -11,7 +11,13 @@ export class CommunitiesService {
     });
   }
 
-  async create(data: { name: string; lga: string; state?: string; population?: number; leaderName?: string }) {
+  async create(data: {
+    name: string;
+    lga: string;
+    state?: string;
+    population?: number;
+    leaderName?: string;
+  }) {
     return this.prisma.community.create({
       data: {
         name: data.name,
@@ -23,4 +29,3 @@ export class CommunitiesService {
     });
   }
 }
-

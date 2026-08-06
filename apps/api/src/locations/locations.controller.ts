@@ -16,7 +16,9 @@ export class LocationsController {
 
   @Post()
   @Roles('EXECUTIVE', 'ADMIN', 'SYSTEM_ADMIN')
-  async create(@Body() body: { name: string; lga: string; state?: string; type?: string }) {
+  async create(
+    @Body() body: { name: string; lga: string; state?: string; type?: string },
+  ) {
     return this.locationsService.create(body);
   }
 }

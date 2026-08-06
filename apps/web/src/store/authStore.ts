@@ -22,12 +22,10 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       token: null,
-      setAuth: (user, token) => {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('token', token);
-        }
-        set({ user, token });
-      },
+      // The persisted store is the only place the token lives. It used to be
+      // mirrored into a separate localStorage['token'] that api.ts read instead,
+      // which meant the UI and the API could disagree about being signed in.
+      setAuth: (user, token) => set({ user, token }),
       updateUserRole: (role) => {
         set((state) => ({
           user: state.user ? { ...state.user, role } : null,
@@ -35,6 +33,7 @@ export const useAuthStore = create<AuthState>()(
       },
       logout: () => {
         if (typeof window !== 'undefined') {
+          // Clear the key older builds wrote, so a stale copy cannot linger.
           localStorage.removeItem('token');
         }
         set({ user: null, token: null });

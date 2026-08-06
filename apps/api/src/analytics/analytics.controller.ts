@@ -11,8 +11,7 @@ export class AnalyticsController {
 
   @Get('summary')
   @Roles('EXECUTIVE', 'SYSTEM_ADMIN', 'BOARD')
-  getSummary(@Request() req: any) {
+  getSummary() {
     return this.analyticsService.getSummary();
   }
 }
-

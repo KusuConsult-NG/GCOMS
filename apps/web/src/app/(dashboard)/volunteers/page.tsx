@@ -180,8 +180,8 @@ export default function VolunteersPage() {
 
               <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setShowModal(false)} className="btn-secondary text-xs">Cancel</button>
-                <button type="submit" className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">
-                  Save Volunteer Record
+                <button type="submit" disabled={submitting} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)] disabled:opacity-50">
+                  {submitting ? 'Saving…' : 'Save Volunteer Record'}
                 </button>
               </div>
             </form>

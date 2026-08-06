@@ -1,9 +1,10 @@
 'use client';
 
 import { errorMessage } from '@/lib/errors';
-import type { OutreachEvent, Participant, SessionUser } from '@/types/api';
+import type { OutreachEvent, SessionUser } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { api } from '@/lib/api';
 
 const PLATEAU_LGAS = [
@@ -29,10 +30,10 @@ const PLATEAU_LGAS = [
 export function VolunteerWorkspace({ user }: { user: SessionUser }) {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'register' | 'outreach' | 'queue'>('dashboard');
   const [outreaches, setOutreaches] = useState<OutreachEvent[]>([]);
-  const [loading, setLoading] = useState(true);
   // Registrations captured while offline, replayed when the connection returns.
-  const [offlineQueue, setOfflineQueue] = useState<Array<Record<string, string>>>([]);
-  const [gpsStatus, setGpsStatus] = useState<'CONNECTED' | 'SEARCHING'>('CONNECTED');
+  // Nothing enqueues yet, so the two counters below always read zero. Left as a
+  // constant rather than state to make that plain at the point of definition.
+  const offlineQueue: Array<Record<string, string>> = [];
   const [lastSync, setLastSync] = useState(new Date().toLocaleTimeString());
   const [gpsLoading, setGpsLoading] = useState(false);
 
@@ -73,8 +74,7 @@ type RegistrationConfirmation = {
   useEffect(() => {
     api.get('/outreach')
       .then(res => setOutreaches(res.data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+      .catch(console.error);
   }, []);
 
   const handleCaptureGps = () => {
@@ -279,7 +279,7 @@ type RegistrationConfirmation = {
               <div className="flex justify-between items-start border-b border-[var(--nav-surface-raised)] pb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white rounded flex items-center justify-center p-1">
-                    <img src="/georgel-logo.png" alt="Logo" className="h-8 object-contain" />
+                    <Image src="/georgel-logo.png" alt="Logo" width={32} height={32} className="h-8 object-contain" />
                   </div>
                   <div>
                     <h3 className="font-bold text-base tracking-wide text-white">GCOMS PATIENT IDENTITY PASS</h3>

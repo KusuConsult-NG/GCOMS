@@ -57,7 +57,7 @@ export default function StrategyDashboard() {
       try {
         await api.patch(`/strategy/goals/${id}`, { currentMetric: Number(newVal) });
         fetchGoals();
-      } catch (err) {
+      } catch {
         alert('Failed to update progress metric.');
       }
     }

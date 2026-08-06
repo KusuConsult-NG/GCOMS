@@ -1,12 +1,12 @@
 'use client';
 
-import type { InventoryItem, ServiceLog, SessionUser, StockMovement } from '@/types/api';
+import type { InventoryItem, ServiceLog, StockMovement } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 
-export function InventoryWorkspace({ user }: { user: SessionUser }) {
+export function InventoryWorkspace() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'consumables' | 'assets' | 'movements' | 'reorder' | 'maintenance'>('consumables');
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -221,7 +221,6 @@ export function InventoryWorkspace({ user }: { user: SessionUser }) {
     e.preventDefault();
     setMaintenanceSchedule(maintenanceSchedule.map(m => m.id === maintenanceCompleteData.id ? { ...m, status: 'COMPLETED' } : m));
     
-    const completedLog = maintenanceSchedule.find((m) => m.id === maintenanceCompleteData.id);
     api.patch(`/inventory/service-logs/${maintenanceCompleteData.id}`, { status: 'COMPLETED' })
       .then(() => fetchServiceLogs())
       .catch(err => console.error('Failed to complete maintenance', err));

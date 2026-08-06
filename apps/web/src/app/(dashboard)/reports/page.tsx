@@ -6,7 +6,6 @@ import { api } from '@/lib/api';
 
 export default function ReportsPage() {
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
-  const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
@@ -17,7 +16,6 @@ export default function ReportsPage() {
       } catch (err) {
         console.error('Failed to load reports summary', err);
       } finally {
-        setLoading(false);
       }
     };
     fetchSummary();

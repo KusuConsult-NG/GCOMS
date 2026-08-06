@@ -1,12 +1,12 @@
 'use client';
 
-import type { BoardAction, BoardMember, BoardResolution, GovernanceMeeting, SessionUser } from '@/types/api';
+import type { BoardAction, BoardMember, BoardResolution, GovernanceMeeting } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 
-export function GovernanceWorkspace({ user }: { user: SessionUser }) {
+export function GovernanceWorkspace() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'meetings' | 'members' | 'resolutions' | 'actions'>('meetings');
   const [meetings, setMeetings] = useState<GovernanceMeeting[]>([]);

@@ -73,7 +73,6 @@ export default function MobilePreviewPage() {
                     <input
                       type="text"
                       placeholder="Email Address"
-                      defaultValue="retsum@gcoms.org"
                       className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                     <input

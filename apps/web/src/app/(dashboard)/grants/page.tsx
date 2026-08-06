@@ -8,10 +8,11 @@ import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { AccessDenied } from '@/components/AccessDenied';
 
+const allowedRoles = ['EXECUTIVE', 'BOARD', 'SUPER_ADMIN', 'SYSTEM_ADMIN', 'ADMIN', 'GRANT_MANAGER'];
+
 function GrantsPageContent() {
   const { user } = useAuthStore();
   const searchParams = useSearchParams();
-  const allowedRoles = ['EXECUTIVE', 'BOARD', 'SUPER_ADMIN', 'SYSTEM_ADMIN', 'ADMIN', 'GRANT_MANAGER'];
 
   const [activeTab, setActiveTab] = useState<'grants' | 'pipeline' | 'donors' | 'milestones' | 'reports'>('grants');
   const [grants, setGrants] = useState<Grant[]>([]);

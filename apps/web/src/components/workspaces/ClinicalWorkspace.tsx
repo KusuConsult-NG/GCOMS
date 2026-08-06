@@ -5,14 +5,12 @@ import type { FollowUp, PatientAssignment, Referral, Screening, SessionUser, Vit
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { useAuthStore } from '@/store/authStore';
 
 export function ClinicalWorkspace({ user }: { user: SessionUser }) {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'encounters' | 'vitals' | 'followups' | 'reports'>('dashboard');
   const [assignments, setAssignments] = useState<PatientAssignment[]>([]);
   const [upcomingFu, setUpcomingFu] = useState<FollowUp[]>([]);
   const [missedFu, setMissedFu] = useState<FollowUp[]>([]);
-  const [loading, setLoading] = useState(true);
 
   // Clinical Encounter Form
   const [encounterForm, setEncounterForm] = useState({
@@ -107,7 +105,7 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
         setVitalsForm(prev => ({ ...prev, participantId: aRes.data[0].participantId }));
         setFuForm(prev => ({ ...prev, participantId: aRes.data[0].participantId }));
       }
-    }).catch(console.error).finally(() => setLoading(false));
+    }).catch(console.error);
   };
 
   const fetchFollowUps = () => {

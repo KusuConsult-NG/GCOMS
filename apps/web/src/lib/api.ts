@@ -42,6 +42,10 @@ api.interceptors.response.use(
     if (status === 401 && typeof window !== 'undefined') {
       useAuthStore.getState().logout();
       if (!window.location.pathname.startsWith('/login')) {
+        // As with logout: a full reload is what discards the data the expired
+        // token was used to fetch. This is also outside a component, so the
+        // router hook is not available here anyway.
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
         window.location.href = '/login?expired=1';
       }
     }

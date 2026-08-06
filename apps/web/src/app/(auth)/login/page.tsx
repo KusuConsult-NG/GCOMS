@@ -1,6 +1,7 @@
 'use client';
 
 import { errorMessage, errorStatus } from '@/lib/errors';
+import Image from 'next/image';
 
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -65,9 +66,11 @@ function LoginForm() {
         {/* Official Logo Header */}
         <div className="flex flex-col items-center text-center mb-6">
           <div className="w-full h-24 mb-3 flex items-center justify-center p-2 bg-white rounded border border-[var(--outline)]">
-            <img
+            <Image
               src="/georgel-logo.png"
               alt="Georgel Cancer Foundation Logo"
+              width={96}
+              height={96}
               className="w-full h-full object-contain"
             />
           </div>

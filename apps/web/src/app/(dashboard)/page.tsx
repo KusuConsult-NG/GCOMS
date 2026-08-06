@@ -61,11 +61,11 @@ export default function Dashboard() {
 
     case 'ADMIN':
     case 'SYSTEM_ADMIN':
-      return <AdminWorkspace user={user} />;
+      return <AdminWorkspace />;
 
     case 'EXECUTIVE':
     case 'BOARD':
     default:
-      return <ExecutiveWorkspace user={user} />;
+      return <ExecutiveWorkspace />;
   }
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import React from "react";
+import Image from 'next/image';
 import { useAuthStore } from "@/store/authStore";
 import { ThemeToggle } from '@/components/ThemeProvider';
 
@@ -14,7 +15,7 @@ export function Topbar() {
         <div className="flex items-center space-x-3">
           {/* Brand Badge */}
           <div className="h-10 px-2.5 bg-white rounded flex items-center justify-center border border-[var(--outline)]">
-            <img src="/georgel-logo.png" alt="Georgel Cancer Foundation Logo" className="h-7 w-auto object-contain" />
+            <Image src="/georgel-logo.png" alt="Georgel Cancer Foundation Logo" width={28} height={28} className="h-7 w-auto object-contain" />
           </div>
           <div>
             <h2 className="text-sm font-bold tracking-tight text-white flex items-center gap-2">

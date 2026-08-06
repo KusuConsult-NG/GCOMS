@@ -1,12 +1,12 @@
 'use client';
 
-import type { Project, ProjectTask, Risk, SessionUser } from '@/types/api';
+import type { Project, ProjectTask, Risk } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 
-export function ProjectWorkspace({ user }: { user: SessionUser }) {
+export function ProjectWorkspace() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'projects' | 'tasks' | 'risks' | 'budget' | 'changes'>('projects');
   const [projects, setProjects] = useState<Project[]>([]);

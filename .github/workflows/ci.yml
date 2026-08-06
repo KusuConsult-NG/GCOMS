@@ -110,13 +110,12 @@ jobs:
           fi
 
           # And the addresses themselves, since a refactor could drop the heading
-          # while keeping the buttons. Two are allowed through: both render as
-          # visible example text rather than as a way in — the login field's
-          # `placeholder="e.g. executive@gcoms.org"`, and the mocked-up input on
-          # /mobile-preview.
+          # while keeping the buttons. One is allowed through: the login field's
+          # `placeholder="e.g. executive@gcoms.org"`, which renders as visible
+          # example text rather than as a way in.
           leaked=$(grep -rhoE "[a-z_]+@gcoms\.org" $shipped \
             | sort -u \
-            | grep -vxE "executive@gcoms\.org|retsum@gcoms\.org" || true)
+            | grep -vxE "executive@gcoms\.org" || true)
           if [ -n "$leaked" ]; then
             echo "Demo account addresses reached the production bundle:"
             echo "$leaked"

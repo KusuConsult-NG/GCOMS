@@ -3,6 +3,7 @@
 import { errorMessage } from '@/lib/errors';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
@@ -187,7 +188,7 @@ type RegistrationConfirmation = {
               <div className="flex justify-between items-start border-b border-[var(--nav-surface-raised)] pb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white rounded flex items-center justify-center p-1">
-                    <img src="/georgel-logo.png" alt="Logo" className="h-8 object-contain" />
+                    <Image src="/georgel-logo.png" alt="Logo" width={32} height={32} className="h-8 object-contain" />
                   </div>
                   <div>
                     <h3 className="font-bold text-base tracking-wide text-white">GCOMS PATIENT IDENTITY PASS</h3>

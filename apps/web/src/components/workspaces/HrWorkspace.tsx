@@ -1,6 +1,6 @@
 'use client';
 
-import type { Appraisal, JobOpening, LeaveRequest, SessionUser, StaffRecord, TrainingRecord, VolunteerProfile } from '@/types/api';
+import type { Appraisal, JobOpening, LeaveRequest, StaffRecord, TrainingRecord, VolunteerProfile } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -12,7 +12,7 @@ const PLATEAU_LGAS = [
   'Mangu LGA', 'Mikang LGA', 'Pankshin LGA', 'Quan\'Pan LGA', 'Riyom LGA', 'Shendam LGA', 'Wase LGA',
 ];
 
-export function HrWorkspace({ user }: { user: SessionUser }) {
+export function HrWorkspace() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'staff' | 'volunteers' | 'recruitment' | 'leave' | 'training'>('staff');
   const [staff, setStaff] = useState<StaffRecord[]>([]);

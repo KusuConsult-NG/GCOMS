@@ -13,9 +13,10 @@ export default function InventoryPage() {
     return <AccessDenied requiredRole="Inventory Manager / Executive" />;
   }
 
-  // Until the store has hydrated there is no user, and the workspace reads
-  // user.role. Passing null through type-checked only because the prop was
-  // `any`.
+  // The role check above only denies once there is a user to check. Until the
+  // store has hydrated there is none, so rendering on through would show the
+  // workspace to whoever is waiting — briefly, but before anything has
+  // established they are allowed to see it.
   if (!user) {
     return (
       <div className="p-8 text-center text-xs text-[var(--muted)]">
@@ -26,7 +27,7 @@ export default function InventoryPage() {
 
   return (
     <Suspense fallback={<div className="p-8 text-center text-xs text-[var(--muted)]">Loading Inventory Application...</div>}>
-      <InventoryWorkspace user={user} />
+      <InventoryWorkspace />
     </Suspense>
   );
 }

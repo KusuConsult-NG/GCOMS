@@ -3,7 +3,6 @@
 import type { FollowUp, Referral, Screening } from '@/types/api';
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { useAuthStore } from '@/store/authStore';
 import { ageInYears, useToday } from '@/lib/useToday';
 
 interface Patient {
@@ -24,7 +23,6 @@ interface Patient {
 }
 
 export default function PatientsPage() {
-  const { user } = useAuthStore();
   const today = useToday();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);

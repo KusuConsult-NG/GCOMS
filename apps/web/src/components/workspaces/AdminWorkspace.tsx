@@ -1,12 +1,11 @@
 'use client';
 
-import type { AuditLogEntry, SessionUser, UserRecord } from '@/types/api';
+import type { AuditLogEntry, UserRecord } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { useAuthStore } from '@/store/authStore';
 
-export function AdminWorkspace({ user }: { user: SessionUser }) {
+export function AdminWorkspace() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'audit' | 'config'>('users');

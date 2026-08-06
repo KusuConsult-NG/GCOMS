@@ -1,24 +1,22 @@
 'use client';
 
 import type { PurchaseRequest } from '@/types/procurement';
-import type { AnalyticsSummary, ApprovalRequest, FinanceTransaction, Grant, InventoryItem, Project, SessionUser } from '@/types/api';
+import type { ApprovalRequest, FinanceTransaction, Grant, InventoryItem, Project } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import { useAuthStore } from '@/store/authStore';
-import Link from 'next/link';
 
-export function ExecutiveWorkspace({ user }: { user: SessionUser }) {
-  const [analytics, setAnalytics] = useState<Partial<AnalyticsSummary>>({});
+export function ExecutiveWorkspace() {
+  const router = useRouter();
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   const [grants, setGrants] = useState<Grant[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [procurementOrders, setProcurementOrders] = useState<PurchaseRequest[]>([]);
   const [financeTransactions, setFinanceTransactions] = useState<FinanceTransaction[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [approvalFilter, setApprovalFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
-  const [lgaData, setLgaData] = useState([
+  const lgaData = [
     // TODO: replace with live LGA analytics endpoint when available
     { lga: 'Barkin Ladi', status: 'Active Campaign', referrals: 45, score: '88%' },
     { lga: 'Mangu', status: 'Expanding', referrals: 30, score: '72%' },
@@ -26,33 +24,31 @@ export function ExecutiveWorkspace({ user }: { user: SessionUser }) {
     { lga: 'Riyom', status: 'Scheduled', referrals: 12, score: '65%' },
     { lga: 'Kanke', status: 'Active Campaign', referrals: 55, score: '81%' },
     { lga: 'Pankshin', status: 'Needs Attention', referrals: 8, score: '45%' },
-  ]);
+  ];
 
   useEffect(() => {
     Promise.all([
-      api.get('/analytics/summary').catch(() => ({ data: {} })),
       api.get('/approvals').catch(() => ({ data: [] })),
       api.get('/grants').catch(() => ({ data: [] })),
       api.get('/projects').catch(() => ({ data: [] })),
       api.get('/procurement').catch(() => ({ data: [] })),
       api.get('/finance').catch(() => ({ data: [] })),
       api.get('/inventory').catch(() => ({ data: [] })),
-    ]).then(([analyticsRes, approvalsRes, grantsRes, projectsRes, procurementRes, financeRes, inventoryRes]) => {
-      setAnalytics(analyticsRes.data || {});
+    ]).then(([approvalsRes, grantsRes, projectsRes, procurementRes, financeRes, inventoryRes]) => {
       setApprovals(approvalsRes.data || []);
       setGrants(grantsRes.data || []);
       setProjects(projectsRes.data || []);
       setProcurementOrders(procurementRes.data || []);
       setFinanceTransactions(financeRes.data || []);
       setInventoryItems(inventoryRes.data || []);
-    }).catch(console.error).finally(() => setLoading(false));
+    }).catch(console.error);
   }, []);
 
   const handleApprove = async (item: ApprovalRequest) => {
     try {
       try {
         await api.patch(`/approvals/${item.id}`, { status: 'APPROVED', comment: 'Approved by Executive' });
-      } catch (err) {
+      } catch {
         await api.post('/approvals', { ...item, action: 'APPROVE' });
       }
       setApprovals(prev => prev.map(a => a.id === item.id ? { ...a, status: 'APPROVED' } : a));
@@ -65,7 +61,7 @@ export function ExecutiveWorkspace({ user }: { user: SessionUser }) {
     try {
       try {
         await api.patch(`/approvals/${item.id}`, { status: 'REJECTED', comment: 'Rejected by Executive' });
-      } catch (err) {
+      } catch {
         await api.post('/approvals', { ...item, action: 'REJECT' });
       }
       setApprovals(prev => prev.map(a => a.id === item.id ? { ...a, status: 'REJECTED' } : a));
@@ -102,10 +98,10 @@ export function ExecutiveWorkspace({ user }: { user: SessionUser }) {
         </div>
 
         <div className="mt-4 md:mt-0 flex gap-2">
-          <button onClick={() => window.location.href = '/reports'} className="btn-primary text-xs">
+          <button onClick={() => router.push('/reports')} className="btn-primary text-xs">
             Export Report
           </button>
-          <button onClick={() => window.location.href = '/strategy'} className="btn-secondary text-xs">
+          <button onClick={() => router.push('/strategy')} className="btn-secondary text-xs">
             Strategic Review
           </button>
         </div>

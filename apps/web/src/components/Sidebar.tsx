@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
+import Image from 'next/image';
 import { useAuthStore } from "@/store/authStore";
 
 export function Sidebar() {
@@ -37,9 +38,11 @@ export function Sidebar() {
     <aside className="w-64 bg-[var(--nav-surface)] text-white h-screen flex flex-col fixed inset-y-0 left-0 z-50 overflow-y-auto border-r border-[var(--nav-surface-raised)]">
       {/* Brand Header */}
       <div className="bg-white p-3 border-b border-[var(--outline)] flex items-center justify-center">
-        <img
+        <Image
           src="/georgel-logo.png"
           alt="Georgel Cancer Foundation Logo"
+          width={48}
+          height={48}
           className="w-full h-12 object-contain"
         />
       </div>
@@ -319,6 +322,10 @@ export function Sidebar() {
           <button
             onClick={() => {
               useAuthStore.getState().logout();
+              // A hard navigation, deliberately. router.push() keeps the SPA
+              // alive, so every component that already fetched patient data
+              // holds it in memory across the logout.
+              // eslint-disable-next-line @next/next/no-location-assign-relative-destination
               window.location.href = '/login';
             }}
             className="text-slate-300 hover:text-white font-semibold text-xs ml-2"

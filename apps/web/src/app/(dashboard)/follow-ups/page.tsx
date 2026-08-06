@@ -2,9 +2,8 @@
 
 import { errorMessage } from '@/lib/errors';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
-import { useAuthStore } from '@/store/authStore';
 
 interface FollowUp {
   id: string;
@@ -31,7 +30,6 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function FollowUpPage() {
-  const { user } = useAuthStore();
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
   const [missed, setMissed] = useState<FollowUp[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -45,7 +43,7 @@ export default function FollowUpPage() {
   const [submitting, setSubmitting] = useState(false);
 
 
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
       const [fuRes, missedRes, statsRes] = await Promise.all([
@@ -61,11 +59,11 @@ export default function FollowUpPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterStatus]);
 
   useEffect(() => {
     fetchAll();
-  }, [filterStatus]);
+  }, [fetchAll]);
 
   const handleStatusUpdate = async (id: string, status: string) => {
     try {

@@ -31,10 +31,11 @@ const COST_CENTRE_CATEGORIES = [
   "2002 - Tax & Pension Withholdings",
 ];
 
+const allowedRoles = ['EXECUTIVE', 'BOARD', 'SYSTEM_ADMIN', 'ADMIN', 'FINANCE'];
+
 function FinancePageContent() {
   const { user } = useAuthStore();
   const searchParams = useSearchParams();
-  const allowedRoles = ['EXECUTIVE', 'BOARD', 'SYSTEM_ADMIN', 'ADMIN', 'FINANCE'];
 
   const [activeSubTab, setActiveSubTab] = useState<'ledger' | 'vouchers' | 'advances' | 'budgets' | 'accounts' | 'statements'>('ledger');
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);

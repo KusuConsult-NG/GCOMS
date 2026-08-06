@@ -165,7 +165,8 @@ export class ParticipantsService {
    * The filter is applied in the database rather than in memory (the previous
    * implementation loaded every participant and filtered in JS). `contains` is
    * case-insensitive on SQLite; a move to Postgres will need
-   * `mode: 'insensitive'` here to preserve that.
+   * `mode: 'insensitive'`, which is now set: on Postgres `contains` is
+   * case-sensitive, so without it searching "musa" would stop finding "Musa".
    */
   async findAll(
     actor: PhiActor,
@@ -181,10 +182,10 @@ export class ParticipantsService {
       where.AND = [
         {
           OR: [
-            { firstName: { contains: query } },
-            { lastName: { contains: query } },
-            { nationalId: { contains: query } },
-            { phoneNumber: { contains: query } },
+            { firstName: { contains: query, mode: 'insensitive' } },
+            { lastName: { contains: query, mode: 'insensitive' } },
+            { nationalId: { contains: query, mode: 'insensitive' } },
+            { phoneNumber: { contains: query, mode: 'insensitive' } },
           ],
         },
       ];

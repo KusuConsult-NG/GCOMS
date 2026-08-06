@@ -25,7 +25,35 @@ function resolveSeedPassword(): { password: string; generated: boolean } {
   return { password: `${randomBytes(12).toString('base64url')}Aa1!`, generated: true };
 }
 
+/**
+ * The seed creates thirteen accounts that share one password, including
+ * SYSTEM_ADMIN. That is fine for a laptop and catastrophic against a live
+ * database, and the only thing standing between the two is which DATABASE_URL
+ * happens to be in the environment.
+ *
+ * So it refuses to run in production. The override exists because a first
+ * deployment sometimes does need a bootstrap, but it has to be a deliberate act
+ * with the reason visible in the shell history — not something a deploy script
+ * inherits by accident.
+ */
+function assertSafeToSeed(): void {
+  if (process.env.NODE_ENV !== 'production') return;
+  if (process.env.ALLOW_PRODUCTION_SEED === 'yes-i-mean-it') {
+    console.warn(
+      '\n⚠️  Seeding a production environment because ALLOW_PRODUCTION_SEED is set.\n' +
+        '   Thirteen accounts are about to share one password. Change them.\n',
+    );
+    return;
+  }
+  throw new Error(
+    'Refusing to seed: NODE_ENV=production. This creates thirteen accounts ' +
+      'sharing one password, including SYSTEM_ADMIN. If you genuinely need to ' +
+      'bootstrap a deployment, set ALLOW_PRODUCTION_SEED=yes-i-mean-it.',
+  );
+}
+
 async function main() {
+  assertSafeToSeed();
   if (process.env.NODE_ENV === 'production' && process.env.ALLOW_PRODUCTION_SEED !== 'true') {
     throw new Error(
       'Refusing to seed demo data with NODE_ENV=production. ' +

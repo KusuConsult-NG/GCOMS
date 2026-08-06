@@ -37,8 +37,16 @@ export class DashboardService {
       // Counted in the database. This previously loaded every screening row
       // just to tally positives in JavaScript, which grows without bound and is
       // why it could not simply be capped like the list endpoints.
+      // `result` is free text and the app writes 'POSITIVE', 'Positive' and
+      // 'positive' from different screens, so this has to ignore case. It was
+      // getting that from SQLite for free; on Postgres the default is
+      // case-sensitive and the positive count would have quietly fallen to
+      // whatever happened to be lowercase.
       this.prisma.screening.count({
-        where: { ...byParticipant, result: { contains: 'positive' } },
+        where: {
+          ...byParticipant,
+          result: { contains: 'positive', mode: 'insensitive' },
+        },
       }),
       this.prisma.approvalRequest.count({ where: { status: 'PENDING' } }),
       this.prisma.referral.count({

@@ -5,12 +5,10 @@
  * test would exhaust theirs.
  */
 import { execSync } from 'child_process';
-import { mkdtempSync, rmSync } from 'fs';
-import { tmpdir } from 'os';
+import { useThrowawaySchema, dropSchema } from './throwaway-schema';
 import { join } from 'path';
 
-const workDir = mkdtempSync(join(tmpdir(), 'gcoms-e2e-rl-'));
-process.env.DATABASE_URL = `file:${join(workDir, 'e2e.db')}`;
+const schema = useThrowawaySchema('rate_limit');
 process.env.JWT_SECRET = 'e2e-only-secret-that-is-comfortably-long-enough';
 process.env.ALLOWED_ORIGINS = 'http://localhost:3000';
 process.env.NODE_ENV = 'test';
@@ -61,8 +59,8 @@ describe('login rate limiting (e2e)', () => {
 
   afterAll(async () => {
     await app?.close();
+    await dropSchema(prisma, schema);
     await prisma?.$disconnect();
-    rmSync(workDir, { recursive: true, force: true });
   });
 
   it('allows the first few attempts then returns 429', async () => {

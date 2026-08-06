@@ -23,6 +23,12 @@ import {
  * de-duplicates on, so a request the server commits but whose response is lost
  * returns the original record on the retry instead of registering the patient a
  * second time.
+ *
+ * Each capture also records who took it. Field devices are shared, and the
+ * server attributes a registration to whoever is holding the token when it
+ * arrives — so without this, records captured by one volunteer and synced after
+ * someone else signs in are filed under the wrong name. That is the audit
+ * trail, and on a patient record it is not a detail.
  */
 
 const KEY = 'gcoms-offline-registrations';
@@ -48,6 +54,10 @@ export type QueuedRegistration = {
    *  seen this record yet. */
   localId: string;
   capturedAt: string;
+  /** The signed-in user who took the registration. Replay is refused under any
+   *  other account rather than misattributing it. */
+  capturedById: string;
+  capturedByName: string;
   payload: QueuedRegistrationPayload;
   /** Set when the server rejected the record outright, so it is not retried in
    *  a loop that cannot succeed. */
@@ -65,8 +75,17 @@ function isQueued(item: unknown): item is QueuedRegistration {
     !!item &&
     typeof item === 'object' &&
     typeof (item as QueuedRegistration).localId === 'string' &&
+    typeof (item as QueuedRegistration).capturedById === 'string' &&
     !!(item as QueuedRegistration).payload
   );
+}
+
+/** How long a record may sit unsynced before the workspace says so. Patient data
+ *  on a field device is not meant to be storage. */
+export const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
+
+export function isStale(item: QueuedRegistration, now: number): boolean {
+  return now - new Date(item.capturedAt).getTime() > STALE_AFTER_MS;
 }
 
 /**
@@ -137,11 +156,18 @@ async function writeQueue(items: QueuedRegistration[]): Promise<QueueState> {
 export async function enqueue(
   payload: QueuedRegistrationPayload,
   capturedAt: string,
+  capturedBy: { id: string; name: string },
 ): Promise<QueueState> {
   const { items } = await readQueue();
   return writeQueue([
     ...items,
-    { localId: crypto.randomUUID(), capturedAt, payload },
+    {
+      localId: crypto.randomUUID(),
+      capturedAt,
+      capturedById: capturedBy.id,
+      capturedByName: capturedBy.name,
+      payload,
+    },
   ]);
 }
 

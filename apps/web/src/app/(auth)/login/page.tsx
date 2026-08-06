@@ -57,63 +57,63 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f8f9ff] p-4 font-sans">
-      <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-sm border border-[#e2e8f0]">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--background)] p-4 font-sans">
+      <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-sm border border-[var(--outline)]">
 
         {/* Official Logo Header */}
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-full h-24 mb-3 flex items-center justify-center p-2 bg-white rounded border border-[#e2e8f0]">
+          <div className="w-full h-24 mb-3 flex items-center justify-center p-2 bg-white rounded border border-[var(--outline)]">
             <img
               src="/georgel-logo.png"
               alt="Georgel Cancer Foundation Logo"
               className="w-full h-full object-contain"
             />
           </div>
-          <h1 className="text-xl font-bold text-[#002045] tracking-tight">GCOMS</h1>
-          <p className="text-[#13696a] font-semibold text-xs mt-0.5">Clinical Trust Management System — GCOMS</p>
+          <h1 className="text-xl font-bold text-[var(--primary)] tracking-tight">GCOMS</h1>
+          <p className="text-[var(--secondary)] font-semibold text-xs mt-0.5">Clinical Trust Management System — GCOMS</p>
         </div>
 
         {sessionExpired && !error && (
-          <div className="bg-[#fff4e5] border border-[#b45309]/20 text-[#7c2d12] p-3 rounded text-xs text-center font-medium mb-5">
+          <div className="bg-[var(--risk-mod-bg)] border border-[var(--outline)] text-[var(--risk-mod-text)] p-3 rounded text-xs text-center font-medium mb-5">
             Your session has expired. Please sign in again.
           </div>
         )}
 
         {/* Error Alert */}
         {error && (
-          <div className="bg-[#ffdad6] border border-[#ba1a1a]/20 text-[#93000a] p-3 rounded text-xs text-center font-medium mb-5">
+          <div className="bg-[var(--risk-high-bg)] border border-[var(--risk-high-text)]/20 text-[var(--risk-high-text)] p-3 rounded text-xs text-center font-medium mb-5">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 text-sm">
           <div>
-            <label className="block text-xs font-semibold text-[#0d1c2e] mb-1">Email Address</label>
+            <label className="block text-xs font-semibold text-[var(--on-background)] mb-1">Email Address</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] focus:ring-2 focus:ring-[#13696a]/20 text-[#0d1c2e] outline-none text-xs"
+              className="w-full px-3.5 py-2.5 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] focus:ring-2 focus:ring-[var(--secondary)]/20 text-[var(--on-background)] outline-none text-xs"
               placeholder="e.g. executive@gcoms.org"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#0d1c2e] mb-1">Password</label>
+            <label className="block text-xs font-semibold text-[var(--on-background)] mb-1">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] focus:ring-2 focus:ring-[#13696a]/20 text-[#0d1c2e] outline-none text-xs pr-10"
+                className="w-full px-3.5 py-2.5 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] focus:ring-2 focus:ring-[var(--secondary)]/20 text-[var(--on-background)] outline-none text-xs pr-10"
                 placeholder="••••••••"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#13696a] hover:text-[#002045] focus:outline-none transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[var(--secondary)] hover:text-[var(--primary)] focus:outline-none transition-colors"
                 title={showPassword ? 'Hide password' : 'Show password'}
                 tabIndex={-1}
               >
@@ -134,7 +134,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 bg-[#13696a] hover:bg-[#0f5455] text-white font-semibold text-xs rounded shadow-sm transition-all disabled:opacity-50 mt-2"
+            className="w-full py-2.5 bg-[var(--secondary)] hover:bg-[var(--secondary-hover)] text-white font-semibold text-xs rounded shadow-sm transition-all disabled:opacity-50 mt-2"
           >
             {loading ? 'Authenticating...' : 'Sign In to GCOMS'}
           </button>
@@ -144,12 +144,12 @@ function LoginForm() {
             the password comes from whoever ran `npm run db:seed`. */}
         {showDemoAccounts && (
           <>
-          <div className="mt-6 pt-5 border-t border-[#e2e8f0] text-center">
-            <p className="text-[11px] text-[#74777f] font-medium mb-2">Select a Demo Account to Fast-Fill:</p>
+          <div className="mt-6 pt-5 border-t border-[var(--outline)] text-center">
+            <p className="text-[11px] text-[var(--muted)] font-medium mb-2">Select a Demo Account to Fast-Fill:</p>
             <div className="flex flex-wrap justify-center gap-1.5 text-[10px]">
               <button
                 onClick={() => handleDemoLogin('executive@gcoms.org')}
-                className="px-2 py-1 bg-[#e5eeff] text-[#002045] font-semibold rounded hover:bg-[#dce9ff]"
+                className="px-2 py-1 bg-[var(--primary-surface)] text-[var(--primary)] font-semibold rounded hover:bg-[var(--primary-surface)]"
               >
                 Executive
               </button>
@@ -161,7 +161,7 @@ function LoginForm() {
               </button>
               <button
                 onClick={() => handleDemoLogin('clinician@gcoms.org')}
-                className="px-2 py-1 bg-[#a2eded]/30 text-[#13696a] font-semibold rounded hover:bg-[#a2eded]/50"
+                className="px-2 py-1 bg-[var(--secondary-container)]/30 text-[var(--secondary)] font-semibold rounded hover:bg-[var(--secondary-container)]/50"
               >
                 Clinician
               </button>

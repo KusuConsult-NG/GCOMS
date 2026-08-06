@@ -1,24 +1,88 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/*
+ * GCOMS design tokens.
+ *
+ * The app carried ~3,700 hardcoded hex values in Tailwind arbitrary classes
+ * (bg-[#002045] and so on). Adding a `dark:` variant to each was not viable, so
+ * the colours themselves became variables: bg-[var(--primary)]. Every screen
+ * then re-themes from this one file, and a new screen inherits both themes for
+ * free provided it uses tokens rather than raw hex.
+ *
+ * Names are semantic (surface, outline, muted) rather than literal (navy, grey),
+ * so dark mode can invert lightness without the names becoming lies.
+ */
 :root {
   --background: #f8f9ff;
-  --on-background: #0d1c2e;
-  --primary: #002045;
-  --primary-container: #1a365d;
-  --secondary: #13696a;
-  --secondary-container: #a2eded;
   --surface: #ffffff;
+  --surface-subtle: #edf2f7;
   --surface-dim: #ccdbf4;
   --surface-variant: #d4e4fc;
-  --outline: #e2e8f0;
-  
+
+  --on-background: #0d1c2e;      /* primary text */
+  --on-surface-variant: #43474e; /* body text */
+  /* #74777f measured 4.48:1 on white — just under the 4.5:1 AA floor for body
+     text. Darkened until it passes on both --surface and --background. */
+  --muted: #6b6e76;              /* secondary text */
+
+  --primary: #002045;            /* brand navy: headings, nav */
+  --primary-dark: #001733;
+  --primary-container: #1a365d;
+  --primary-surface: #e5eeff;    /* tinted panels */
+
+  --secondary: #13696a;          /* teal: actions, links */
+  --secondary-hover: #0f5455;
+  --secondary-container: #a2eded;
+
+  --outline: #e2e8f0;            /* borders and dividers */
+
   --risk-low-bg: #c6f6d5;
   --risk-low-text: #22543d;
   --risk-mod-bg: #fef3c7;
   --risk-mod-text: #92400e;
   --risk-high-bg: #ffdad6;
   --risk-high-text: #ba1a1a;
+
+  color-scheme: light;
+}
+
+/*
+ * Dark theme. Not an inversion: the brand navy is a *background* in light mode
+ * and would be unreadable as text on a dark surface, so --primary becomes a
+ * light tint here, while --primary-container stays dark for the nav bars that
+ * keep their dark treatment in both themes. Teal is lifted for contrast.
+ */
+.dark {
+  --background: #0b1220;
+  --surface: #131c2e;
+  --surface-subtle: #1b2942;
+  --surface-dim: #24304a;
+  --surface-variant: #1b2942;
+
+  --on-background: #e6edf7;
+  --on-surface-variant: #c3cede;
+  --muted: #93a1b8;
+
+  --primary: #cddcf5;
+  --primary-dark: #0b1220;
+  --primary-container: #1a365d;
+  --primary-surface: #1b2942;
+
+  --secondary: #4fd1c5;
+  --secondary-hover: #7fe0d6;
+  --secondary-container: #14494a;
+
+  --outline: #26324b;
+
+  --risk-low-bg: #12351f;
+  --risk-low-text: #86efac;
+  --risk-mod-bg: #3b2a06;
+  --risk-mod-text: #fcd34d;
+  --risk-high-bg: #3d1310;
+  --risk-high-text: #fca5a5;
+
+  color-scheme: dark;
 }
 
 body {
@@ -35,8 +99,8 @@ body {
 
 /* Clinical Trust Card */
 .clinical-card {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  background-color: var(--surface);
+  border: 1px solid var(--outline);
   border-radius: 0.5rem;
   padding: 1.25rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
@@ -44,7 +108,7 @@ body {
 
 /* Clinical Trust Buttons */
 .btn-primary {
-  background-color: #13696a;
+  background-color: var(--secondary);
   color: #ffffff;
   font-weight: 600;
   padding: 0.5rem 1rem;
@@ -52,25 +116,25 @@ body {
   transition: background-color 0.15s ease;
 }
 .btn-primary:hover {
-  background-color: #0f5455;
+  background-color: var(--secondary-hover);
 }
 
 .btn-secondary {
   background-color: transparent;
-  color: #002045;
-  border: 1px solid #002045;
+  color: var(--primary);
+  border: 1px solid var(--primary);
   font-weight: 600;
   padding: 0.5rem 1rem;
   border-radius: 0.25rem;
 }
 .btn-secondary:hover {
-  background-color: #e5eeff;
+  background-color: var(--primary-surface);
 }
 
 /* Clinical Trust Risk Badges */
 .badge-low-risk {
-  background-color: #c6f6d5;
-  color: #22543d;
+  background-color: var(--risk-low-bg);
+  color: var(--risk-low-text);
   font-weight: 600;
   padding: 0.125rem 0.625rem;
   border-radius: 9999px;
@@ -78,8 +142,8 @@ body {
 }
 
 .badge-mod-risk {
-  background-color: #fef3c7;
-  color: #92400e;
+  background-color: var(--risk-mod-bg);
+  color: var(--risk-mod-text);
   font-weight: 600;
   padding: 0.125rem 0.625rem;
   border-radius: 9999px;
@@ -87,10 +151,76 @@ body {
 }
 
 .badge-high-risk {
-  background-color: #ffdad6;
-  color: #ba1a1a;
+  background-color: var(--risk-high-bg);
+  color: var(--risk-high-text);
   font-weight: 600;
   padding: 0.125rem 0.625rem;
   border-radius: 9999px;
   font-size: 0.75rem;
+}
+
+/*
+ * Tailwind palette utilities (bg-slate-100, text-green-800 …) are used for
+ * status colours in places and are fixed light values. Rather than rewrite every
+ * one, dark mode softens those that would otherwise glare, so a status chip
+ * stays legible instead of burning white on a dark table row.
+ */
+.dark .bg-white { background-color: var(--surface) !important; }
+.dark .bg-slate-50,
+.dark .bg-gray-50,
+.dark .bg-slate-100,
+.dark .bg-gray-100 { background-color: var(--surface-subtle) !important; }
+.dark .text-gray-500,
+.dark .text-gray-600,
+.dark .text-slate-500,
+.dark .text-slate-600 { color: var(--muted) !important; }
+.dark .text-gray-700,
+.dark .text-gray-800,
+.dark .text-gray-900,
+.dark .text-slate-700,
+.dark .text-slate-800 { color: var(--on-surface-variant) !important; }
+.dark .border-gray-200,
+.dark .border-slate-200,
+.dark .border-gray-300 { border-color: var(--outline) !important; }
+
+/* Status tints: keep the hue, drop the brightness so text stays readable. */
+.dark .bg-green-100 { background-color: #12351f !important; }
+.dark .text-green-700, .dark .text-green-800 { color: #86efac !important; }
+.dark .bg-red-100 { background-color: #3d1310 !important; }
+.dark .text-red-600, .dark .text-red-700, .dark .text-red-800 { color: #fca5a5 !important; }
+.dark .bg-amber-100, .dark .bg-orange-100, .dark .bg-yellow-100 { background-color: #3b2a06 !important; }
+.dark .text-amber-700, .dark .text-orange-600, .dark .text-orange-800, .dark .text-yellow-700 { color: #fcd34d !important; }
+.dark .bg-blue-100, .dark .bg-indigo-100 { background-color: #16233d !important; }
+.dark .text-blue-700, .dark .text-blue-800, .dark .text-indigo-700 { color: #93c5fd !important; }
+.dark .bg-purple-100 { background-color: #241a3d !important; }
+.dark .text-purple-700 { color: #c4b5fd !important; }
+.dark .bg-pink-100 { background-color: #3a1526 !important; }
+.dark .text-pink-700 { color: #f9a8d4 !important; }
+.dark .bg-slate-200 { background-color: var(--surface-dim) !important; }
+
+/* Inputs need explicit treatment or they render as white boxes on dark. */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: var(--surface-subtle);
+  color: var(--on-background);
+  border-color: var(--outline);
+}
+.dark input::placeholder,
+.dark textarea::placeholder { color: var(--muted); }
+
+/* Respect a reduced-motion preference. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Visible keyboard focus — there was none, which fails keyboard navigation. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--secondary);
+  outline-offset: 2px;
 }

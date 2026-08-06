@@ -14,7 +14,7 @@ export default function ProjectsPage() {
   }
 
   return (
-    <Suspense fallback={<div className="p-8 text-center text-xs text-[#74777f]">Loading Project Application...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-xs text-[var(--muted)]">Loading Project Application...</div>}>
       <ProjectWorkspace user={user} />
     </Suspense>
   );

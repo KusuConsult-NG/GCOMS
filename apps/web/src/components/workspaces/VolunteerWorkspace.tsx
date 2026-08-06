@@ -157,7 +157,7 @@ export function VolunteerWorkspace({ user }: { user: any }) {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Workspace Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[#002045] text-white p-5 rounded-lg border border-[#1a365d] shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--primary)] text-white p-5 rounded-lg border border-[var(--primary-container)] shadow-sm">
         <div>
           <h1 className="text-2xl font-bold tracking-tight mt-1 text-white">Field Patient Intake & Patient Consent</h1>
           <p className="text-slate-300 text-xs mt-0.5">Welcome back, {user?.firstName || 'Volunteer'} {user?.lastName || ''} • Community Health Worker ID: {user?.id?.slice(0, 8) || 'VOL-001'}</p>
@@ -165,12 +165,12 @@ export function VolunteerWorkspace({ user }: { user: any }) {
 
         <div className="mt-4 md:mt-0 flex items-center gap-3 text-xs">
           <div className="text-right hidden sm:block">
-            <p className="text-[10px] text-[#a2eded]">Last Synchronization</p>
+            <p className="text-[10px] text-[var(--secondary-container)]">Last Synchronization</p>
             <p className="font-mono font-semibold text-white">{lastSync}</p>
           </div>
           <button
             onClick={() => setLastSync(new Date().toLocaleTimeString())}
-            className="px-3 py-2 bg-[#13696a] hover:bg-[#0f5455] text-white font-semibold rounded text-xs transition-colors"
+            className="px-3 py-2 bg-[var(--secondary)] hover:bg-[var(--secondary-hover)] text-white font-semibold rounded text-xs transition-colors"
           >
             🔄 Sync Data Now
           </button>
@@ -178,7 +178,7 @@ export function VolunteerWorkspace({ user }: { user: any }) {
       </div>
 
       {/* Navigation Sub-Tabs */}
-      <div className="flex border-b border-[#e2e8f0] gap-2 text-xs font-semibold overflow-x-auto">
+      <div className="flex border-b border-[var(--outline)] gap-2 text-xs font-semibold overflow-x-auto">
         {[
           { id: 'dashboard', label: '📊 Field Dashboard' },
           { id: 'register', label: '📝 Field Patient Intake & QR Identity Pass' },
@@ -190,8 +190,8 @@ export function VolunteerWorkspace({ user }: { user: any }) {
             onClick={() => setActiveTab(tab.id as any)}
             className={`py-2.5 px-4 rounded-t border-b-2 transition-all whitespace-nowrap ${
               activeTab === tab.id
-                ? 'border-[#13696a] text-[#13696a] bg-white font-bold'
-                : 'border-transparent text-[#74777f] hover:text-[#002045]'
+                ? 'border-[var(--secondary)] text-[var(--secondary)] bg-white font-bold'
+                : 'border-transparent text-[var(--muted)] hover:text-[var(--primary)]'
             }`}
           >
             {tab.label}
@@ -204,36 +204,36 @@ export function VolunteerWorkspace({ user }: { user: any }) {
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="clinical-card">
-              <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Patients Registered Today</span>
-              <p className="text-3xl font-bold text-[#13696a] mt-1 tabular-nums">14</p>
-              <span className="text-[10px] text-[#22543d] font-semibold">Daily Target: 15 (93%)</span>
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Patients Registered Today</span>
+              <p className="text-3xl font-bold text-[var(--secondary)] mt-1 tabular-nums">14</p>
+              <span className="text-[10px] text-[var(--risk-low-text)] font-semibold">Daily Target: 15 (93%)</span>
             </div>
             <div className="clinical-card">
-              <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Weekly Intake Target</span>
-              <p className="text-3xl font-bold text-[#002045] mt-1 tabular-nums">68 / 75</p>
-              <span className="text-[10px] text-[#13696a] font-semibold">Weekly Target: 75</span>
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Weekly Intake Target</span>
+              <p className="text-3xl font-bold text-[var(--primary)] mt-1 tabular-nums">68 / 75</p>
+              <span className="text-[10px] text-[var(--secondary)] font-semibold">Weekly Target: 75</span>
             </div>
             <div className="clinical-card">
-              <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Assigned Outreach Drives</span>
-              <p className="text-3xl font-bold text-[#92400e] mt-1 tabular-nums">{outreaches.length || 3}</p>
-              <span className="text-[10px] text-[#92400e] font-semibold">Barkin Ladi & Jos North</span>
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Assigned Outreach Drives</span>
+              <p className="text-3xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">{outreaches.length || 3}</p>
+              <span className="text-[10px] text-[var(--risk-mod-text)] font-semibold">Barkin Ladi & Jos North</span>
             </div>
             <div className="clinical-card">
-              <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Pending Sync Queue</span>
-              <p className="text-3xl font-bold text-[#ba1a1a] mt-1 tabular-nums">{offlineQueue.length}</p>
-              <span className="text-[10px] text-[#74777f] font-semibold">Local Storage Safe</span>
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Pending Sync Queue</span>
+              <p className="text-3xl font-bold text-[var(--risk-high-text)] mt-1 tabular-nums">{offlineQueue.length}</p>
+              <span className="text-[10px] text-[var(--muted)] font-semibold">Local Storage Safe</span>
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-lg border border-[#e2e8f0] shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="bg-white p-5 rounded-lg border border-[var(--outline)] shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
-              <h3 className="font-bold text-[#002045] text-sm">📍 Today's Active Outreach Campaign</h3>
-              <p className="text-xs text-[#43474e] mt-0.5">Barkin Ladi Primary Health Center • Community Cervical Screening Drive</p>
+              <h3 className="font-bold text-[var(--primary)] text-sm">📍 Today's Active Outreach Campaign</h3>
+              <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">Barkin Ladi Primary Health Center • Community Cervical Screening Drive</p>
             </div>
             <div className="flex gap-2 w-full md:w-auto">
               <button
                 onClick={() => setActiveTab('register')}
-                className="btn-primary text-xs flex-1 md:flex-initial text-center bg-[#13696a] hover:bg-[#0f5455]"
+                className="btn-primary text-xs flex-1 md:flex-initial text-center bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]"
               >
                 + Field Patient Intake & QR Pass
               </button>
@@ -244,70 +244,70 @@ export function VolunteerWorkspace({ user }: { user: any }) {
 
       {/* TAB 2: FIELD PATIENT INTAKE & QR PASS */}
       {activeTab === 'register' && (
-        <div className="bg-white rounded-lg border border-[#e2e8f0] p-6 space-y-6">
-          <div className="border-b border-[#e2e8f0] pb-3">
-            <h2 className="text-lg font-bold text-[#002045]">Field Patient Intake & Informed Consent</h2>
-            <p className="text-xs text-[#43474e]">Capture participant demographics, mandatory LGA, Ward, GPS location, patient consent, and auto-generate QR identity pass.</p>
+        <div className="bg-white rounded-lg border border-[var(--outline)] p-6 space-y-6">
+          <div className="border-b border-[var(--outline)] pb-3">
+            <h2 className="text-lg font-bold text-[var(--primary)]">Field Patient Intake & Informed Consent</h2>
+            <p className="text-xs text-[var(--on-surface-variant)]">Capture participant demographics, mandatory LGA, Ward, GPS location, patient consent, and auto-generate QR identity pass.</p>
           </div>
 
           {regError && (
-            <div className="bg-[#ffdad6] text-[#93000a] p-3 rounded text-xs font-semibold">
+            <div className="bg-[var(--risk-high-bg)] text-[var(--risk-high-text)] p-3 rounded text-xs font-semibold">
               {regError}
             </div>
           )}
 
           {/* QR IDENTITY PASS MODAL */}
           {regSuccess && (
-            <div className="p-6 bg-gradient-to-br from-[#002045] to-[#001733] text-white rounded-xl border-2 border-[#13696a] shadow-lg space-y-4">
-              <div className="flex justify-between items-start border-b border-[#1a365d] pb-3">
+            <div className="p-6 bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] text-white rounded-xl border-2 border-[var(--secondary)] shadow-lg space-y-4">
+              <div className="flex justify-between items-start border-b border-[var(--primary-container)] pb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white rounded flex items-center justify-center p-1">
                     <img src="/georgel-logo.png" alt="Logo" className="h-8 object-contain" />
                   </div>
                   <div>
                     <h3 className="font-bold text-base tracking-wide text-white">GCOMS PATIENT IDENTITY PASS</h3>
-                    <p className="text-[10px] text-[#a2eded]">Georgel Cancer Foundation Clinical Trust</p>
+                    <p className="text-[10px] text-[var(--secondary-container)]">Georgel Cancer Foundation Clinical Trust</p>
                   </div>
                 </div>
-                <span className="text-[10px] font-mono bg-[#13696a] px-2 py-0.5 rounded text-white font-bold">{regSuccess.regId}</span>
+                <span className="text-[10px] font-mono bg-[var(--secondary)] px-2 py-0.5 rounded text-white font-bold">{regSuccess.regId}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-xs">
                 <div>
-                  <p className="text-[#a2eded] text-[10px] uppercase font-semibold">Patient Name</p>
+                  <p className="text-[var(--secondary-container)] text-[10px] uppercase font-semibold">Patient Name</p>
                   <p className="font-bold text-white text-sm">{regSuccess.name}</p>
                 </div>
                 <div>
-                  <p className="text-[#a2eded] text-[10px] uppercase font-semibold">Mandatory LGA</p>
+                  <p className="text-[var(--secondary-container)] text-[10px] uppercase font-semibold">Mandatory LGA</p>
                   <p className="font-bold text-white text-sm">{regSuccess.lga}</p>
                 </div>
                 <div>
-                  <p className="text-[#a2eded] text-[10px] uppercase font-semibold">Ward & Address</p>
+                  <p className="text-[var(--secondary-container)] text-[10px] uppercase font-semibold">Ward & Address</p>
                   <p className="text-white text-xs">{regSuccess.ward} • {regSuccess.address}</p>
                 </div>
                 <div>
-                  <p className="text-[#a2eded] text-[10px] uppercase font-semibold">GPS Coordinates</p>
+                  <p className="text-[var(--secondary-container)] text-[10px] uppercase font-semibold">GPS Coordinates</p>
                   <p className="text-white font-mono text-xs">{regSuccess.gps}</p>
                 </div>
               </div>
 
               {/* SIMULATED HIGH-RES DIGITAL QR CODE */}
-              <div className="pt-2 border-t border-[#1a365d] flex items-center justify-between">
+              <div className="pt-2 border-t border-[var(--primary-container)] flex items-center justify-between">
                 <div>
                   <p className="text-[10px] text-slate-300 font-semibold">PASS ID: <span className="font-mono text-white">{regSuccess.qrPassId}</span></p>
-                  <p className="text-[9px] text-[#a2eded]">Informed Consent Verified • Scan for Clinical Record</p>
+                  <p className="text-[9px] text-[var(--secondary-container)]">Informed Consent Verified • Scan for Clinical Record</p>
                 </div>
-                <div className="bg-white p-2 rounded flex flex-col items-center justify-center border border-[#a2eded]">
-                  <svg className="w-16 h-16 text-[#002045]" viewBox="0 0 24 24" fill="currentColor">
+                <div className="bg-white p-2 rounded flex flex-col items-center justify-center border border-[var(--secondary-container)]">
+                  <svg className="w-16 h-16 text-[var(--primary)]" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M2 2h8v8H2V2zm2 2v4h4V4H4zm8-2h8v8h-8V2zm2 2v4h4V4h-4zM2 14h8v8H2v-8zm2 2v4h4v-4H4zm13-2h3v3h-3v-3zm0 5h3v3h-3v-3zm-5-5h3v8h-3v-8z"/>
                   </svg>
-                  <span className="text-[8px] font-mono text-[#002045] font-bold mt-0.5">{regSuccess.qrPassId}</span>
+                  <span className="text-[8px] font-mono text-[var(--primary)] font-bold mt-0.5">{regSuccess.qrPassId}</span>
                 </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
                 <button onClick={() => window.print()} className="btn-secondary text-xs">🖨 Print QR Pass</button>
-                <button onClick={() => setRegSuccess(null)} className="btn-primary text-xs bg-[#13696a] hover:bg-[#0f5455]">
+                <button onClick={() => setRegSuccess(null)} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">
                   + Register Next Patient
                 </button>
               </div>
@@ -318,43 +318,43 @@ export function VolunteerWorkspace({ user }: { user: any }) {
             {/* 1. Demographics */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">First Name *</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">First Name *</label>
                 <input
                   type="text"
                   required
                   value={regForm.firstName}
                   onChange={e => setRegForm({ ...regForm, firstName: e.target.value })}
                   placeholder="e.g. Mary"
-                  className="w-full px-3 py-2 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] outline-none text-[#0d1c2e]"
+                  className="w-full px-3 py-2 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)]"
                 />
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Last Name *</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Last Name *</label>
                 <input
                   type="text"
                   required
                   value={regForm.lastName}
                   onChange={e => setRegForm({ ...regForm, lastName: e.target.value })}
                   placeholder="e.g. Luka"
-                  className="w-full px-3 py-2 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] outline-none text-[#0d1c2e]"
+                  className="w-full px-3 py-2 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)]"
                 />
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Date of Birth *</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Date of Birth *</label>
                 <input
                   type="date"
                   required
                   value={regForm.dateOfBirth}
                   onChange={e => setRegForm({ ...regForm, dateOfBirth: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] outline-none text-[#0d1c2e] tabular-nums"
+                  className="w-full px-3 py-2 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)] tabular-nums"
                 />
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Gender *</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Gender *</label>
                 <select
                   value={regForm.gender}
                   onChange={e => setRegForm({ ...regForm, gender: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] outline-none text-[#0d1c2e]"
+                  className="w-full px-3 py-2 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)]"
                 >
                   <option value="Female">Female</option>
                   <option value="Male">Male</option>
@@ -365,12 +365,12 @@ export function VolunteerWorkspace({ user }: { user: any }) {
             {/* 2. Mandatory LGA, Ward & Address */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">LGA *</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">LGA *</label>
                 <select
                   required
                   value={regForm.lga}
                   onChange={e => setRegForm({ ...regForm, lga: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-white border-2 border-[#13696a] rounded focus:border-[#002045] outline-none font-bold text-[#002045]"
+                  className="w-full px-3.5 py-2.5 bg-white border-2 border-[var(--secondary)] rounded focus:border-[var(--primary)] outline-none font-bold text-[var(--primary)]"
                 >
                   <option value="">-- Select LGA (Mandatory) --</option>
                   {PLATEAU_LGAS.map((lga, idx) => (
@@ -379,46 +379,46 @@ export function VolunteerWorkspace({ user }: { user: any }) {
                 </select>
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Ward Name</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Ward Name</label>
                 <input
                   type="text"
                   value={regForm.ward}
                   onChange={e => setRegForm({ ...regForm, ward: e.target.value })}
                   placeholder="e.g. Gwol Ward / Tudun Wada Ward"
-                  className="w-full px-3.5 py-2.5 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] outline-none text-[#0d1c2e]"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)]"
                 />
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Residential Street Address</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Residential Street Address</label>
                 <input
                   type="text"
                   value={regForm.address}
                   onChange={e => setRegForm({ ...regForm, address: e.target.value })}
                   placeholder="House No 14, Main Street"
-                  className="w-full px-3.5 py-2.5 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] outline-none text-[#0d1c2e]"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)]"
                 />
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Phone Number</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Phone Number</label>
                 <input
                   type="tel"
                   value={regForm.phoneNumber}
                   onChange={e => setRegForm({ ...regForm, phoneNumber: e.target.value })}
                   placeholder="+2348031234567"
-                  className="w-full px-3 py-2 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] outline-none text-[#0d1c2e] tabular-nums"
+                  className="w-full px-3 py-2 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)] tabular-nums"
                 />
               </div>
             </div>
 
             {/* 3. GPS Geolocation */}
-            <div className="p-4 bg-[#f8f9ff] border border-[#e2e8f0] rounded space-y-3">
-              <h3 className="font-bold text-[#002045]">📡 Live Field GPS Location Capture</h3>
+            <div className="p-4 bg-[var(--background)] border border-[var(--outline)] rounded space-y-3">
+              <h3 className="font-bold text-[var(--primary)]">📡 Live Field GPS Location Capture</h3>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={handleCaptureGps}
                   disabled={gpsLoading}
-                  className="btn-primary text-xs bg-[#13696a] hover:bg-[#0f5455]"
+                  className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]"
                 >
                   {gpsLoading ? 'Capturing GPS...' : '📡 Capture Live Field GPS Coordinates'}
                 </button>
@@ -426,32 +426,32 @@ export function VolunteerWorkspace({ user }: { user: any }) {
                   type="text"
                   readOnly
                   value={regForm.gpsCoordinates || 'Click button to capture GPS location'}
-                  className="flex-1 bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs font-mono text-[#0d1c2e]"
+                  className="flex-1 bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs font-mono text-[var(--on-background)]"
                 />
               </div>
             </div>
 
             {/* 4. Patient Informed Consent */}
-            <div className="p-4 bg-[#f8f9ff] border border-[#e2e8f0] rounded flex items-start gap-3">
+            <div className="p-4 bg-[var(--background)] border border-[var(--outline)] rounded flex items-start gap-3">
               <input
                 type="checkbox"
                 id="consentGiven"
                 checked={regForm.consentGiven}
                 onChange={e => setRegForm({ ...regForm, consentGiven: e.target.checked })}
-                className="w-5 h-5 text-[#13696a] rounded mt-0.5 cursor-pointer"
+                className="w-5 h-5 text-[var(--secondary)] rounded mt-0.5 cursor-pointer"
                 required
               />
-              <label htmlFor="consentGiven" className="text-xs text-[#0d1c2e] leading-relaxed cursor-pointer">
-                <span className="font-bold block text-[#002045]">Patient Verbal / Written Informed Consent *</span>
+              <label htmlFor="consentGiven" className="text-xs text-[var(--on-background)] leading-relaxed cursor-pointer">
+                <span className="font-bold block text-[var(--primary)]">Patient Verbal / Written Informed Consent *</span>
                 "I confirm that the patient has been informed of the screening procedure and has voluntarily granted consent for cancer screening, follow-up notifications, and health data registry storage."
               </label>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+            <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
               <button
                 type="submit"
                 disabled={regSubmitting}
-                className="btn-primary text-xs bg-[#13696a] hover:bg-[#0f5455] disabled:opacity-50"
+                className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)] disabled:opacity-50"
               >
                 {regSubmitting ? 'Saving…' : 'Save & Generate Patient QR Pass'}
               </button>
@@ -462,14 +462,14 @@ export function VolunteerWorkspace({ user }: { user: any }) {
 
       {/* TAB 3: OUTREACH DRIVES */}
       {activeTab === 'outreach' && (
-        <div className="bg-white rounded-lg border border-[#e2e8f0] p-6 space-y-4">
-          <h2 className="text-lg font-bold text-[#002045]">Assigned Field Outreach Drives</h2>
-          <div className="divide-y divide-[#e2e8f0]">
+        <div className="bg-white rounded-lg border border-[var(--outline)] p-6 space-y-4">
+          <h2 className="text-lg font-bold text-[var(--primary)]">Assigned Field Outreach Drives</h2>
+          <div className="divide-y divide-[var(--outline)]">
             {outreaches.map(o => (
               <div key={o.id} className="py-4 flex justify-between items-center text-xs">
                 <div>
-                  <p className="font-bold text-[#002045] text-sm">{o.title}</p>
-                  <p className="text-[#43474e]">{o.location?.name || 'Barkin Ladi PHC'} • Date: {new Date(o.date).toLocaleDateString()}</p>
+                  <p className="font-bold text-[var(--primary)] text-sm">{o.title}</p>
+                  <p className="text-[var(--on-surface-variant)]">{o.location?.name || 'Barkin Ladi PHC'} • Date: {new Date(o.date).toLocaleDateString()}</p>
                 </div>
                 <span className={o.status === 'COMPLETED' ? 'badge-low-risk' : 'badge-mod-risk'}>{o.status}</span>
               </div>
@@ -480,9 +480,9 @@ export function VolunteerWorkspace({ user }: { user: any }) {
 
       {/* TAB 4: OFFLINE QUEUE */}
       {activeTab === 'queue' && (
-        <div className="bg-white rounded-lg border border-[#e2e8f0] p-6 space-y-4">
-          <h2 className="text-lg font-bold text-[#002045]">Local Offline Synchronization Queue</h2>
-          <p className="text-xs text-[#43474e]">Records captured while disconnected from internet are held securely in local storage.</p>
+        <div className="bg-white rounded-lg border border-[var(--outline)] p-6 space-y-4">
+          <h2 className="text-lg font-bold text-[var(--primary)]">Local Offline Synchronization Queue</h2>
+          <p className="text-xs text-[var(--on-surface-variant)]">Records captured while disconnected from internet are held securely in local storage.</p>
         </div>
       )}
     </div>

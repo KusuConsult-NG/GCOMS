@@ -20,7 +20,7 @@ export default function Dashboard() {
 
   if (!user) {
     return (
-      <div className="p-8 text-center text-xs text-[#74777f]">
+      <div className="p-8 text-center text-xs text-[var(--muted)]">
         Authenticating GCOMS session...
       </div>
     );

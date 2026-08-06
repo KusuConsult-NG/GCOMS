@@ -153,16 +153,16 @@ export function AdminWorkspace({ user }: { user: any }) {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[#002045] text-white p-5 rounded-lg border border-[#1a365d] shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--primary)] text-white p-5 rounded-lg border border-[var(--primary-container)] shadow-sm">
         <div>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#13696a] text-white uppercase">System Administration</span>
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase">System Administration</span>
           <h1 className="text-2xl font-bold mt-1">Admin Officer Workspace</h1>
           <p className="text-xs text-slate-300">User management, RBAC role permissions, department structures, and system audit logs.</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-[#e2e8f0] gap-2 text-xs font-semibold overflow-x-auto">
+      <div className="flex border-b border-[var(--outline)] gap-2 text-xs font-semibold overflow-x-auto">
         {[
           { id: 'users', label: '👤 User & Staff Roster' },
           { id: 'roles', label: '🔒 Role & Permission Matrix' },
@@ -173,7 +173,7 @@ export function AdminWorkspace({ user }: { user: any }) {
             key={t.id}
             onClick={() => setActiveTab(t.id as any)}
             className={`py-2.5 px-4 rounded-t border-b-2 transition-all whitespace-nowrap ${
-              activeTab === t.id ? 'border-[#13696a] text-[#13696a] bg-white font-bold' : 'border-transparent text-[#74777f] hover:bg-gray-50'
+              activeTab === t.id ? 'border-[var(--secondary)] text-[var(--secondary)] bg-white font-bold' : 'border-transparent text-[var(--muted)] hover:bg-gray-50'
             }`}
           >
             {t.label}
@@ -182,12 +182,12 @@ export function AdminWorkspace({ user }: { user: any }) {
       </div>
 
       {activeTab === 'users' && (
-        <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden shadow-sm">
-          <div className="p-4 border-b border-[#e2e8f0] flex flex-col md:flex-row justify-between items-start md:items-center bg-[#f8f9ff] gap-4">
-            <h2 className="font-bold text-[#002045] text-sm">System Users ({filteredUsers.length})</h2>
+        <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden shadow-sm">
+          <div className="p-4 border-b border-[var(--outline)] flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--background)] gap-4">
+            <h2 className="font-bold text-[var(--primary)] text-sm">System Users ({filteredUsers.length})</h2>
             <div className="flex flex-wrap gap-2 w-full md:w-auto">
-              <input type="text" placeholder="Search users..." value={userSearch} onChange={e => setUserSearch(e.target.value)} className="w-full md:w-48 bg-white border border-[#e2e8f0] rounded px-3 py-1.5 text-xs" />
-              <select value={userRoleFilter} onChange={e => setUserRoleFilter(e.target.value)} className="w-full md:w-32 bg-white border border-[#e2e8f0] rounded px-3 py-1.5 text-xs">
+              <input type="text" placeholder="Search users..." value={userSearch} onChange={e => setUserSearch(e.target.value)} className="w-full md:w-48 bg-white border border-[var(--outline)] rounded px-3 py-1.5 text-xs" />
+              <select value={userRoleFilter} onChange={e => setUserRoleFilter(e.target.value)} className="w-full md:w-32 bg-white border border-[var(--outline)] rounded px-3 py-1.5 text-xs">
                 <option value="ALL">All Roles</option>
                 {rolesList.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
@@ -195,11 +195,11 @@ export function AdminWorkspace({ user }: { user: any }) {
             </div>
           </div>
           {loading ? (
-            <div className="p-8 text-center text-xs text-[#74777f]">Loading user roster...</div>
+            <div className="p-8 text-center text-xs text-[var(--muted)]">Loading user roster...</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+                <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
                   <tr>
                     <th className="p-3">Name</th>
                     <th className="p-3">Email</th>
@@ -208,12 +208,12 @@ export function AdminWorkspace({ user }: { user: any }) {
                     <th className="p-3 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#e2e8f0]">
+                <tbody className="divide-y divide-[var(--outline)]">
                   {filteredUsers.map(u => (
-                    <tr key={u.id} className="hover:bg-[#e5eeff]">
-                      <td className="p-3 font-bold text-[#002045]">{u.firstName} {u.lastName}</td>
-                      <td className="p-3 font-mono text-[#74777f]">{u.email}</td>
-                      <td className="p-3 font-semibold text-[#13696a]">
+                    <tr key={u.id} className="hover:bg-[var(--primary-surface)]">
+                      <td className="p-3 font-bold text-[var(--primary)]">{u.firstName} {u.lastName}</td>
+                      <td className="p-3 font-mono text-[var(--muted)]">{u.email}</td>
+                      <td className="p-3 font-semibold text-[var(--secondary)]">
                         <select value={u.role} onChange={e => handleUpdateRole(u.id, e.target.value)} className="bg-transparent border border-gray-200 rounded px-1 py-0.5 text-xs">
                           {rolesList.map(r => <option key={r} value={r}>{r}</option>)}
                         </select>
@@ -240,21 +240,21 @@ export function AdminWorkspace({ user }: { user: any }) {
       )}
 
       {activeTab === 'roles' && (
-        <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden shadow-sm">
-          <div className="p-4 border-b border-[#e2e8f0] bg-[#f8f9ff]">
-            <h2 className="font-bold text-[#002045] text-sm">Role & Permission Matrix</h2>
+        <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden shadow-sm">
+          <div className="p-4 border-b border-[var(--outline)] bg-[var(--background)]">
+            <h2 className="font-bold text-[var(--primary)] text-sm">Role & Permission Matrix</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+              <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
                 <tr>
-                  <th className="p-3 border-r border-[#e2e8f0]">Role</th>
+                  <th className="p-3 border-r border-[var(--outline)]">Role</th>
                   {['Finance', 'Procurement', 'HR', 'Grants', 'Projects', 'Inventory', 'Clinical', 'Governance', 'Executive', 'Admin'].map(m => (
                     <th key={m} className="p-3 text-center">{m}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#e2e8f0]">
+              <tbody className="divide-y divide-[var(--outline)]">
                 {[
                   { role: 'SYSTEM_ADMIN', p: ['YES', 'YES', 'YES', 'YES', 'YES', 'YES', 'YES', 'YES', 'YES', 'YES'] },
                   { role: 'EXECUTIVE', p: ['YES', 'YES', 'YES', 'YES', 'YES', 'YES', 'YES', 'YES', 'YES', 'YES'] },
@@ -268,8 +268,8 @@ export function AdminWorkspace({ user }: { user: any }) {
                   { role: 'FIELD_OFFICER', p: ['-', '-', '-', '-', '-', '-', 'VIEW', '-', '-', '-'] },
                   { role: 'VOLUNTEER', p: ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'] },
                 ].map(r => (
-                  <tr key={r.role} className="hover:bg-[#e5eeff]">
-                    <td className="p-3 font-bold text-[#002045] border-r border-[#e2e8f0]">{r.role}</td>
+                  <tr key={r.role} className="hover:bg-[var(--primary-surface)]">
+                    <td className="p-3 font-bold text-[var(--primary)] border-r border-[var(--outline)]">{r.role}</td>
                     {r.p.map((val, idx) => (
                       <td key={idx} className="p-3 text-center">
                         {val === 'YES' && <span className="badge-low-risk bg-green-100 text-green-800 text-[10px] px-1.5 py-0.5 rounded">✓ YES</span>}
@@ -286,12 +286,12 @@ export function AdminWorkspace({ user }: { user: any }) {
       )}
 
       {activeTab === 'audit' && (
-        <div className="bg-white rounded-lg border border-[#e2e8f0] overflow-hidden shadow-sm">
-          <div className="p-4 border-b border-[#e2e8f0] flex flex-col md:flex-row justify-between items-start md:items-center bg-[#f8f9ff] gap-4">
-            <h2 className="font-bold text-[#002045] text-sm">System Audit Logs</h2>
+        <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden shadow-sm">
+          <div className="p-4 border-b border-[var(--outline)] flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--background)] gap-4">
+            <h2 className="font-bold text-[var(--primary)] text-sm">System Audit Logs</h2>
             <div className="flex flex-wrap gap-2 w-full md:w-auto">
-              <input type="date" value={auditDateFilter} onChange={e => setAuditDateFilter(e.target.value)} className="w-full md:w-auto bg-white border border-[#e2e8f0] rounded px-3 py-1.5 text-xs" />
-              <select value={auditModuleFilter} onChange={e => setAuditModuleFilter(e.target.value)} className="w-full md:w-auto bg-white border border-[#e2e8f0] rounded px-3 py-1.5 text-xs">
+              <input type="date" value={auditDateFilter} onChange={e => setAuditDateFilter(e.target.value)} className="w-full md:w-auto bg-white border border-[var(--outline)] rounded px-3 py-1.5 text-xs" />
+              <select value={auditModuleFilter} onChange={e => setAuditModuleFilter(e.target.value)} className="w-full md:w-auto bg-white border border-[var(--outline)] rounded px-3 py-1.5 text-xs">
                 <option value="ALL">All Modules</option>
                 <option value="Auth">Auth</option>
                 <option value="Procurement">Procurement</option>
@@ -307,7 +307,7 @@ export function AdminWorkspace({ user }: { user: any }) {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+              <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
                 <tr>
                   <th className="p-3">Timestamp</th>
                   <th className="p-3">User</th>
@@ -317,13 +317,13 @@ export function AdminWorkspace({ user }: { user: any }) {
                   <th className="p-3">IP Address</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#e2e8f0]">
+              <tbody className="divide-y divide-[var(--outline)]">
                 {filteredAuditLogs.map(log => (
-                  <tr key={log.id} className="hover:bg-[#e5eeff]">
-                    <td className="p-3 font-mono text-[#74777f]">{auditTime(log)}</td>
-                    <td className="p-3 font-semibold text-[#002045]">{auditActor(log)}</td>
+                  <tr key={log.id} className="hover:bg-[var(--primary-surface)]">
+                    <td className="p-3 font-mono text-[var(--muted)]">{auditTime(log)}</td>
+                    <td className="p-3 font-semibold text-[var(--primary)]">{auditActor(log)}</td>
                     <td className="p-3"><span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded font-bold text-[10px]">{log.action}</span></td>
-                    <td className="p-3 text-[#13696a] font-bold">{auditModule(log)}</td>
+                    <td className="p-3 text-[var(--secondary)] font-bold">{auditModule(log)}</td>
                     <td className="p-3 max-w-md truncate" title={auditDetails(log)}>{auditDetails(log)}</td>
                     <td className="p-3 font-mono text-[10px] text-gray-500">{log.user?.role ?? '—'}</td>
                   </tr>
@@ -339,20 +339,20 @@ export function AdminWorkspace({ user }: { user: any }) {
 
       {activeTab === 'config' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg border border-[#e2e8f0] p-5 shadow-sm">
-            <h2 className="font-bold text-[#002045] text-sm border-b border-[#e2e8f0] pb-3 mb-4">Organization Settings</h2>
+          <div className="bg-white rounded-lg border border-[var(--outline)] p-5 shadow-sm">
+            <h2 className="font-bold text-[var(--primary)] text-sm border-b border-[var(--outline)] pb-3 mb-4">Organization Settings</h2>
             <div className="space-y-4">
-              <div><label className="block text-xs font-semibold text-gray-700 mb-1">Organization Name</label><input type="text" value={orgSettings.name} onChange={e => setOrgSettings({...orgSettings, name: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
+              <div><label className="block text-xs font-semibold text-gray-700 mb-1">Organization Name</label><input type="text" value={orgSettings.name} onChange={e => setOrgSettings({...orgSettings, name: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
               <div className="grid grid-cols-3 gap-3">
-                <div><label className="block text-xs font-semibold text-gray-700 mb-1">Country</label><input type="text" value={orgSettings.country} onChange={e => setOrgSettings({...orgSettings, country: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
-                <div><label className="block text-xs font-semibold text-gray-700 mb-1">State</label><input type="text" value={orgSettings.state} onChange={e => setOrgSettings({...orgSettings, state: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
-                <div><label className="block text-xs font-semibold text-gray-700 mb-1">LGA</label><input type="text" value={orgSettings.lga} onChange={e => setOrgSettings({...orgSettings, lga: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
+                <div><label className="block text-xs font-semibold text-gray-700 mb-1">Country</label><input type="text" value={orgSettings.country} onChange={e => setOrgSettings({...orgSettings, country: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
+                <div><label className="block text-xs font-semibold text-gray-700 mb-1">State</label><input type="text" value={orgSettings.state} onChange={e => setOrgSettings({...orgSettings, state: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
+                <div><label className="block text-xs font-semibold text-gray-700 mb-1">LGA</label><input type="text" value={orgSettings.lga} onChange={e => setOrgSettings({...orgSettings, lga: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
               </div>
-              <div><label className="block text-xs font-semibold text-gray-700 mb-1">Address</label><textarea value={orgSettings.address} onChange={e => setOrgSettings({...orgSettings, address: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" rows={2}></textarea></div>
+              <div><label className="block text-xs font-semibold text-gray-700 mb-1">Address</label><textarea value={orgSettings.address} onChange={e => setOrgSettings({...orgSettings, address: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" rows={2}></textarea></div>
               <div className="grid grid-cols-3 gap-3">
-                <div><label className="block text-xs font-semibold text-gray-700 mb-1">Phone</label><input type="tel" value={orgSettings.phone} onChange={e => setOrgSettings({...orgSettings, phone: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
-                <div><label className="block text-xs font-semibold text-gray-700 mb-1">Email</label><input type="email" value={orgSettings.email} onChange={e => setOrgSettings({...orgSettings, email: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
-                <div><label className="block text-xs font-semibold text-gray-700 mb-1">Website</label><input type="url" value={orgSettings.website} onChange={e => setOrgSettings({...orgSettings, website: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
+                <div><label className="block text-xs font-semibold text-gray-700 mb-1">Phone</label><input type="tel" value={orgSettings.phone} onChange={e => setOrgSettings({...orgSettings, phone: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
+                <div><label className="block text-xs font-semibold text-gray-700 mb-1">Email</label><input type="email" value={orgSettings.email} onChange={e => setOrgSettings({...orgSettings, email: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
+                <div><label className="block text-xs font-semibold text-gray-700 mb-1">Website</label><input type="url" value={orgSettings.website} onChange={e => setOrgSettings({...orgSettings, website: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
               </div>
               <div className="pt-2">
                 <button onClick={handleSaveOrgSettings} className="btn-primary text-xs w-full py-2">Save Organization Settings</button>
@@ -360,26 +360,26 @@ export function AdminWorkspace({ user }: { user: any }) {
             </div>
           </div>
           
-          <div className="bg-white rounded-lg border border-[#e2e8f0] p-5 shadow-sm">
-            <h2 className="font-bold text-[#002045] text-sm border-b border-[#e2e8f0] pb-3 mb-4">System Settings</h2>
+          <div className="bg-white rounded-lg border border-[var(--outline)] p-5 shadow-sm">
+            <h2 className="font-bold text-[var(--primary)] text-sm border-b border-[var(--outline)] pb-3 mb-4">System Settings</h2>
             <div className="space-y-4">
               <div><label className="block text-xs font-semibold text-gray-700 mb-1">Session Timeout</label>
-                <select value={systemSettings.sessionTimeout} onChange={e => setSystemSettings({...systemSettings, sessionTimeout: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
+                <select value={systemSettings.sessionTimeout} onChange={e => setSystemSettings({...systemSettings, sessionTimeout: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                   <option value="4 hours">4 hours</option><option value="8 hours">8 hours</option><option value="12 hours">12 hours</option><option value="24 hours">24 hours</option>
                 </select>
               </div>
               <div><label className="block text-xs font-semibold text-gray-700 mb-1">Maximum Login Attempts</label>
-                <select value={systemSettings.maxLoginAttempts} onChange={e => setSystemSettings({...systemSettings, maxLoginAttempts: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
+                <select value={systemSettings.maxLoginAttempts} onChange={e => setSystemSettings({...systemSettings, maxLoginAttempts: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                   <option value="3">3</option><option value="5">5</option><option value="10">10</option>
                 </select>
               </div>
               <div><label className="block text-xs font-semibold text-gray-700 mb-1">Password Policy</label>
-                <select value={systemSettings.passwordPolicy} onChange={e => setSystemSettings({...systemSettings, passwordPolicy: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
+                <select value={systemSettings.passwordPolicy} onChange={e => setSystemSettings({...systemSettings, passwordPolicy: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                   <option value="STANDARD">STANDARD (8 chars)</option><option value="STRONG">STRONG (12 chars + special)</option><option value="CUSTOM">CUSTOM</option>
                 </select>
               </div>
               <div><label className="block text-xs font-semibold text-gray-700 mb-1">Data Backup Frequency</label>
-                <select value={systemSettings.dataBackupFrequency} onChange={e => setSystemSettings({...systemSettings, dataBackupFrequency: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
+                <select value={systemSettings.dataBackupFrequency} onChange={e => setSystemSettings({...systemSettings, dataBackupFrequency: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                   <option value="DAILY">DAILY</option><option value="WEEKLY">WEEKLY</option><option value="MONTHLY">MONTHLY</option>
                 </select>
               </div>
@@ -394,22 +394,22 @@ export function AdminWorkspace({ user }: { user: any }) {
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-lg font-bold text-[#002045] mb-4">Create New User</h2>
+            <h2 className="text-lg font-bold text-[var(--primary)] mb-4">Create New User</h2>
             <form onSubmit={handleCreateUser} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-xs font-semibold text-gray-700 mb-1">First Name</label><input required type="text" value={newUser.firstName} onChange={e => setNewUser({...newUser, firstName: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
-                <div><label className="block text-xs font-semibold text-gray-700 mb-1">Last Name</label><input required type="text" value={newUser.lastName} onChange={e => setNewUser({...newUser, lastName: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
+                <div><label className="block text-xs font-semibold text-gray-700 mb-1">First Name</label><input required type="text" value={newUser.firstName} onChange={e => setNewUser({...newUser, firstName: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
+                <div><label className="block text-xs font-semibold text-gray-700 mb-1">Last Name</label><input required type="text" value={newUser.lastName} onChange={e => setNewUser({...newUser, lastName: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
               </div>
-              <div><label className="block text-xs font-semibold text-gray-700 mb-1">Email</label><input required type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
+              <div><label className="block text-xs font-semibold text-gray-700 mb-1">Email</label><input required type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="block text-xs font-semibold text-gray-700 mb-1">Role</label>
-                  <select required value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs">
+                  <select required value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                     {rolesList.map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
-                <div><label className="block text-xs font-semibold text-gray-700 mb-1">Department</label><input type="text" value={newUser.department} onChange={e => setNewUser({...newUser, department: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
+                <div><label className="block text-xs font-semibold text-gray-700 mb-1">Department</label><input type="text" value={newUser.department} onChange={e => setNewUser({...newUser, department: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
               </div>
-              <div><label className="block text-xs font-semibold text-gray-700 mb-1">Temporary Password</label><input required type="text" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} className="w-full bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs" /></div>
+              <div><label className="block text-xs font-semibold text-gray-700 mb-1">Temporary Password</label><input required type="text" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" /></div>
               
               <div className="pt-4 flex justify-end gap-2">
                 <button type="button" onClick={() => setIsCreateModalOpen(false)} className="btn-secondary text-xs px-4 py-2">Cancel</button>

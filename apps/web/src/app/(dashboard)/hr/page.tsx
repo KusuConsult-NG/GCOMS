@@ -14,7 +14,7 @@ export default function HrPage() {
   }
 
   return (
-    <Suspense fallback={<div className="p-8 text-center text-xs text-[#74777f]">Loading HR Application...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-xs text-[var(--muted)]">Loading HR Application...</div>}>
       <HrWorkspace user={user} />
     </Suspense>
   );

@@ -14,7 +14,7 @@ export default function InventoryPage() {
   }
 
   return (
-    <Suspense fallback={<div className="p-8 text-center text-xs text-[#74777f]">Loading Inventory Application...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-xs text-[var(--muted)]">Loading Inventory Application...</div>}>
       <InventoryWorkspace user={user} />
     </Suspense>
   );

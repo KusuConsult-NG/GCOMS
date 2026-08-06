@@ -89,9 +89,9 @@ export function ExecutiveWorkspace({ user }: { user: any }) {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Section 1: Enterprise Command Centre Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[#002045] text-white p-6 rounded-lg border border-[#1a365d] shadow-md">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--primary)] text-white p-6 rounded-lg border border-[var(--primary-container)] shadow-md">
         <div>
-          <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#13696a] text-white uppercase tracking-wider">
+          <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
             Executive Command Centre • GCOMS
           </span>
           <h1 className="text-2xl font-extrabold tracking-tight mt-1 text-white">Enterprise-Wide Operations Dashboard</h1>
@@ -111,29 +111,29 @@ export function ExecutiveWorkspace({ user }: { user: any }) {
       {/* Section 2: Live KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Active Grant Portfolio</span>
-          <p className="text-2xl font-bold text-[#002045] mt-1">{grants.length}</p>
-          <p className="text-[10px] text-[#43474e]">Total: ₦{totalGrantValue.toLocaleString()}</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Active Grant Portfolio</span>
+          <p className="text-2xl font-bold text-[var(--primary)] mt-1">{grants.length}</p>
+          <p className="text-[10px] text-[var(--on-surface-variant)]">Total: ₦{totalGrantValue.toLocaleString()}</p>
         </div>
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Active Projects</span>
-          <p className="text-2xl font-bold text-[#13696a] mt-1 tabular-nums">{projects.length}</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Active Projects</span>
+          <p className="text-2xl font-bold text-[var(--secondary)] mt-1 tabular-nums">{projects.length}</p>
         </div>
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Pending Procurement Orders</span>
-          <p className="text-2xl font-bold text-[#ba1a1a] mt-1 tabular-nums">{pendingProcurement}</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Pending Procurement Orders</span>
+          <p className="text-2xl font-bold text-[var(--risk-high-text)] mt-1 tabular-nums">{pendingProcurement}</p>
         </div>
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Financial Balance</span>
-          <p className="text-2xl font-bold text-[#22543d] mt-1 tabular-nums">₦{financialBalance.toLocaleString()}</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Financial Balance</span>
+          <p className="text-2xl font-bold text-[var(--risk-low-text)] mt-1 tabular-nums">₦{financialBalance.toLocaleString()}</p>
         </div>
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Low Stock Alerts</span>
-          <p className="text-2xl font-bold text-[#92400e] mt-1 tabular-nums">{lowStockCount}</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Low Stock Alerts</span>
+          <p className="text-2xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">{lowStockCount}</p>
         </div>
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[#74777f] uppercase tracking-wide">Pending Approvals</span>
-          <p className="text-2xl font-bold text-[#93000a] mt-1 tabular-nums">{pendingApprovalsCount}</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Pending Approvals</span>
+          <p className="text-2xl font-bold text-[var(--risk-high-text)] mt-1 tabular-nums">{pendingApprovalsCount}</p>
         </div>
       </div>
 
@@ -141,19 +141,19 @@ export function ExecutiveWorkspace({ user }: { user: any }) {
         {/* Left Column */}
         <div className="lg:col-span-2 space-y-6">
           {/* Section 3: Executive Approval Queue */}
-          <div className="bg-white rounded-lg border border-[#e2e8f0] p-5 space-y-4 shadow-sm">
-            <div className="border-b border-[#e2e8f0] pb-2 flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
-              <h3 className="font-bold text-[#002045] text-sm">Executive Approval Queue</h3>
+          <div className="bg-white rounded-lg border border-[var(--outline)] p-5 space-y-4 shadow-sm">
+            <div className="border-b border-[var(--outline)] pb-2 flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+              <h3 className="font-bold text-[var(--primary)] text-sm">Executive Approval Queue</h3>
               <div className="flex gap-1 text-xs">
                 {['ALL', 'PENDING', 'APPROVED', 'REJECTED'].map(f => (
-                  <button key={f} onClick={() => setApprovalFilter(f as any)} className={`px-2 py-1 rounded ${approvalFilter === f ? 'bg-[#13696a] text-white' : 'bg-gray-100 text-gray-600'}`}>{f}</button>
+                  <button key={f} onClick={() => setApprovalFilter(f as any)} className={`px-2 py-1 rounded ${approvalFilter === f ? 'bg-[var(--secondary)] text-white' : 'bg-gray-100 text-gray-600'}`}>{f}</button>
                 ))}
               </div>
             </div>
             
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+                <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
                   <tr>
                     <th className="p-2">Reference/Title</th>
                     <th className="p-2">Dept</th>
@@ -164,7 +164,7 @@ export function ExecutiveWorkspace({ user }: { user: any }) {
                     <th className="p-2">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#e2e8f0]">
+                <tbody className="divide-y divide-[var(--outline)]">
                   {filteredApprovals.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="p-4 text-center text-gray-500">
@@ -173,7 +173,7 @@ export function ExecutiveWorkspace({ user }: { user: any }) {
                     </tr>
                   ) : (
                     filteredApprovals.map(a => (
-                      <tr key={a.id} className="hover:bg-[#e5eeff]">
+                      <tr key={a.id} className="hover:bg-[var(--primary-surface)]">
                         <td className="p-2 font-medium">{a.title || a.reference}</td>
                         <td className="p-2">{a.department}</td>
                         <td className="p-2">{a.requestedBy}</td>
@@ -199,13 +199,13 @@ export function ExecutiveWorkspace({ user }: { user: any }) {
           </div>
 
           {/* Section 5: Programme Heat Map */}
-          <div className="bg-white rounded-lg border border-[#e2e8f0] p-5 space-y-4 shadow-sm">
-            <div className="border-b border-[#e2e8f0] pb-2">
-              <h3 className="font-bold text-[#002045] text-sm">Programme Heat Map (Regional Performance)</h3>
+          <div className="bg-white rounded-lg border border-[var(--outline)] p-5 space-y-4 shadow-sm">
+            <div className="border-b border-[var(--outline)] pb-2">
+              <h3 className="font-bold text-[var(--primary)] text-sm">Programme Heat Map (Regional Performance)</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#edf2f7] text-[#43474e] uppercase font-semibold border-b border-[#e2e8f0]">
+                <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
                   <tr>
                     <th className="p-2">LGA</th>
                     <th className="p-2">Outreach Status</th>
@@ -213,10 +213,10 @@ export function ExecutiveWorkspace({ user }: { user: any }) {
                     <th className="p-2">Programme Score</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#e2e8f0]">
+                <tbody className="divide-y divide-[var(--outline)]">
                   {lgaData.map((r, i) => (
-                    <tr key={i} className="hover:bg-[#e5eeff]">
-                      <td className="p-2 font-bold text-[#002045]">{r.lga}</td>
+                    <tr key={i} className="hover:bg-[var(--primary-surface)]">
+                      <td className="p-2 font-bold text-[var(--primary)]">{r.lga}</td>
                       <td className="p-2"><span className="badge-low-risk">{r.status}</span></td>
                       <td className="p-2">{r.referrals}</td>
                       <td className="p-2 font-mono">{r.score}</td>
@@ -231,37 +231,37 @@ export function ExecutiveWorkspace({ user }: { user: any }) {
         {/* Right Column */}
         <div className="space-y-6">
           {/* Section 4: Cross-Department Analytics */}
-          <div className="bg-white rounded-lg border border-[#e2e8f0] p-5 space-y-4 shadow-sm">
-            <h3 className="font-bold text-[#002045] text-sm border-b border-[#e2e8f0] pb-2">Cross-Department Analytics</h3>
+          <div className="bg-white rounded-lg border border-[var(--outline)] p-5 space-y-4 shadow-sm">
+            <h3 className="font-bold text-[var(--primary)] text-sm border-b border-[var(--outline)] pb-2">Cross-Department Analytics</h3>
             <div className="grid grid-cols-1 gap-3">
-              <div className="p-3 bg-[#f8f9ff] border border-[#e2e8f0] rounded">
-                <p className="text-[10px] font-bold text-[#74777f] uppercase">Finance</p>
+              <div className="p-3 bg-[var(--background)] border border-[var(--outline)] rounded">
+                <p className="text-[10px] font-bold text-[var(--muted)] uppercase">Finance</p>
                 <div className="flex justify-between mt-1 text-xs">
                   <span>Income: ₦{totalIncome.toLocaleString()}</span>
                   <span>Exp: ₦{totalExpense.toLocaleString()}</span>
                 </div>
               </div>
-              <div className="p-3 bg-[#f8f9ff] border border-[#e2e8f0] rounded">
-                <p className="text-[10px] font-bold text-[#74777f] uppercase">Grants</p>
+              <div className="p-3 bg-[var(--background)] border border-[var(--outline)] rounded">
+                <p className="text-[10px] font-bold text-[var(--muted)] uppercase">Grants</p>
                 <div className="flex justify-between mt-1 text-xs">
                   <span>Active: {grants.length}</span>
                   <span>Value: ₦{totalGrantValue.toLocaleString()}</span>
                 </div>
               </div>
-              <div className="p-3 bg-[#f8f9ff] border border-[#e2e8f0] rounded">
-                <p className="text-[10px] font-bold text-[#74777f] uppercase">Projects</p>
-                <p className="mt-1 text-xs font-bold text-[#002045]">Total: {projects.length}</p>
+              <div className="p-3 bg-[var(--background)] border border-[var(--outline)] rounded">
+                <p className="text-[10px] font-bold text-[var(--muted)] uppercase">Projects</p>
+                <p className="mt-1 text-xs font-bold text-[var(--primary)]">Total: {projects.length}</p>
               </div>
-              <div className="p-3 bg-[#f8f9ff] border border-[#e2e8f0] rounded">
-                <p className="text-[10px] font-bold text-[#74777f] uppercase">Inventory</p>
-                <p className="mt-1 text-xs font-bold text-[#002045]">Stock Health: {stockHealth}%</p>
+              <div className="p-3 bg-[var(--background)] border border-[var(--outline)] rounded">
+                <p className="text-[10px] font-bold text-[var(--muted)] uppercase">Inventory</p>
+                <p className="mt-1 text-xs font-bold text-[var(--primary)]">Stock Health: {stockHealth}%</p>
               </div>
             </div>
           </div>
 
           {/* Section 6: Quick Navigation Links */}
-          <div className="bg-white rounded-lg border border-[#e2e8f0] p-5 space-y-4 shadow-sm">
-            <h3 className="font-bold text-[#002045] text-sm border-b border-[#e2e8f0] pb-2">Quick Navigation</h3>
+          <div className="bg-white rounded-lg border border-[var(--outline)] p-5 space-y-4 shadow-sm">
+            <h3 className="font-bold text-[var(--primary)] text-sm border-b border-[var(--outline)] pb-2">Quick Navigation</h3>
             <div className="grid grid-cols-2 gap-2">
               {[
                 { name: 'Finance', icon: '💰', link: '/finance', stat: `Bal: ₦${financialBalance.toLocaleString()}` },
@@ -273,13 +273,13 @@ export function ExecutiveWorkspace({ user }: { user: any }) {
                 { name: 'Governance', icon: '⚖️', link: '/governance', stat: 'Policies' },
                 { name: 'Clinical', icon: '🏥', link: '/clinical', stat: 'Records' },
               ].map(d => (
-                <a key={d.name} href={d.link} className="flex flex-col p-3 bg-[#f8f9ff] border border-[#e2e8f0] rounded hover:border-[#13696a] hover:bg-[#e5eeff] transition-colors cursor-pointer group">
+                <a key={d.name} href={d.link} className="flex flex-col p-3 bg-[var(--background)] border border-[var(--outline)] rounded hover:border-[var(--secondary)] hover:bg-[var(--primary-surface)] transition-colors cursor-pointer group">
                   <div className="flex justify-between items-center">
                     <span className="text-lg">{d.icon}</span>
-                    <span className="text-xs text-gray-400 group-hover:text-[#13696a]">→</span>
+                    <span className="text-xs text-gray-400 group-hover:text-[var(--secondary)]">→</span>
                   </div>
-                  <p className="font-bold text-[#002045] text-[11px] mt-1">{d.name}</p>
-                  <p className="text-[9px] text-[#74777f] mt-0.5 truncate">{d.stat}</p>
+                  <p className="font-bold text-[var(--primary)] text-[11px] mt-1">{d.name}</p>
+                  <p className="text-[9px] text-[var(--muted)] mt-0.5 truncate">{d.stat}</p>
                 </a>
               ))}
             </div>

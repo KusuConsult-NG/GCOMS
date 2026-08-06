@@ -138,9 +138,9 @@ export default function RegistrationPage() {
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="bg-[#002045] text-white p-5 rounded-lg border border-[#1a365d] shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
+      <div className="bg-[var(--primary)] text-white p-5 rounded-lg border border-[var(--primary-container)] shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
         <div>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#13696a] text-white uppercase tracking-wider">
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
             Field Volunteer Mobile Portal • GCOMS
           </span>
           <h1 className="text-2xl font-bold mt-1 text-white">Field Patient Intake & Patient Consent</h1>
@@ -153,58 +153,58 @@ export default function RegistrationPage() {
 
       {/* QR IDENTITY PASS SUCCESS MODAL */}
       {registeredPatient && (
-        <div className="fixed inset-0 bg-[#002045]/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-2xl border border-[#e2e8f0] space-y-4">
-            <div className="flex justify-between items-center border-b border-[#e2e8f0] pb-3">
+        <div className="fixed inset-0 bg-[var(--primary)]/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-2xl border border-[var(--outline)] space-y-4">
+            <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
               <span className="badge-low-risk text-xs">REGISTRATION COMPLETE</span>
-              <button onClick={() => setRegisteredPatient(null)} className="text-[#74777f] font-bold text-lg">✕</button>
+              <button onClick={() => setRegisteredPatient(null)} className="text-[var(--muted)] font-bold text-lg">✕</button>
             </div>
 
             {/* DIGITAL QR IDENTITY PASS CARD */}
-            <div className="p-6 bg-gradient-to-br from-[#002045] to-[#001733] text-white rounded-xl border-2 border-[#13696a] shadow-lg space-y-4">
-              <div className="flex justify-between items-start border-b border-[#1a365d] pb-3">
+            <div className="p-6 bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] text-white rounded-xl border-2 border-[var(--secondary)] shadow-lg space-y-4">
+              <div className="flex justify-between items-start border-b border-[var(--primary-container)] pb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white rounded flex items-center justify-center p-1">
                     <img src="/georgel-logo.png" alt="Logo" className="h-8 object-contain" />
                   </div>
                   <div>
                     <h3 className="font-bold text-base tracking-wide text-white">GCOMS PATIENT IDENTITY PASS</h3>
-                    <p className="text-[10px] text-[#a2eded]">Georgel Cancer Foundation Clinical Trust</p>
+                    <p className="text-[10px] text-[var(--secondary-container)]">Georgel Cancer Foundation Clinical Trust</p>
                   </div>
                 </div>
-                <span className="text-[10px] font-mono bg-[#13696a] px-2 py-0.5 rounded text-white font-bold">{registeredPatient.registrationId}</span>
+                <span className="text-[10px] font-mono bg-[var(--secondary)] px-2 py-0.5 rounded text-white font-bold">{registeredPatient.registrationId}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-xs">
                 <div>
-                  <p className="text-[#a2eded] text-[10px] uppercase font-semibold">Patient Name</p>
+                  <p className="text-[var(--secondary-container)] text-[10px] uppercase font-semibold">Patient Name</p>
                   <p className="font-bold text-white text-sm">{registeredPatient.firstName} {registeredPatient.lastName}</p>
                 </div>
                 <div>
-                  <p className="text-[#a2eded] text-[10px] uppercase font-semibold">Mandatory LGA</p>
+                  <p className="text-[var(--secondary-container)] text-[10px] uppercase font-semibold">Mandatory LGA</p>
                   <p className="font-bold text-white text-sm">{registeredPatient.lga}</p>
                 </div>
                 <div>
-                  <p className="text-[#a2eded] text-[10px] uppercase font-semibold">Ward & Address</p>
+                  <p className="text-[var(--secondary-container)] text-[10px] uppercase font-semibold">Ward & Address</p>
                   <p className="text-white text-xs">{registeredPatient.ward} • {registeredPatient.address}</p>
                 </div>
                 <div>
-                  <p className="text-[#a2eded] text-[10px] uppercase font-semibold">GPS Coordinates</p>
+                  <p className="text-[var(--secondary-container)] text-[10px] uppercase font-semibold">GPS Coordinates</p>
                   <p className="text-white font-mono text-xs">{registeredPatient.gps}</p>
                 </div>
               </div>
 
               {/* SIMULATED HIGH-RES DIGITAL QR CODE */}
-              <div className="pt-2 border-t border-[#1a365d] flex items-center justify-between">
+              <div className="pt-2 border-t border-[var(--primary-container)] flex items-center justify-between">
                 <div>
                   <p className="text-[10px] text-slate-300 font-semibold">PASS ID: <span className="font-mono text-white">{registeredPatient.qrPassId}</span></p>
-                  <p className="text-[9px] text-[#a2eded]">Informed Consent Verified • Scan for Clinical Record</p>
+                  <p className="text-[9px] text-[var(--secondary-container)]">Informed Consent Verified • Scan for Clinical Record</p>
                 </div>
-                <div className="bg-white p-2 rounded flex flex-col items-center justify-center border border-[#a2eded]">
-                  <svg className="w-16 h-16 text-[#002045]" viewBox="0 0 24 24" fill="currentColor">
+                <div className="bg-white p-2 rounded flex flex-col items-center justify-center border border-[var(--secondary-container)]">
+                  <svg className="w-16 h-16 text-[var(--primary)]" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M2 2h8v8H2V2zm2 2v4h4V4H4zm8-2h8v8h-8V2zm2 2v4h4V4h-4zM2 14h8v8H2v-8zm2 2v4h4v-4H4zm13-2h3v3h-3v-3zm0 5h3v3h-3v-3zm-5-5h3v8h-3v-8z"/>
                   </svg>
-                  <span className="text-[8px] font-mono text-[#002045] font-bold mt-0.5">{registeredPatient.qrPassId}</span>
+                  <span className="text-[8px] font-mono text-[var(--primary)] font-bold mt-0.5">{registeredPatient.qrPassId}</span>
                 </div>
               </div>
             </div>
@@ -232,7 +232,7 @@ export default function RegistrationPage() {
                     consentGiven: false,
                   });
                 }}
-                className="btn-primary text-xs bg-[#13696a] hover:bg-[#0f5455]"
+                className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]"
               >
                 + Register Next Participant
               </button>
@@ -244,7 +244,7 @@ export default function RegistrationPage() {
       {/* FORM CARD */}
       <div className="clinical-card space-y-6">
         {error && (
-          <div className="bg-[#ffdad6] border border-[#ba1a1a]/20 text-[#93000a] p-3.5 rounded text-xs font-semibold">
+          <div className="bg-[var(--risk-high-bg)] border border-[var(--risk-high-text)]/20 text-[var(--risk-high-text)] p-3.5 rounded text-xs font-semibold">
             {error}
           </div>
         )}
@@ -252,52 +252,52 @@ export default function RegistrationPage() {
         <form onSubmit={handleSubmit} className="space-y-6 text-xs">
           {/* Section 1: Demographics */}
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-[#13696a] border-b border-[#e2e8f0] pb-2 mb-4">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--secondary)] border-b border-[var(--outline)] pb-2 mb-4">
               1. Participant Identity & Demographics
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">First Name *</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">First Name *</label>
                 <input
                   type="text"
                   name="firstName"
                   value={formData.firstName}
                   onChange={handleChange}
                   placeholder="Enter first name"
-                  className="w-full px-3.5 py-2.5 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] outline-none text-[#0d1c2e]"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)]"
                   required
                 />
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Last Name *</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Last Name *</label>
                 <input
                   type="text"
                   name="lastName"
                   value={formData.lastName}
                   onChange={handleChange}
                   placeholder="Enter last name"
-                  className="w-full px-3.5 py-2.5 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] outline-none text-[#0d1c2e]"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)]"
                   required
                 />
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Date of Birth *</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Date of Birth *</label>
                 <input
                   type="date"
                   name="dateOfBirth"
                   value={formData.dateOfBirth}
                   onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] outline-none text-[#0d1c2e] tabular-nums"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)] tabular-nums"
                   required
                 />
               </div>
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Gender *</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Gender *</label>
                 <select
                   name="gender"
                   value={formData.gender}
                   onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] outline-none text-[#0d1c2e]"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)]"
                   required
                 >
                   <option value="Female">Female</option>
@@ -310,18 +310,18 @@ export default function RegistrationPage() {
 
           {/* Section 2: Contact, Mandatory LGA, Ward & Address */}
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-[#13696a] border-b border-[#e2e8f0] pb-2 mb-4">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--secondary)] border-b border-[var(--outline)] pb-2 mb-4">
               2. Geographic Location, Ward & Address Data
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* MANDATORY LGA DROPDOWN */}
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">LGA *</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">LGA *</label>
                 <select
                   name="lga"
                   value={formData.lga}
                   onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 bg-white border-2 border-[#13696a] rounded focus:border-[#002045] outline-none font-bold text-[#002045]"
+                  className="w-full px-3.5 py-2.5 bg-white border-2 border-[var(--secondary)] rounded focus:border-[var(--primary)] outline-none font-bold text-[var(--primary)]"
                   required
                 >
                   <option value="">-- Select LGA (Mandatory) --</option>
@@ -333,39 +333,39 @@ export default function RegistrationPage() {
 
               {/* WARD */}
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Ward Name</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Ward Name</label>
                 <input
                   type="text"
                   name="ward"
                   value={formData.ward}
                   onChange={handleChange}
                   placeholder="e.g. Gwol Ward / Tudun Wada Ward"
-                  className="w-full px-3.5 py-2.5 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] outline-none text-[#0d1c2e]"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)]"
                 />
               </div>
 
               {/* RESIDENTIAL STREET ADDRESS */}
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Residential Street Address</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Residential Street Address</label>
                 <input
                   type="text"
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
                   placeholder="House No 14, Main Street, LGA"
-                  className="w-full px-3.5 py-2.5 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] outline-none text-[#0d1c2e]"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)]"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-[#0d1c2e] mb-1">Phone Number</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Phone Number</label>
                 <input
                   type="tel"
                   name="phoneNumber"
                   value={formData.phoneNumber}
                   onChange={handleChange}
                   placeholder="+2348031234567"
-                  className="w-full px-3.5 py-2.5 bg-white border border-[#e2e8f0] rounded focus:border-[#13696a] outline-none text-[#0d1c2e] tabular-nums"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)] tabular-nums"
                 />
               </div>
             </div>
@@ -373,15 +373,15 @@ export default function RegistrationPage() {
 
           {/* Section 3: GPS Geolocation */}
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-[#13696a] border-b border-[#e2e8f0] pb-2 mb-4">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--secondary)] border-b border-[var(--outline)] pb-2 mb-4">
               3. Live Field GPS Geolocation Capture
             </h2>
-            <div className="flex items-center gap-3 bg-[#f8f9ff] p-4 rounded border border-[#e2e8f0]">
+            <div className="flex items-center gap-3 bg-[var(--background)] p-4 rounded border border-[var(--outline)]">
               <button
                 type="button"
                 onClick={handleCaptureGps}
                 disabled={gpsLoading}
-                className="btn-primary text-xs bg-[#13696a] hover:bg-[#0f5455]"
+                className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]"
               >
                 {gpsLoading ? 'Capturing GPS Satellite Signal...' : '📡 Capture Live Field GPS Coordinates'}
               </button>
@@ -390,24 +390,24 @@ export default function RegistrationPage() {
                 readOnly
                 name="gpsCoordinates"
                 value={formData.gpsCoordinates || 'Click button to capture GPS location'}
-                className="flex-1 bg-white border border-[#e2e8f0] rounded px-3 py-2 text-xs font-mono text-[#0d1c2e]"
+                className="flex-1 bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs font-mono text-[var(--on-background)]"
               />
             </div>
           </div>
 
           {/* Section 4: Patient Consent Box */}
-          <div className="p-4 bg-[#f8f9ff] border border-[#e2e8f0] rounded flex items-start gap-3">
+          <div className="p-4 bg-[var(--background)] border border-[var(--outline)] rounded flex items-start gap-3">
             <input
               type="checkbox"
               name="consentGiven"
               id="consentGiven"
               checked={formData.consentGiven}
               onChange={handleChange}
-              className="w-5 h-5 text-[#13696a] rounded mt-0.5 cursor-pointer"
+              className="w-5 h-5 text-[var(--secondary)] rounded mt-0.5 cursor-pointer"
               required
             />
-            <label htmlFor="consentGiven" className="text-xs text-[#0d1c2e] leading-relaxed cursor-pointer">
-              <span className="font-bold block text-[#002045]">Patient Informed Consent Confirmation *</span>
+            <label htmlFor="consentGiven" className="text-xs text-[var(--on-background)] leading-relaxed cursor-pointer">
+              <span className="font-bold block text-[var(--primary)]">Patient Informed Consent Confirmation *</span>
               "I confirm that informed consent has been obtained from the participant for cervical cancer screening, VIA evaluation, follow-up communication, and secure digital records processing under GCOMS Clinical Trust."
             </label>
           </div>
@@ -423,7 +423,7 @@ export default function RegistrationPage() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary text-xs disabled:opacity-50 bg-[#13696a] hover:bg-[#0f5455]"
+              className="btn-primary text-xs disabled:opacity-50 bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]"
             >
               {loading ? 'Submitting Intake...' : 'Submit & Generate QR Identity Pass'}
             </button>

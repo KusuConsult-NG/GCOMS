@@ -1,3 +1,7 @@
+import {
+  CreateInventoryItemDto,
+  UpdateInventoryItemDto,
+} from './dto/inventory.dto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { BadRequestException } from '@nestjs/common';
@@ -11,7 +15,7 @@ import {
 export class InventoryService {
   constructor(private prisma: PrismaService) {}
 
-  async createInventoryItem(data: any, userId: string) {
+  async createInventoryItem(data: CreateInventoryItemDto, userId: string) {
     const status =
       data.quantity > 0
         ? data.quantity <= 10
@@ -22,7 +26,7 @@ export class InventoryService {
       data: {
         itemName: data.itemName,
         category: data.category,
-        quantity: parseInt(data.quantity, 10),
+        quantity: data.quantity,
         unit: data.unit,
         location: data.location,
         status,
@@ -42,14 +46,14 @@ export class InventoryService {
     });
   }
 
-  async updateInventoryItem(id: string, data: any) {
+  async updateInventoryItem(id: string, data: UpdateInventoryItemDto) {
     const item = await this.prisma.inventoryItem.findUnique({ where: { id } });
     if (!item) {
       throw new NotFoundException('Inventory item not found');
     }
 
     const newQuantity =
-      data.quantity !== undefined ? parseInt(data.quantity, 10) : item.quantity;
+      data.quantity !== undefined ? data.quantity : item.quantity;
     const status =
       newQuantity > 0
         ? newQuantity <= 10

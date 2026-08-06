@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Body,
   Controller,
@@ -40,7 +41,10 @@ export class UsersController {
    */
   @Post()
   @Roles(...USER_ADMIN_ROLES)
-  async createUser(@Body() dto: CreateUserDto, @Request() req: any) {
+  async createUser(
+    @Body() dto: CreateUserDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.usersService.createUser(dto, req.user.role);
   }
 
@@ -53,7 +57,7 @@ export class UsersController {
   async updateUserRole(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateUserRoleDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.usersService.updateRole(id, dto, {
       id: req.user.id,
@@ -70,7 +74,7 @@ export class UsersController {
   async updateUserStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateUserStatusDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.usersService.updateStatus(id, dto, {
       id: req.user.id,

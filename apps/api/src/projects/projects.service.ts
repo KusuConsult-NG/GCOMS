@@ -1,3 +1,4 @@
+import { CreateProjectDto } from './dto/create-project.dto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -11,12 +12,12 @@ import {
 export class ProjectsService {
   constructor(private prisma: PrismaService) {}
 
-  async createProject(data: any, userId: string) {
+  async createProject(data: CreateProjectDto, userId: string) {
     return this.prisma.project.create({
       data: {
         projectName: data.projectName,
         description: data.description,
-        budget: parseFloat(data.budget),
+        budget: data.budget,
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
         managedById: userId,

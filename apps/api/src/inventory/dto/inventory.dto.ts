@@ -16,13 +16,25 @@ export class CreateInventoryItemDto {
   @IsNotEmpty()
   unit: string;
 
+  // Required, because the column is. Declared optional, a create without it
+  // reached Prisma as a missing non-null field and failed as an opaque 400.
   @IsString()
-  @IsOptional()
-  location?: string;
+  @IsNotEmpty()
+  location: string;
 }
 
 export class UpdateInventoryItemDto {
+  /**
+   * Both optional: the service already treats a missing quantity as "leave it
+   * alone", and it reads `data.location` — which this class did not declare, so
+   * the global ValidationPipe's whitelist stripped it before the service saw it
+   * and moving an item to a new location silently did nothing.
+   */
   @IsNumber()
-  @IsNotEmpty()
-  quantity: number;
+  @IsOptional()
+  quantity?: number;
+
+  @IsString()
+  @IsOptional()
+  location?: string;
 }

@@ -1,3 +1,5 @@
+import { CreateProjectDto } from './dto/create-project.dto';
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Body,
   Controller,
@@ -66,7 +68,10 @@ export class ProjectsController {
   // Was an inline `req.user.role !== ...` check throwing UnauthorizedException.
   @Post()
   @Roles(...PROJECT_WRITE_ROLES)
-  createProject(@Body() data: any, @Request() req: any) {
+  createProject(
+    @Body() data: CreateProjectDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.projectsService.createProject(data, req.user.id);
   }
 

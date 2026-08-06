@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Body,
   Controller,
@@ -13,6 +14,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { HrService } from './hr.service';
+import { CreateStaffRecordDto } from './dto/create-staff-record.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -35,23 +37,36 @@ export class HrController {
   // Was an inline role check.
   @Post()
   @Roles(...HR_WRITE_ROLES)
-  createStaffRecord(@Body() data: any, @Request() req: any) {
-    return this.hrService.createStaffRecord(data, req.user.id);
+  createStaffRecord(
+    @Body() dto: CreateStaffRecordDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    // The whole user passes through, not just the id: assigning a privileged
+    // role is checked against the caller's own role in the service.
+    return this.hrService.createStaffRecord(dto, req.user);
   }
 
+  // The alias carried no @Roles. RolesGuard allows a route with no metadata, so
+  // this was open to any authenticated caller — a second, unguarded door to the
+  // same account creation the route above restricts to HR_WRITE_ROLES.
   @Post('staff')
-  createStaffRecordAlias(@Body() data: any, @Request() req: any) {
-    return this.createStaffRecord(data, req);
+  @Roles(...HR_WRITE_ROLES)
+  createStaffRecordAlias(
+    @Body() dto: CreateStaffRecordDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.createStaffRecord(dto, req);
   }
 
   @Get()
   @Roles(...HR_READ_ROLES)
-  getStaffRecords(@Request() req: any) {
+  getStaffRecords(@Request() req: AuthenticatedRequest) {
     return this.hrService.getStaffRecords();
   }
 
   @Get('staff')
-  getStaffRecordsAlias(@Request() req: any) {
+  @Roles(...HR_READ_ROLES)
+  getStaffRecordsAlias(@Request() req: AuthenticatedRequest) {
     return this.getStaffRecords(req);
   }
 
@@ -63,7 +78,10 @@ export class HrController {
 
   @Post('leave')
   @Roles(...HR_WRITE_ROLES)
-  createLeave(@Body() dto: CreateLeaveRequestDto, @Request() req: any) {
+  createLeave(
+    @Body() dto: CreateLeaveRequestDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.hrService.createLeave(dto, req.user.id);
   }
 
@@ -90,7 +108,10 @@ export class HrController {
 
   @Post('appraisals')
   @Roles(...HR_WRITE_ROLES)
-  createAppraisal(@Body() dto: CreateAppraisalDto, @Request() req: any) {
+  createAppraisal(
+    @Body() dto: CreateAppraisalDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.hrService.createAppraisal(dto, req.user.id);
   }
 

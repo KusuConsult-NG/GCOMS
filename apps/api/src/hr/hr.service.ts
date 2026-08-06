@@ -1,6 +1,7 @@
 import {
   Injectable,
   ConflictException,
+  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -15,40 +16,69 @@ import {
   CreateOnboardingDto,
   UpdateOnboardingDto,
 } from './dto/hr-records.dto';
+import { CreateStaffRecordDto } from './dto/create-staff-record.dto';
+import { GRANTOR_ROLES, PRIVILEGED_ROLES } from '../auth/roles.constants';
+import type { Role } from '../auth/roles.constants';
+import type { AuthUser } from '../auth/authenticated-request';
+
+/** Matches UsersService; a staff account must not be cheaper to crack. */
+const BCRYPT_ROUNDS = 12;
 
 @Injectable()
 export class HrService {
   constructor(private prisma: PrismaService) {}
 
-  async createStaffRecord(data: any, hrManagerId: string) {
+  /**
+   * Onboards a staff member, creating their user account alongside the record.
+   *
+   * This was a second, unguarded route to creating a user. It bypassed
+   * everything POST /users enforces: it took the role straight off an untyped
+   * body with no check that the caller may grant it — so HR, which is not a
+   * grantor, could mint a SYSTEM_ADMIN — and it hashed the string literal
+   * 'password123' at ten rounds for every account it created. Between the two,
+   * any HR user could create themselves an executive account with a password
+   * they already knew.
+   *
+   * The privileged-role rule is the same one UsersService applies, repeated here
+   * rather than referenced, because this is a different entry point and must not
+   * depend on the other one being reached first.
+   */
+  async createStaffRecord(dto: CreateStaffRecordDto, actor: AuthUser) {
+    if (
+      PRIVILEGED_ROLES.includes(dto.role) &&
+      !GRANTOR_ROLES.includes(actor.role as Role)
+    ) {
+      throw new ForbiddenException(
+        `Only ${GRANTOR_ROLES.join(' or ')} may assign the ${dto.role} role`,
+      );
+    }
+
+    const email = dto.email.trim().toLowerCase();
+    const hashedPassword = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+
     return this.prisma.$transaction(async (prisma) => {
-      // 1. Create the user account with a default password (e.g., 'password123')
-      const existingUser = await prisma.user.findUnique({
-        where: { email: data.email },
-      });
+      const existingUser = await prisma.user.findUnique({ where: { email } });
       if (existingUser) {
         throw new ConflictException('User with this email already exists');
       }
 
-      const hashedPassword = await bcrypt.hash('password123', 10);
       const user = await prisma.user.create({
         data: {
-          email: data.email,
+          email,
           password: hashedPassword,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          role: data.role, // Admin assigns role during onboarding
+          firstName: dto.firstName.trim(),
+          lastName: dto.lastName.trim(),
+          role: dto.role,
         },
       });
 
-      // 2. Create the StaffRecord linked to the new user
-      const staffRecord = await prisma.staffRecord.create({
+      return prisma.staffRecord.create({
         data: {
           userId: user.id,
-          department: data.department,
-          employmentType: data.employmentType,
+          department: dto.department.trim(),
+          employmentType: dto.employmentType,
           status: 'ACTIVE',
-          managedById: hrManagerId,
+          managedById: actor.id,
         },
         include: {
           user: {
@@ -62,8 +92,6 @@ export class HrService {
           },
         },
       });
-
-      return staffRecord;
     });
   }
 

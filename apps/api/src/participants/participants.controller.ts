@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Controller,
   Get,
@@ -23,7 +24,10 @@ export class ParticipantsController {
 
   @Post()
   @Roles(...PHI_READ_ROLES)
-  create(@Body() dto: CreateParticipantDto, @Request() req: any) {
+  create(
+    @Body() dto: CreateParticipantDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.participantsService.create(dto, req.user.id);
   }
 
@@ -35,7 +39,7 @@ export class ParticipantsController {
   @Get()
   @Roles(...PHI_READ_ROLES)
   findAll(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query() pagination: PaginationQueryDto,
     @Query('search') search?: string,
   ) {
@@ -48,7 +52,7 @@ export class ParticipantsController {
    */
   @Get(':id')
   @Roles(...PHI_READ_ROLES)
-  findOne(@Param('id') id: string, @Request() req: any) {
+  findOne(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.participantsService.findOne(id, req.user);
   }
 }

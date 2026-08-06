@@ -560,9 +560,9 @@ export class OperationsService {
    * There is no stored total column on purpose: a derived value written once is
    * a value that can disagree with its own inputs the moment either is edited.
    */
-  private withPlanTotal<T extends { quantity: number; unitPrice: Prisma.Decimal }>(
-    item: T,
-  ) {
+  private withPlanTotal<
+    T extends { quantity: number; unitPrice: Prisma.Decimal },
+  >(item: T) {
     return { ...item, totalCost: item.unitPrice.mul(item.quantity).toNumber() };
   }
 
@@ -667,7 +667,12 @@ export class OperationsService {
           },
           include: {
             procurementOrder: {
-              select: { id: true, itemName: true, quantity: true, vendor: true },
+              select: {
+                id: true,
+                itemName: true,
+                quantity: true,
+                vendor: true,
+              },
             },
             receivedBy: { select: { firstName: true, lastName: true } },
           },
@@ -713,7 +718,7 @@ export class OperationsService {
             endDate: new Date(d.endDate),
             deliverables: d.deliverables?.trim() || null,
             status: d.status ?? 'ACTIVE',
-          createdById: userId,
+            createdById: userId,
           },
           include: {
             vendor: { select: { id: true, name: true } },

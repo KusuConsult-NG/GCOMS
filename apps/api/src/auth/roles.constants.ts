@@ -387,3 +387,28 @@ export const CONTRACT_STATUSES = [
   'COMPLETED',
   'TERMINATED',
 ] as const;
+
+/** Vocabularies for records whose routes previously accepted an untyped body. */
+export const FACILITY_REQUEST_TYPES = [
+  'MAINTENANCE',
+  'BOOKING',
+  'REPAIR',
+] as const;
+export const APPROVAL_RESOURCE_TYPES = [
+  'PROCUREMENT',
+  'FINANCE',
+  'HR',
+  'GRANT',
+  'PROJECT',
+  'FACILITY',
+  'USER',
+] as const;
+export const TRANSACTION_TYPES = ['INCOME', 'EXPENSE'] as const;
+export const DOCUMENT_TYPES = [
+  'POLICY',
+  'GUIDELINE',
+  'REPORT',
+  'CONTRACT',
+  'CERTIFICATE',
+  'OTHER',
+] as const;

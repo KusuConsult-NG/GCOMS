@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from './authenticated-request';
 import {
   Body,
   Controller,
@@ -23,13 +24,13 @@ export class AuthController {
   // cannot express.
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  async login(@Body() _dto: LoginDto, @Request() req: any) {
+  async login(@Body() _dto: LoginDto, @Request() req: AuthenticatedRequest) {
     return this.authService.login(req.user);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('profile')
-  getProfile(@Request() req: any) {
+  getProfile(@Request() req: AuthenticatedRequest) {
     return req.user;
   }
 }

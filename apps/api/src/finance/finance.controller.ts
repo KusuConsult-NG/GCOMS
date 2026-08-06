@@ -1,3 +1,5 @@
+import { CreateFinanceTransactionDto } from './dto/create-transaction.dto';
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Body,
   Controller,
@@ -34,7 +36,10 @@ export class FinanceController {
   // it does on every route.
   @Post()
   @Roles('FINANCE')
-  createTransaction(@Body() data: any, @Request() req: any) {
+  createTransaction(
+    @Body() data: CreateFinanceTransactionDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.financeService.createTransaction(data, req.user.id);
   }
 

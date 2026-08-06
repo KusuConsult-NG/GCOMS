@@ -1,3 +1,5 @@
+import { CreateApprovalRequestDto } from './dto/create-approval-request.dto';
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Controller,
   Post,
@@ -21,7 +23,10 @@ export class ApprovalsController {
   constructor(private readonly approvalsService: ApprovalsService) {}
 
   @Post()
-  createRequest(@Body() data: any, @Request() req: any) {
+  createRequest(
+    @Body() data: CreateApprovalRequestDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.approvalsService.createRequest(data, req.user.id);
   }
 
@@ -42,7 +47,7 @@ export class ApprovalsController {
   resolveRequest(
     @Param('id') id: string,
     @Body() data: { status: string },
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.approvalsService.resolveRequest(id, data.status, req.user);
   }

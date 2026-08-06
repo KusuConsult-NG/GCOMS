@@ -1,3 +1,5 @@
+import { CreateScreeningDto } from './dto/create-screening.dto';
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Controller,
   Post,
@@ -23,7 +25,10 @@ export class ScreeningsController {
   @Post()
   @Roles(...CLINICAL_WRITE_ROLES)
   @UseGuards(ParticipantAccessGuard)
-  createScreening(@Body() data: any, @Request() req: any) {
+  createScreening(
+    @Body() data: CreateScreeningDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.screeningsService.createScreening(data, req.user.id);
   }
 

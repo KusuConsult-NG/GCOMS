@@ -241,7 +241,11 @@ export class UpdateQuoteDto {
 export class CreatePlanItemDto {
   // Defaults to the current year on the server rather than being required, so a
   // plan cannot be filed against a year the client picked by accident.
-  @IsOptional() @Type(() => Number) @IsInt() @Min(2000) @Max(2100)
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(2000)
+  @Max(2100)
   fiscalYear?: number;
   @IsString() @MinLength(1) @MaxLength(120) category: string;
   @IsString() @MinLength(1) @MaxLength(500) description: string;

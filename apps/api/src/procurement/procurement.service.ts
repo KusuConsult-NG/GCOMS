@@ -1,3 +1,4 @@
+import { CreateProcurementOrderDto } from './dto/create-order.dto';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { money } from '../common/money';
@@ -10,14 +11,14 @@ export class ProcurementService {
     private notifications: NotificationsService,
   ) {}
 
-  async createOrder(data: any, userId: string) {
+  async createOrder(data: CreateProcurementOrderDto, userId: string) {
     const created = await this.prisma.$transaction(async (prisma) => {
       // 1. Create ProcurementOrder
       const order = await prisma.procurementOrder.create({
         data: {
           itemName: data.itemName,
-          quantity: parseInt(data.quantity),
-          estimatedCost: parseFloat(data.estimatedCost),
+          quantity: data.quantity,
+          estimatedCost: data.estimatedCost,
           vendor: data.vendor,
           requestedById: userId,
         },

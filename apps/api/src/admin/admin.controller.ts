@@ -1,3 +1,5 @@
+import { CreateFacilityRequestDto } from './dto/create-facility-request.dto';
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Controller,
   Post,
@@ -18,13 +20,16 @@ export class AdminController {
 
   @Post()
   @Roles('ADMIN', 'EXECUTIVE')
-  createFacilityRequest(@Body() data: any, @Request() req: any) {
+  createFacilityRequest(
+    @Body() data: CreateFacilityRequestDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.adminService.createFacilityRequest(data, req.user.id);
   }
 
   @Get()
   @Roles('ADMIN', 'EXECUTIVE')
-  getFacilityRequests(@Request() req: any) {
+  getFacilityRequests(@Request() req: AuthenticatedRequest) {
     return this.adminService.getFacilityRequests();
   }
 }

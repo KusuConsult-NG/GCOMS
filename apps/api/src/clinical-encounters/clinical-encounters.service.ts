@@ -1,3 +1,4 @@
+import { AssignPatientDto, CreateEncounterDto } from './dto/encounter.dto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PhiAccessService, PhiActor } from '../phi/phi-access.service';
@@ -13,7 +14,7 @@ export class ClinicalEncountersService {
     private phi: PhiAccessService,
   ) {}
 
-  async createEncounter(data: any, userId: string) {
+  async createEncounter(data: CreateEncounterDto, userId: string) {
     return this.prisma.clinicalEncounter.create({
       data: {
         notes: data.notes,
@@ -73,7 +74,7 @@ export class ClinicalEncountersService {
     });
   }
 
-  async assignPatient(data: any, assignedBy: string) {
+  async assignPatient(data: AssignPatientDto, assignedBy: string) {
     return this.prisma.patientAssignment.create({
       data: {
         participantId: data.participantId,

@@ -13,26 +13,63 @@ import { OperationsService } from './operations.service';
 describe('OperationsService — plan items, GRNs and contracts', () => {
   let service: OperationsService;
   let prisma: {
-    procurementPlanItem: { findMany: jest.Mock; findUnique: jest.Mock; create: jest.Mock; update: jest.Mock };
+    procurementPlanItem: {
+      findMany: jest.Mock;
+      findUnique: jest.Mock;
+      create: jest.Mock;
+      update: jest.Mock;
+    };
     procurementOrder: { findUnique: jest.Mock };
     goodsReceivedNote: { findMany: jest.Mock; create: jest.Mock };
     vendor: { findUnique: jest.Mock };
-    contract: { findMany: jest.Mock; findUnique: jest.Mock; create: jest.Mock; update: jest.Mock };
+    contract: {
+      findMany: jest.Mock;
+      findUnique: jest.Mock;
+      create: jest.Mock;
+      update: jest.Mock;
+    };
   };
 
   const ACTOR = 'user-1';
+
+  /**
+   * The argument a mocked call received, typed at the call site.
+   *
+   * `jest.Mock` without type parameters types `mock.calls` as `any[][]`, so
+   * every assertion that reaches into a recorded argument is unchecked — which
+   * is exactly where a renamed field would slip through as undefined and the
+   * expectation would quietly pass.
+   */
+  const argOf = <T>(mock: jest.Mock, call = 0): T =>
+    (mock.mock.calls as unknown[][])[call][0] as T;
   const dec = (v: string | number) => new Prisma.Decimal(v);
 
   beforeEach(async () => {
     prisma = {
-      procurementPlanItem: { findMany: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
+      procurementPlanItem: {
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
       procurementOrder: { findUnique: jest.fn() },
-      goodsReceivedNote: { findMany: jest.fn().mockResolvedValue([]), create: jest.fn() },
+      goodsReceivedNote: {
+        findMany: jest.fn().mockResolvedValue([]),
+        create: jest.fn(),
+      },
       vendor: { findUnique: jest.fn() },
-      contract: { findMany: jest.fn().mockResolvedValue([]), findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
+      contract: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findUnique: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
     };
     const module = await Test.createTestingModule({
-      providers: [OperationsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        OperationsService,
+        { provide: PrismaService, useValue: prisma },
+      ],
     }).compile();
     service = module.get(OperationsService);
   });
@@ -46,15 +83,20 @@ describe('OperationsService — plan items, GRNs and contracts', () => {
       });
 
       const item = await service.createPlanItem(
-        { category: 'Reagents', description: 'VIA kits', quantity: 3, unitPrice: 1250.75 },
+        {
+          category: 'Reagents',
+          description: 'VIA kits',
+          quantity: 3,
+          unitPrice: 1250.75,
+        },
         ACTOR,
       );
 
       expect(item.totalCost).toBe(3752.25);
       // Nothing named total is written — the column does not exist.
-      const written = prisma.procurementPlanItem.create.mock.calls[0][0] as {
+      const written = argOf<{
         data: Record<string, unknown>;
-      };
+      }>(prisma.procurementPlanItem.create);
       expect(Object.keys(written.data)).not.toContain('totalCost');
     });
 
@@ -75,24 +117,27 @@ describe('OperationsService — plan items, GRNs and contracts', () => {
     });
 
     it('defaults the fiscal year to the current one', async () => {
-      prisma.procurementPlanItem.create.mockResolvedValue({ quantity: 1, unitPrice: dec(1) });
+      prisma.procurementPlanItem.create.mockResolvedValue({
+        quantity: 1,
+        unitPrice: dec(1),
+      });
 
       await service.createPlanItem(
         { category: 'x', description: 'y', quantity: 1, unitPrice: 1 },
         ACTOR,
       );
 
-      const written = prisma.procurementPlanItem.create.mock.calls[0][0] as {
+      const written = argOf<{
         data: { fiscalYear: number };
-      };
+      }>(prisma.procurementPlanItem.create);
       expect(written.data.fiscalYear).toBe(new Date().getFullYear());
     });
 
     it('rejects an update to a plan item that does not exist', async () => {
       prisma.procurementPlanItem.findUnique.mockResolvedValue(null);
-      await expect(service.updatePlanItem('missing', { status: 'APPROVED' })).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.updatePlanItem('missing', { status: 'APPROVED' }),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -107,7 +152,10 @@ describe('OperationsService — plan items, GRNs and contracts', () => {
     };
 
     it('allocates a GRN reference in sequence', async () => {
-      prisma.procurementOrder.findUnique.mockResolvedValue({ id: grn.procurementOrderId, quantity: 20 });
+      prisma.procurementOrder.findUnique.mockResolvedValue({
+        id: grn.procurementOrderId,
+        quantity: 20,
+      });
       prisma.goodsReceivedNote.findMany.mockResolvedValue([
         { reference: `GRN-${new Date().getFullYear()}-0003` },
       ]);
@@ -115,28 +163,42 @@ describe('OperationsService — plan items, GRNs and contracts', () => {
 
       await service.createGrn(grn, ACTOR);
 
-      const written = prisma.goodsReceivedNote.create.mock.calls[0][0] as {
+      const written = argOf<{
         data: { reference: string };
-      };
-      expect(written.data.reference).toBe(`GRN-${new Date().getFullYear()}-0004`);
+      }>(prisma.goodsReceivedNote.create);
+      expect(written.data.reference).toBe(
+        `GRN-${new Date().getFullYear()}-0004`,
+      );
     });
 
     it('refuses a note against a purchase order that does not exist', async () => {
       prisma.procurementOrder.findUnique.mockResolvedValue(null);
-      await expect(service.createGrn(grn, ACTOR)).rejects.toThrow(NotFoundException);
+      await expect(service.createGrn(grn, ACTOR)).rejects.toThrow(
+        NotFoundException,
+      );
       expect(prisma.goodsReceivedNote.create).not.toHaveBeenCalled();
     });
 
     it('refuses to receive more than was ordered', async () => {
-      prisma.procurementOrder.findUnique.mockResolvedValue({ id: grn.procurementOrderId, quantity: 4 });
-      await expect(service.createGrn(grn, ACTOR)).rejects.toThrow(BadRequestException);
+      prisma.procurementOrder.findUnique.mockResolvedValue({
+        id: grn.procurementOrderId,
+        quantity: 4,
+      });
+      await expect(service.createGrn(grn, ACTOR)).rejects.toThrow(
+        BadRequestException,
+      );
       expect(prisma.goodsReceivedNote.create).not.toHaveBeenCalled();
     });
 
     it('accepts receiving exactly the ordered quantity', async () => {
-      prisma.procurementOrder.findUnique.mockResolvedValue({ id: grn.procurementOrderId, quantity: 5 });
+      prisma.procurementOrder.findUnique.mockResolvedValue({
+        id: grn.procurementOrderId,
+        quantity: 5,
+      });
       prisma.goodsReceivedNote.create.mockResolvedValue({ id: 'g1' });
-      await expect(service.createGrn(grn, ACTOR)).resolves.toEqual({ id: 'g1' });
+      await expect(service.createGrn(grn, ACTOR)).resolves.toEqual({
+        id: 'g1',
+      });
     });
   });
 
@@ -156,23 +218,30 @@ describe('OperationsService — plan items, GRNs and contracts', () => {
 
       await service.createContract(contract, ACTOR);
 
-      const written = prisma.contract.create.mock.calls[0][0] as {
+      const written = argOf<{
         data: { reference: string; createdById: string };
-      };
-      expect(written.data.reference).toBe(`CTR-${new Date().getFullYear()}-0001`);
+      }>(prisma.contract.create);
+      expect(written.data.reference).toBe(
+        `CTR-${new Date().getFullYear()}-0001`,
+      );
       expect(written.data.createdById).toBe(ACTOR);
     });
 
     it('refuses a contract for an unregistered vendor', async () => {
       prisma.vendor.findUnique.mockResolvedValue(null);
-      await expect(service.createContract(contract, ACTOR)).rejects.toThrow(NotFoundException);
+      await expect(service.createContract(contract, ACTOR)).rejects.toThrow(
+        NotFoundException,
+      );
       expect(prisma.contract.create).not.toHaveBeenCalled();
     });
 
     it('refuses an end date before the start date', async () => {
       prisma.vendor.findUnique.mockResolvedValue({ id: VENDOR });
       await expect(
-        service.createContract({ ...contract, endDate: '2025-01-01T00:00:00.000Z' }, ACTOR),
+        service.createContract(
+          { ...contract, endDate: '2025-01-01T00:00:00.000Z' },
+          ACTOR,
+        ),
       ).rejects.toThrow(BadRequestException);
       expect(prisma.contract.create).not.toHaveBeenCalled();
     });
@@ -193,9 +262,15 @@ describe('OperationsService — plan items, GRNs and contracts', () => {
         id: 'c1',
         startDate: new Date('2026-06-01T00:00:00.000Z'),
       });
-      prisma.contract.update.mockResolvedValue({ id: 'c1', status: 'COMPLETED' });
+      prisma.contract.update.mockResolvedValue({
+        id: 'c1',
+        status: 'COMPLETED',
+      });
       await expect(
-        service.updateContract('c1', { endDate: '2027-01-01T00:00:00.000Z', status: 'COMPLETED' }),
+        service.updateContract('c1', {
+          endDate: '2027-01-01T00:00:00.000Z',
+          status: 'COMPLETED',
+        }),
       ).resolves.toEqual({ id: 'c1', status: 'COMPLETED' });
     });
   });

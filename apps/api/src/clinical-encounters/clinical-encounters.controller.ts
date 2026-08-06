@@ -1,3 +1,5 @@
+import { AssignPatientDto, CreateEncounterDto } from './dto/encounter.dto';
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Controller,
   Post,
@@ -39,7 +41,10 @@ export class ClinicalEncountersController {
   @Post()
   @Roles(...CLINICAL_WRITE_ROLES)
   @UseGuards(ParticipantAccessGuard)
-  createEncounter(@Body() data: any, @Request() req: any) {
+  createEncounter(
+    @Body() data: CreateEncounterDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.encountersService.createEncounter(data, req.user.id);
   }
 
@@ -59,7 +64,7 @@ export class ClinicalEncountersController {
   editEncounter(
     @Param('id') id: string,
     @Body() data: any,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.encountersService.editEncounter(
       id,
@@ -72,7 +77,10 @@ export class ClinicalEncountersController {
   @Post('assignments')
   @Roles(...CLINICAL_WRITE_ROLES)
   @UseGuards(ParticipantAccessGuard)
-  assignPatient(@Body() data: any, @Request() req: any) {
+  assignPatient(
+    @Body() data: AssignPatientDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.encountersService.assignPatient(data, req.user.id);
   }
 
@@ -83,7 +91,7 @@ export class ClinicalEncountersController {
    */
   @Get('assignments')
   @Roles(...PHI_READ_ROLES)
-  getAssignments(@Request() req: any) {
+  getAssignments(@Request() req: AuthenticatedRequest) {
     const clinicianId = this.phi.isUnscoped(req.user.role)
       ? undefined
       : req.user.id;
@@ -96,7 +104,7 @@ export class ClinicalEncountersController {
   @Roles(...PHI_READ_ROLES)
   listInvestigations(
     @Param('encounterId', ParseUUIDPipe) encounterId: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.encountersService.listInvestigations(encounterId, req.user);
   }
@@ -106,7 +114,7 @@ export class ClinicalEncountersController {
   @Roles(...DIAGNOSING_WRITE_ROLES)
   createInvestigation(
     @Body() dto: CreateInvestigationDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.encountersService.createInvestigation(dto, req.user);
   }
@@ -116,7 +124,7 @@ export class ClinicalEncountersController {
   updateInvestigation(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateInvestigationDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.encountersService.updateInvestigation(id, dto, req.user);
   }

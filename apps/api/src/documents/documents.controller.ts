@@ -1,3 +1,5 @@
+import { CreateDocumentRecordDto } from './dto/create-document-record.dto';
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Controller,
   Post,
@@ -28,11 +30,15 @@ export class DocumentsController {
 
   @Post()
   @Roles(...DOCUMENT_ROLES)
-  createDocumentRecord(@Body() data: CreateDocumentDto, @Request() req: any) {
+  createDocumentRecord(
+    @Body() data: CreateDocumentDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.documentsService.createDocumentRecord(data, req.user.id);
   }
 
   @Get()
+  @Roles(...DOCUMENT_ROLES)
   getDocumentRecords() {
     return this.documentsService.getDocumentRecords();
   }
@@ -51,7 +57,7 @@ export class DocumentsController {
   upload(
     @UploadedFile() file: Express.Multer.File,
     @Body() meta: { title?: string; documentType?: string; version?: string },
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.documentsService.upload(file, meta ?? {}, req.user.id);
   }

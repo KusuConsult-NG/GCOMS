@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import { Controller, Get, UseGuards, Request } from '@nestjs/common';
 import { AnalyticsService } from './analytics.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -11,7 +12,7 @@ export class AnalyticsController {
 
   @Get('summary')
   @Roles('EXECUTIVE', 'SYSTEM_ADMIN', 'BOARD')
-  getSummary(@Request() req: any) {
+  getSummary(@Request() req: AuthenticatedRequest) {
     return this.analyticsService.getSummary();
   }
 }

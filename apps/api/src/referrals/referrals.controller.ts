@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Controller,
   Get,
@@ -27,13 +28,13 @@ export class ReferralsController {
 
   @Get()
   @Roles(...PHI_READ_ROLES)
-  async getAll(@Request() req: any) {
+  async getAll(@Request() req: AuthenticatedRequest) {
     return this.referralsService.getAll(this.phi.participantScope(req.user));
   }
 
   @Get(':id')
   @Roles(...PHI_READ_ROLES)
-  async getOne(@Param('id') id: string, @Request() req: any) {
+  async getOne(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.referralsService.getOne(
       id,
       this.phi.participantScope(req.user),
@@ -45,7 +46,7 @@ export class ReferralsController {
   @UseGuards(ParticipantAccessGuard)
   async create(
     @Body() body: { participantId: string; referredTo: string; reason: string },
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.referralsService.create({ ...body, referredById: req.user.id });
   }
@@ -55,7 +56,7 @@ export class ReferralsController {
   async updateStatus(
     @Param('id') id: string,
     @Body() body: { status: string },
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.referralsService.updateStatus(id, body.status, req.user);
   }

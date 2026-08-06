@@ -1,3 +1,4 @@
+import { CreateScreeningDto } from './dto/create-screening.dto';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -45,10 +46,11 @@ export class ScreeningsService {
     return Math.min(10.0, parseFloat(baseScore.toFixed(1)));
   }
 
-  async createScreening(data: any, userId: string) {
-    const riskScore = data.riskScore
-      ? parseFloat(data.riskScore)
-      : await this.calculateRiskScore(data);
+  async createScreening(data: CreateScreeningDto, userId: string) {
+    const riskScore =
+      data.riskScore !== undefined
+        ? data.riskScore
+        : await this.calculateRiskScore(data);
 
     return this.prisma.screening.create({
       data: {

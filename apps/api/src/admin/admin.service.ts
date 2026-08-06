@@ -1,3 +1,4 @@
+import { CreateFacilityRequestDto } from './dto/create-facility-request.dto';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -9,7 +10,7 @@ export class AdminService {
     private notifications: NotificationsService,
   ) {}
 
-  async createFacilityRequest(data: any, userId: string) {
+  async createFacilityRequest(data: CreateFacilityRequestDto, userId: string) {
     const created = await this.prisma.$transaction(async (prisma) => {
       // 1. Create FacilityRequest
       const request = await prisma.facilityRequest.create({

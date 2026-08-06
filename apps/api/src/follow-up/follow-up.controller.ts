@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Controller,
   Get,
@@ -28,7 +29,10 @@ export class FollowUpController {
 
   @Get()
   @Roles(...PHI_READ_ROLES)
-  async getAll(@Request() req: any, @Query('status') status?: string) {
+  async getAll(
+    @Request() req: AuthenticatedRequest,
+    @Query('status') status?: string,
+  ) {
     return this.followUpService.getAll(
       status,
       this.phi.participantScope(req.user),
@@ -37,7 +41,7 @@ export class FollowUpController {
 
   @Get('dashboard-stats')
   @Roles(...PHI_READ_ROLES)
-  async getDashboardStats(@Request() req: any) {
+  async getDashboardStats(@Request() req: AuthenticatedRequest) {
     return this.followUpService.getDashboardStats(
       this.phi.participantScope(req.user),
     );
@@ -45,7 +49,10 @@ export class FollowUpController {
 
   @Get('upcoming')
   @Roles(...PHI_READ_ROLES)
-  async getUpcoming(@Request() req: any, @Query('days') days?: string) {
+  async getUpcoming(
+    @Request() req: AuthenticatedRequest,
+    @Query('days') days?: string,
+  ) {
     return this.followUpService.getUpcoming(
       days ? parseInt(days) : 7,
       this.phi.participantScope(req.user),
@@ -54,13 +61,13 @@ export class FollowUpController {
 
   @Get('missed')
   @Roles(...PHI_READ_ROLES)
-  async getMissed(@Request() req: any) {
+  async getMissed(@Request() req: AuthenticatedRequest) {
     return this.followUpService.getMissed(this.phi.participantScope(req.user));
   }
 
   @Get(':id')
   @Roles(...PHI_READ_ROLES)
-  async getOne(@Param('id') id: string, @Request() req: any) {
+  async getOne(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.followUpService.getOne(id, this.phi.participantScope(req.user));
   }
 
@@ -75,7 +82,7 @@ export class FollowUpController {
       scheduledDate: string;
       notes?: string;
     },
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.followUpService.create({
       ...body,
@@ -88,7 +95,7 @@ export class FollowUpController {
   async updateStatus(
     @Param('id') id: string,
     @Body() body: { status: string; notes?: string },
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.followUpService.updateStatus(
       id,

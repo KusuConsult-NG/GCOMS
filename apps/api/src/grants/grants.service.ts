@@ -1,3 +1,4 @@
+import { CreateGrantDto } from './dto/create-grant.dto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -15,12 +16,12 @@ import {
 export class GrantsService {
   constructor(private prisma: PrismaService) {}
 
-  async createGrant(data: any, userId: string) {
+  async createGrant(data: CreateGrantDto, userId: string) {
     return this.prisma.grant.create({
       data: {
         donorName: data.donorName,
         grantName: data.grantName,
-        amount: parseFloat(data.amount),
+        amount: data.amount,
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
         managedById: userId,

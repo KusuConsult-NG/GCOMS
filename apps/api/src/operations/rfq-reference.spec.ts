@@ -35,8 +35,11 @@ describe('OperationsService — RFQ references', () => {
 
   /** The reference the service tried to write on its nth create call. */
   const referenceOn = (call: number): string =>
-    (prisma.rfq.create.mock.calls[call][0] as { data: { reference: string } })
-      .data.reference;
+    (
+      (prisma.rfq.create.mock.calls as unknown[][])[call][0] as {
+        data: { reference: string };
+      }
+    ).data.reference;
 
   it('starts a year at 0001', async () => {
     prisma.rfq.findMany.mockResolvedValue([]);
@@ -73,7 +76,7 @@ describe('OperationsService — RFQ references', () => {
 
     await service.createRfq({ description: 'Reagents' });
 
-    const where = prisma.rfq.findMany.mock.calls[0][0] as {
+    const where = (prisma.rfq.findMany.mock.calls as unknown[][])[0][0] as {
       where: { reference: { startsWith: string } };
     };
     expect(where.where.reference.startsWith).toBe(
@@ -88,9 +91,9 @@ describe('OperationsService — RFQ references', () => {
       .mockRejectedValueOnce(conflict())
       .mockResolvedValueOnce({ id: 'r1' });
 
-    await expect(service.createRfq({ description: 'Reagents' })).resolves.toEqual(
-      { id: 'r1' },
-    );
+    await expect(
+      service.createRfq({ description: 'Reagents' }),
+    ).resolves.toEqual({ id: 'r1' });
 
     // The retry advances by the attempt number rather than re-deriving the
     // reference it just collided with.
@@ -102,9 +105,9 @@ describe('OperationsService — RFQ references', () => {
     prisma.rfq.findMany.mockResolvedValue([]);
     prisma.rfq.create.mockRejectedValue(conflict());
 
-    await expect(service.createRfq({ description: 'Reagents' })).rejects.toThrow(
-      ConflictException,
-    );
+    await expect(
+      service.createRfq({ description: 'Reagents' }),
+    ).rejects.toThrow(ConflictException);
     expect(prisma.rfq.create).toHaveBeenCalledTimes(5);
   });
 
@@ -112,9 +115,9 @@ describe('OperationsService — RFQ references', () => {
     prisma.rfq.findMany.mockResolvedValue([]);
     prisma.rfq.create.mockRejectedValue(new Error('connection lost'));
 
-    await expect(service.createRfq({ description: 'Reagents' })).rejects.toThrow(
-      'connection lost',
-    );
+    await expect(
+      service.createRfq({ description: 'Reagents' }),
+    ).rejects.toThrow('connection lost');
     expect(prisma.rfq.create).toHaveBeenCalledTimes(1);
   });
 

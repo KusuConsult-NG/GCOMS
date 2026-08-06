@@ -1,3 +1,5 @@
+import { CreateGrantDto } from './dto/create-grant.dto';
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Body,
   Controller,
@@ -62,7 +64,10 @@ export class GrantsController {
   // Was an inline role check throwing UnauthorizedException.
   @Post()
   @Roles(...GRANT_WRITE_ROLES)
-  createGrant(@Body() data: any, @Request() req: any) {
+  createGrant(
+    @Body() data: CreateGrantDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.grantsService.createGrant(data, req.user.id);
   }
 

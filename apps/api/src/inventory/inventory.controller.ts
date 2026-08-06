@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Body,
   Controller,
@@ -38,12 +39,13 @@ export class InventoryController {
   @Roles('EXECUTIVE', 'PROCUREMENT', 'ADMIN')
   createInventoryItem(
     @Body() data: CreateInventoryItemDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.inventoryService.createInventoryItem(data, req.user.id);
   }
 
   @Get()
+  @Roles(...INVENTORY_READ_ROLES)
   getInventoryItems() {
     return this.inventoryService.getInventoryItems();
   }
@@ -53,7 +55,7 @@ export class InventoryController {
   updateInventoryItem(
     @Param('id') id: string,
     @Body() data: UpdateInventoryItemDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.inventoryService.updateInventoryItem(id, data);
   }

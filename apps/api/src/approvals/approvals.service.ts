@@ -1,3 +1,4 @@
+import { CreateApprovalRequestDto } from './dto/create-approval-request.dto';
 import {
   ForbiddenException,
   Injectable,
@@ -15,7 +16,7 @@ export class ApprovalsService {
     private notifications: NotificationsService,
   ) {}
 
-  async createRequest(data: any, userId: string) {
+  async createRequest(data: CreateApprovalRequestDto, userId: string) {
     const request = await this.prisma.approvalRequest.create({
       data: {
         title: data.title,

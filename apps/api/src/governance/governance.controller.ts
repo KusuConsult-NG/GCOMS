@@ -1,3 +1,5 @@
+import { ScheduleMeetingDto } from './dto/schedule-meeting.dto';
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Controller,
   Post,
@@ -21,7 +23,7 @@ export class GovernanceController {
   @Roles('EXECUTIVE', 'BOARD')
   scheduleMeeting(
     @Body() data: CreateGovernanceMeetingDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.governanceService.scheduleMeeting(data, req.user.id);
   }

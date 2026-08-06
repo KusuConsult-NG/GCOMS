@@ -1,3 +1,4 @@
+import { LogVolunteerHoursDto } from './dto/log-hours.dto';
 import {
   Controller,
   Get,
@@ -30,11 +31,14 @@ export class VolunteersController {
     return this.volunteersService.assignTask(body);
   }
 
+  // Carried no @Roles and no DTO, so any authenticated caller could log any
+  // number of hours against any task — including a negative one.
   @Put('tasks/:taskId/hours')
+  @Roles('EXECUTIVE', 'FIELD_OFFICER', 'ADMIN', 'HR')
   async logHours(
     @Param('taskId') taskId: string,
-    @Body() body: { hours: number },
+    @Body() dto: LogVolunteerHoursDto,
   ) {
-    return this.volunteersService.logHours(taskId, body.hours);
+    return this.volunteersService.logHours(taskId, dto.hours);
   }
 }

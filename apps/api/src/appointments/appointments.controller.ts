@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Controller,
   Get,
@@ -28,7 +29,10 @@ export class AppointmentsController {
 
   @Get()
   @Roles(...PHI_READ_ROLES)
-  async getAll(@Request() req: any, @Query('status') status?: string) {
+  async getAll(
+    @Request() req: AuthenticatedRequest,
+    @Query('status') status?: string,
+  ) {
     return this.apptService.findAll(
       status,
       this.phi.participantScope(req.user),
@@ -47,7 +51,7 @@ export class AppointmentsController {
       type?: string;
       notes?: string;
     },
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.apptService.create({
       ...body,
@@ -60,7 +64,7 @@ export class AppointmentsController {
   async updateStatus(
     @Param('id') id: string,
     @Body() body: { status: string; notes?: string },
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.apptService.updateStatus(id, body.status, body.notes, req.user);
   }

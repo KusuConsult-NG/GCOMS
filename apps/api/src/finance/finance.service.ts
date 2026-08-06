@@ -1,3 +1,4 @@
+import { CreateFinanceTransactionDto } from './dto/create-transaction.dto';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
@@ -15,12 +16,12 @@ export class FinanceService {
     private notifications: NotificationsService,
   ) {}
 
-  async createTransaction(data: any, userId: string) {
+  async createTransaction(data: CreateFinanceTransactionDto, userId: string) {
     const created = await this.prisma.$transaction(async (prisma) => {
       // 1. Create FinanceTransaction
       const transaction = await prisma.financeTransaction.create({
         data: {
-          amount: parseFloat(data.amount),
+          amount: data.amount,
           type: data.type,
           category: data.category,
           description: data.description,

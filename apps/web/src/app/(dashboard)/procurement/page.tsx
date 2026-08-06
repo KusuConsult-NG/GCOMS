@@ -5,14 +5,28 @@ import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { AccessDenied } from '@/components/AccessDenied';
+import type { ContractDraft, PurchaseRequest, Rfq, RfqQuote, Vendor } from '@/types/procurement';
+
+const TABS = ['orders', 'plan', 'vendors', 'rfq', 'grn', 'contracts'] as const;
+type Tab = (typeof TABS)[number];
+
+const isTab = (value: string | null): value is Tab =>
+  value !== null && (TABS as readonly string[]).includes(value);
+
+/**
+ * Module scope, not component scope: as a literal inside the component this was
+ * a new array on every render, so every effect listing it as a dependency would
+ * re-run on every render. Hoisting it is what lets the dependency be declared
+ * honestly instead of omitted.
+ */
+const ALLOWED_ROLES = ['EXECUTIVE', 'BOARD', 'SUPER_ADMIN', 'SYSTEM_ADMIN', 'ADMIN', 'PROCUREMENT'];
 
 function ProcurementPageContent() {
   const { user } = useAuthStore();
   const searchParams = useSearchParams();
-  const allowedRoles = ['EXECUTIVE', 'BOARD', 'SUPER_ADMIN', 'SYSTEM_ADMIN', 'ADMIN', 'PROCUREMENT'];
 
-  const [activeTab, setActiveTab] = useState<'orders' | 'plan' | 'vendors' | 'rfq' | 'grn' | 'contracts'>('orders');
-  const [orders, setOrders] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<Tab>('orders');
+  const [orders, setOrders] = useState<PurchaseRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState<null | 'requisition' | 'plan' | 'vendor' | 'rfq' | 'grn' | 'contract'>(null);
 
@@ -27,25 +41,32 @@ function ProcurementPageContent() {
   // States for new features
   const [planForm, setPlanForm] = useState({ category: 'Medical Consumables', description: '', quantity: '1', unitPrice: '', quarter: 'Q1', priority: 'MEDIUM' });
   const [vendorForm, setVendorForm] = useState({ name: '', category: 'Medical Reagents', taxId: '', contactPerson: '', phone: '', email: '', address: '' });
-  const [rfqForm, setRfqForm] = useState({ reference: `RFQ-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)}`, description: '', quantity: '1', deadline: '', invitedVendors: [] as string[] });
+  const [rfqForm, setRfqForm] = useState({ description: '', quantity: '1', deadline: '', invitedVendors: [] as string[] });
   const [grnForm, setGrnForm] = useState({ poRef: '', deliveryNote: '', itemsReceived: '', quantity: '1', condition: 'GOOD', officer: '', inspectionDate: '', remarks: '' });
   const [contractForm, setContractForm] = useState({ vendor: '', title: '', value: '', startDate: '', endDate: '', deliverables: '' });
-  const [quoteModal, setQuoteModal] = useState<{rfqIdx: number} | null>(null);
-  const [quoteForm, setQuoteForm] = useState({ vendor: '', price: '', delivery: '', warranty: '', score: '' });
+  const [quoteModal, setQuoteModal] = useState<{ rfqId: string } | null>(null);
+  const [quoteForm, setQuoteForm] = useState({ vendorId: '', price: '', warranty: '', score: '' });
   
-  const [vendors, setVendors] = useState<any[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
 
-  const [rfqs, setRfqs] = useState<any[]>([]);
+  const [rfqs, setRfqs] = useState<Rfq[]>([]);
   
-  const [contracts, setContracts] = useState<any[]>([]);
+  /**
+   * Contracts have no table and no endpoint — unlike vendors, RFQs and quotes,
+   * which do. This list is therefore local to the tab and is lost on reload.
+   * Typed and labelled rather than left as `any[]` so the gap is visible in the
+   * code and, below, to the user; a form that silently discards what someone
+   * typed is worse than one that says it will.
+   */
+  const [contracts, setContracts] = useState<ContractDraft[]>([]);
 
   // Read URL action & tab params from Sidebar links
   useEffect(() => {
     const tabParam = searchParams.get('tab');
     const actionParam = searchParams.get('action');
 
-    if (tabParam && ['orders', 'plan', 'vendors', 'rfq', 'grn', 'contracts'].includes(tabParam)) {
-      setActiveTab(tabParam as any);
+    if (isTab(tabParam)) {
+      setActiveTab(tabParam);
     }
     if (actionParam) {
       if (actionParam === 'new-requisition') setActiveModal('requisition');
@@ -66,33 +87,38 @@ function ProcurementPageContent() {
     }
   };
 
+  // Vendors and RFQs are their own tables. This page used to derive vendors by
+  // filtering purchase requests whose itemName began with "[VENDOR_REG] " —
+  // a registration was written into the requisition table as a marker string and
+  // parsed back out on read, so every registered vendor also appeared as a
+  // zero-cost purchase request, and nothing else in the system could see them.
+  const fetchVendors = async () => {
+    try {
+      const res = await api.get('/operations/vendors');
+      setVendors(res.data ?? []);
+    } catch (err) {
+      console.error('Failed to load vendors', err);
+    }
+  };
+
+  const fetchRfqs = async () => {
+    try {
+      const res = await api.get('/operations/rfqs');
+      setRfqs(res.data ?? []);
+    } catch (err) {
+      console.error('Failed to load RFQs', err);
+    }
+  };
+
   useEffect(() => {
-    if (user && allowedRoles.includes(user.role)) {
+    if (user && ALLOWED_ROLES.includes(user.role)) {
       fetchOrders();
-      
-      api.get('/procurement').then(res => {
-        const allData = res.data || [];
-        const vendorRecords = allData.filter((r: any) => r.itemName?.startsWith('[VENDOR_REG]'));
-        if (vendorRecords.length > 0) {
-          const fetchedVendors = vendorRecords.map((r: any) => ({
-            name: r.itemName.replace('[VENDOR_REG] ', '').trim(),
-            category: 'Registered Vendor',
-            rating: 'NEW',
-            taxId: 'N/A',
-            status: 'PENDING VERIFICATION'
-          }));
-          
-          setVendors(prev => {
-            const existingNames = new Set(prev.map(v => v.name));
-            const uniqueNewVendors = fetchedVendors.filter((v: any) => !existingNames.has(v.name));
-            return [...prev, ...uniqueNewVendors];
-          });
-        }
-      }).catch(() => {});
+      fetchVendors();
+      fetchRfqs();
     }
   }, [user]);
 
-  if (user && !allowedRoles.includes(user.role)) {
+  if (user && !ALLOWED_ROLES.includes(user.role)) {
     return <AccessDenied requiredRole="Procurement Officer / Executive" />;
   }
 
@@ -135,16 +161,18 @@ function ProcurementPageContent() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      setVendors([...vendors, { name: vendorForm.name, category: vendorForm.category, taxId: vendorForm.taxId, rating: 'NEW', status: 'PENDING VERIFICATION' }]);
-      await api.post('/procurement', {
-        itemName: `[VENDOR_REG] ${vendorForm.name}`,
-        quantity: '1',
-        estimatedCost: '0',
-        vendor: vendorForm.name
+      await api.post('/operations/vendors', {
+        name: vendorForm.name,
+        category: vendorForm.category,
+        taxId: vendorForm.taxId || undefined,
+        email: vendorForm.email || undefined,
+        phone: vendorForm.phone || undefined,
       });
       setActiveModal(null);
       setVendorForm({ name: '', category: 'Medical Reagents', taxId: '', contactPerson: '', phone: '', email: '', address: '' });
-      fetchOrders();
+      // Re-read rather than push the local guess: the server sets the status and
+      // the id, and the id is what quotes are keyed by.
+      await fetchVendors();
     } catch (err) {
       console.error('Failed to register vendor', err);
     } finally {
@@ -152,16 +180,61 @@ function ProcurementPageContent() {
     }
   };
 
-  const handleGenerateRFQ = (e: React.FormEvent) => {
+  const handleGenerateRFQ = async (e: React.FormEvent) => {
     e.preventDefault();
-    setRfqs([{
-      reference: rfqForm.reference,
-      description: rfqForm.description,
-      status: 'PENDING',
-      quotes: []
-    }, ...rfqs]);
-    setActiveModal(null);
-    setRfqForm({ reference: `RFQ-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)}`, description: '', quantity: '1', deadline: '', invitedVendors: [] });
+    setSubmitting(true);
+    try {
+      // The reference is allocated by the server. It used to be generated here
+      // as RFQ-<year>-<random 0..999> and posted up against a unique column, so
+      // a collision surfaced as "that reference already exists" about a value
+      // the user was shown read-only and had never chosen.
+      await api.post('/operations/rfqs', {
+        description: rfqForm.description,
+        closingDate: rfqForm.deadline
+          ? new Date(rfqForm.deadline).toISOString()
+          : undefined,
+      });
+      setActiveModal(null);
+      setRfqForm({ description: '', quantity: '1', deadline: '', invitedVendors: [] });
+      await fetchRfqs();
+    } catch (err) {
+      console.error('Failed to generate RFQ', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleAddQuote = async () => {
+    if (!quoteModal || !quoteForm.vendorId || !quoteForm.price) return;
+    setSubmitting(true);
+    try {
+      await api.post('/operations/quotes', {
+        rfqId: quoteModal.rfqId,
+        vendorId: quoteForm.vendorId,
+        price: Number(quoteForm.price),
+        warranty: quoteForm.warranty || undefined,
+        score: quoteForm.score ? Number(quoteForm.score) : undefined,
+      });
+      setQuoteModal(null);
+      setQuoteForm({ vendorId: '', price: '', warranty: '', score: '' });
+      await fetchRfqs();
+    } catch (err) {
+      console.error('Failed to record quote', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Awarding is a transaction on the server: it demotes the other quotes and
+  // closes the RFQ. Doing it in local state here meant the award existed only
+  // in this tab, and used status strings no other part of the system knows.
+  const handleAwardQuote = async (quoteId: string) => {
+    try {
+      await api.patch(`/operations/quotes/${quoteId}`, { status: 'RECOMMENDED' });
+      await fetchRfqs();
+    } catch (err) {
+      console.error('Failed to award quote', err);
+    }
   };
 
   const handleIssueGRN = async (e: React.FormEvent) => {
@@ -225,7 +298,7 @@ function ProcurementPageContent() {
         ].map(t => (
           <button
             key={t.id}
-            onClick={() => setActiveTab(t.id as any)}
+            onClick={() => setActiveTab(t.id as Tab)}
             className={`py-2.5 px-4 rounded-t border-b-2 transition-all whitespace-nowrap ${
               activeTab === t.id ? 'border-[var(--secondary)] text-[var(--secondary)] bg-white font-bold' : 'border-transparent text-[var(--muted)]'
             }`}
@@ -387,7 +460,9 @@ function ProcurementPageContent() {
             <form onSubmit={handleGenerateRFQ} className="space-y-4 text-xs">
               <div>
                 <label className="block font-semibold text-[var(--on-background)] mb-1">RFQ Reference</label>
-                <input type="text" readOnly value={rfqForm.reference} className="w-full bg-gray-100 border border-[var(--outline)] rounded px-3 py-2 text-xs" />
+                <p className="w-full bg-[var(--surface-variant)] border border-[var(--outline)] rounded px-3 py-2 text-xs text-[var(--muted)]">
+                  Assigned by the system when the RFQ is issued.
+                </p>
               </div>
               <div>
                 <label className="block font-semibold text-[var(--on-background)] mb-1">Item Description *</label>
@@ -651,17 +726,24 @@ function ProcurementPageContent() {
             <button onClick={() => setActiveModal('vendor')} className="btn-primary text-xs">+ Register Vendor</button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {vendors.map((v, idx) => (
-              <div key={idx} className="p-4 bg-[var(--background)] border border-[var(--outline)] rounded space-y-2">
+            {vendors.map((v) => (
+              <div key={v.id} className="p-4 bg-[var(--background)] border border-[var(--outline)] rounded space-y-2">
                 <div className="flex justify-between font-bold text-[var(--primary)]">
                   <span>{v.name}</span>
-                  <span className="text-amber-600 font-bold">{v.rating}</span>
+                  <span className="text-amber-600 dark:text-amber-400 font-bold">
+                    {Number(v.rating) > 0 ? `${Number(v.rating).toFixed(1)} / 5` : 'Unrated'}
+                  </span>
                 </div>
-                <p className="text-[var(--secondary)] font-semibold">{v.category}</p>
-                <p className="text-[var(--on-surface-variant)] text-[11px]">Tax ID: <span className="font-mono text-[var(--on-background)]">{v.taxId}</span></p>
+                <p className="text-[var(--secondary)] font-semibold">{v.category || 'Uncategorised'}</p>
+                <p className="text-[var(--on-surface-variant)] text-[11px]">Tax ID: <span className="font-mono text-[var(--on-background)]">{v.taxId || 'Not supplied'}</span></p>
                 <span className="badge-low-risk">{v.status}</span>
               </div>
             ))}
+            {vendors.length === 0 && (
+              <p className="col-span-full p-6 text-center text-xs text-[var(--muted)] border border-dashed border-[var(--outline)] rounded">
+                No vendors registered yet. Register one to invite it to an RFQ.
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -673,16 +755,21 @@ function ProcurementPageContent() {
             <h2 className="font-bold text-[var(--primary)] text-sm">📄 Request for Quotations (RFQ) & Technical Evaluation Matrix</h2>
             <button onClick={() => setActiveModal('rfq')} className="btn-primary text-xs">+ Generate New RFQ</button>
           </div>
+          {rfqs.length === 0 && (
+            <p className="p-6 text-center text-xs text-[var(--muted)] border border-dashed border-[var(--outline)] rounded">
+              No RFQs issued yet. Generating one allocates the next reference in this year&apos;s sequence.
+            </p>
+          )}
           {rfqs.map((rfq, idx) => (
-            <div key={idx} className="p-4 bg-[var(--background)] border border-[var(--outline)] rounded space-y-3">
+            <div key={rfq.id ?? idx} className="p-4 bg-[var(--background)] border border-[var(--outline)] rounded space-y-3">
               <div className="flex justify-between font-bold text-[var(--primary)] mb-2">
                 <span>RFQ Ref: {rfq.reference} — {rfq.description}</span>
                 <span className="badge-low-risk">{rfq.status}</span>
               </div>
               <div className="flex justify-end gap-2 mb-2">
                 <button onClick={() => {
-                  setQuoteModal({rfqIdx: idx});
-                  setQuoteForm({ vendor: '', price: '', delivery: '', warranty: '', score: '' });
+                  setQuoteModal({ rfqId: rfq.id });
+                  setQuoteForm({ vendorId: '', price: '', warranty: '', score: '' });
                 }} className="btn-secondary text-[10px] py-1">+ Add Vendor Quote</button>
               </div>
               <table className="w-full text-left border border-[var(--outline)] bg-white rounded">
@@ -697,22 +784,16 @@ function ProcurementPageContent() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--outline)]">
-                  {rfq.quotes.map((q: any, qIdx: number) => (
-                    <tr key={qIdx} className={q.status === 'RECOMMENDED_FOR_AWARD' ? 'bg-emerald-50/50' : ''}>
-                      <td className="p-2 font-bold text-[var(--primary)]">{q.vendor} {q.status === 'RECOMMENDED_FOR_AWARD' && '(WINNER)'}</td>
+                  {rfq.quotes.map((q: RfqQuote, qIdx: number) => (
+                    <tr key={q.id ?? qIdx} className={q.status === 'RECOMMENDED' ? 'bg-emerald-50' : ''}>
+                      <td className="p-2 font-bold text-[var(--primary)]">{q.vendor?.name ?? 'Unknown vendor'} {q.status === 'RECOMMENDED' && '(WINNER)'}</td>
                       <td className="p-2 font-mono">₦{Number(q.price).toLocaleString()} / unit</td>
-                      <td className="p-2">{q.warranty}</td>
-                      <td className={`p-2 font-bold ${Number(q.score) > 85 ? 'text-emerald-700' : 'text-amber-700'}`}>{q.score} / 100</td>
-                      <td className="p-2"><span className={q.status === 'RECOMMENDED_FOR_AWARD' ? 'badge-low-risk' : 'text-[var(--muted)]'}>{q.status}</span></td>
+                      <td className="p-2">{q.warranty || '—'}</td>
+                      <td className={`p-2 font-bold ${Number(q.score) > 85 ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>{q.score} / 100</td>
+                      <td className="p-2"><span className={q.status === 'RECOMMENDED' ? 'badge-low-risk' : 'text-[var(--muted)]'}>{q.status}</span></td>
                       <td className="p-2">
-                        {q.status !== 'RECOMMENDED_FOR_AWARD' && (
-                          <button onClick={() => {
-                            const newRfqs = [...rfqs];
-                            newRfqs[idx].quotes.forEach((qt: any) => qt.status = 'REJECTED');
-                            newRfqs[idx].quotes[qIdx].status = 'RECOMMENDED_FOR_AWARD';
-                            newRfqs[idx].status = 'EVALUATION COMPLETE';
-                            setRfqs(newRfqs);
-                          }} className="btn-primary text-[10px] py-1 px-2">Mark Winner</button>
+                        {q.status !== 'RECOMMENDED' && (
+                          <button onClick={() => handleAwardQuote(q.id)} className="btn-primary text-[10px] py-1 px-2">Mark Winner</button>
                         )}
                       </td>
                     </tr>
@@ -762,6 +843,9 @@ function ProcurementPageContent() {
             <h2 className="font-bold text-[var(--primary)] text-sm">📝 Contract Management</h2>
             <button onClick={() => setActiveModal('contract')} className="btn-primary text-xs bg-indigo-700 hover:bg-indigo-800">+ Add Contract</button>
           </div>
+          <p className="px-4 py-2 text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 border-b border-[var(--outline)]">
+            Contracts are not yet stored on the server. Anything added here is visible in this tab only and will be lost when the page reloads.
+          </p>
           <table className="w-full text-left text-xs">
             <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
               <tr>
@@ -804,26 +888,27 @@ function ProcurementPageContent() {
           <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
             <h3 className="text-sm font-bold text-[var(--primary)] mb-4">Add Vendor Quotation</h3>
             <div className="space-y-3">
-              <div><label className="text-xs font-semibold text-[var(--primary-container)]">Vendor Name</label>
-                <input className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" value={quoteForm.vendor} onChange={e => setQuoteForm(p => ({...p, vendor: e.target.value}))} /></div>
+              <div><label className="text-xs font-semibold text-[var(--primary-container)]">Vendor</label>
+                <select className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" value={quoteForm.vendorId} onChange={e => setQuoteForm(p => ({...p, vendorId: e.target.value}))}>
+                  <option value="">Select a registered vendor…</option>
+                  {vendors.map((v) => (
+                    <option key={v.id} value={v.id}>{v.name}</option>
+                  ))}
+                </select>
+                {vendors.length === 0 && (
+                  <p className="text-[10px] text-[var(--muted)] mt-1">No vendors registered yet — add one on the Vendors tab first.</p>
+                )}</div>
               <div><label className="text-xs font-semibold text-[var(--primary-container)]">Unit Price (₦)</label>
                 <input type="number" className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" value={quoteForm.price} onChange={e => setQuoteForm(p => ({...p, price: e.target.value}))} /></div>
-              <div><label className="text-xs font-semibold text-[var(--primary-container)]">Delivery Timeline</label>
-                <input className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" value={quoteForm.delivery} onChange={e => setQuoteForm(p => ({...p, delivery: e.target.value}))} /></div>
               <div><label className="text-xs font-semibold text-[var(--primary-container)]">Warranty</label>
                 <input className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" value={quoteForm.warranty} onChange={e => setQuoteForm(p => ({...p, warranty: e.target.value}))} /></div>
               <div><label className="text-xs font-semibold text-[var(--primary-container)]">Technical Score (0-100)</label>
                 <input type="number" min="0" max="100" className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" value={quoteForm.score} onChange={e => setQuoteForm(p => ({...p, score: e.target.value}))} /></div>
             </div>
             <div className="flex gap-2 mt-4">
-              <button className="btn-primary" onClick={() => {
-                if (quoteForm.vendor && quoteForm.price) {
-                  const newRfqs = [...rfqs];
-                  (newRfqs[quoteModal.rfqIdx].quotes as any[]).push({ vendor: quoteForm.vendor, price: quoteForm.price, delivery: quoteForm.delivery, warranty: quoteForm.warranty, score: quoteForm.score, status: 'PENDING' });
-                  setRfqs(newRfqs);
-                  setQuoteModal(null);
-                }
-              }}>Add Quote</button>
+              <button className="btn-primary" disabled={submitting || !quoteForm.vendorId || !quoteForm.price} onClick={handleAddQuote}>
+                {submitting ? 'Saving…' : 'Add Quote'}
+              </button>
               <button className="btn-secondary" onClick={() => setQuoteModal(null)}>Cancel</button>
             </div>
           </div>

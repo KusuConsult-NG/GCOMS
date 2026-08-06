@@ -470,19 +470,64 @@ export class OperationsService {
     });
   }
 
+  /**
+   * Mints the next reference for a year: RFQ-2026-0001, -0002, and so on.
+   *
+   * The browser used to generate this as `RFQ-${year}-${random(0..999)}` and
+   * send it up, which is the wrong place for it twice over. There are only 1000
+   * values, so by the birthday bound a collision is more likely than not at
+   * around 38 records in a year — and the field is rendered read-only, so the
+   * user who hit one was shown "That RFQ reference already exists" about a value
+   * they could not change and had not chosen. The uniqueness constraint lives
+   * here; so should the value that has to satisfy it.
+   */
+  private async nextRfqReference(now: Date, offset = 0): Promise<string> {
+    const year = now.getFullYear();
+    const prefix = `RFQ-${year}-`;
+    // Compared numerically, not lexically. Ordering by `reference: 'desc'` and
+    // taking the first row looks equivalent and is not: references written by
+    // the previous browser-side scheme are three digits, so "RFQ-2026-004"
+    // sorts above "RFQ-2026-0005" as a string. The highest reference by that
+    // reading was 4, the next was 5, and 5 was already taken — every create
+    // after the first failed until the retries ran out.
+    const existing = await this.prisma.rfq.findMany({
+      where: { reference: { startsWith: prefix } },
+      select: { reference: true },
+    });
+    const highest = existing.reduce((max, row) => {
+      const value = Number(row.reference.slice(prefix.length));
+      return Number.isFinite(value) && value > max ? value : max;
+    }, 0);
+    // The offset advances on retry, so a caller that lost a race takes the next
+    // number rather than recomputing the one it just collided with.
+    return `${prefix}${String(highest + 1 + offset).padStart(4, '0')}`;
+  }
+
   async createRfq(d: dto.CreateRfqDto) {
-    const clash = await this.prisma.rfq.findUnique({
-      where: { reference: d.reference.trim() },
-    });
-    if (clash) throw new ConflictException('That RFQ reference already exists');
-    return this.prisma.rfq.create({
-      data: {
-        reference: d.reference.trim(),
-        description: d.description.trim(),
-        closingDate: d.closingDate ? new Date(d.closingDate) : null,
-      },
-      include: { quotes: true },
-    });
+    // Two references issued in the same tick would read the same latest row, so
+    // the retry is on the unique constraint rather than on the read. P2002 here
+    // can only be the reference: it is the one unique column on this table.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const reference = await this.nextRfqReference(new Date(), attempt);
+      try {
+        return await this.prisma.rfq.create({
+          data: {
+            reference,
+            description: d.description.trim(),
+            closingDate: d.closingDate ? new Date(d.closingDate) : null,
+          },
+          include: { quotes: true },
+        });
+      } catch (error) {
+        const clashed =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002';
+        if (!clashed) throw error;
+      }
+    }
+    throw new ConflictException(
+      'Could not allocate an RFQ reference. Please try again.',
+    );
   }
 
   async createQuote(d: dto.CreateQuoteDto) {

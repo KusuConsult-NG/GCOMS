@@ -207,7 +207,9 @@ export class UpdateVendorDto {
 }
 
 export class CreateRfqDto {
-  @IsString() @MinLength(1) @MaxLength(80) reference: string;
+  // No `reference` field: the server allocates it. Accepting one from the
+  // client would let a caller claim a reference out of sequence, or collide
+  // with the sequence and be told so about a value it never chose.
   @IsString() @MinLength(1) @MaxLength(500) description: string;
   @IsOptional() @IsDateString() closingDate?: string;
 }

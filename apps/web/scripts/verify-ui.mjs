@@ -1,40 +1,96 @@
 /**
- * Drives the real app in a real browser and captures what it looks like.
+ * Drives the real app in a real browser and reports what actually breaks.
  *
- * Everything in this repo up to now has been verified by curl against the API or
- * by reading built CSS. Neither shows whether a page renders, whether dark mode
- * is legible, or whether a console error fires after hydration. This does.
+ * Curl against the API cannot see whether a page renders, whether dark mode is
+ * legible, or whether something throws after hydration. This can.
  *
- * Usage: node scripts/verify-ui.mjs [outputDir]
+ * Two sweeps:
+ *   1. Every dashboard route, as an executive, in both themes. Catches
+ *      page-level defects.
+ *   2. Every role's landing dashboard. The home route renders a different
+ *      workspace component per role, so a crash in one is invisible from any
+ *      other — which is how an uncaught React error sat in ExecutiveWorkspace
+ *      while every other page looked fine.
+ *
+ * Usage:
+ *   node scripts/verify-ui.mjs [outputDir]
+ *   QUICK=1 node scripts/verify-ui.mjs     # executive + light theme only
  */
 import { chromium } from 'playwright';
 import { mkdir } from 'fs/promises';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:3000';
-const EMAIL = process.env.UI_EMAIL ?? 'executive@gcoms.org';
 const PASSWORD = process.env.UI_PASSWORD ?? 'Password123!';
 const OUT = process.argv[2] ?? '/tmp/gcoms-ui';
+const QUICK = process.env.QUICK === '1';
 
-const PAGES = [
-  ['dashboard', '/'],
-  ['patients', '/patients'],
-  ['hr', '/hr'],
-  ['finance', '/finance'],
-  ['grants', '/grants'],
-  ['projects', '/projects'],
-  ['inventory', '/inventory'],
-  ['governance', '/governance'],
-  ['procurement', '/procurement'],
-  ['system-admin', '/system-admin'],
-  ['registration', '/registration'],
+const ROUTES = [
+  '/', '/patients', '/registration', '/clinical', '/screenings', '/referrals',
+  '/follow-ups', '/navigation', '/communities', '/outreach', '/volunteers',
+  '/hr', '/finance', '/procurement', '/inventory', '/grants', '/projects',
+  '/documents', '/governance', '/strategy', '/reports', '/research',
+  '/system-admin', '/admin-mgmt', '/mobile-preview',
+];
+
+/** Every role, because each lands on a different workspace component. */
+const ROLES = [
+  ['executive', 'executive@gcoms.org'],
+  ['system-admin', 'admin@gcoms.org'],
+  ['clinician', 'clinician@gcoms.org'],
+  ['doctor', 'doctor@gcoms.org'],
+  ['nurse', 'nurse@gcoms.org'],
+  ['volunteer', 'volunteer@gcoms.org'],
+  ['field-officer', 'field@gcoms.org'],
+  ['finance', 'finance@gcoms.org'],
+  ['hr', 'hr@gcoms.org'],
+  ['procurement', 'procurement@gcoms.org'],
+  ['grant-manager', 'grant_manager@gcoms.org'],
+  ['project-manager', 'project_manager@gcoms.org'],
+  ['inventory-manager', 'inventory_manager@gcoms.org'],
 ];
 
 const problems = [];
+let current = 'startup';
+
+function watch(page) {
+  page.on('console', (m) => {
+    if (m.type() === 'error') problems.push([current, `console: ${m.text().slice(0, 160)}`]);
+  });
+  page.on('pageerror', (e) => problems.push([current, `UNCAUGHT: ${e.message.slice(0, 160)}`]));
+  page.on('response', (r) => {
+    // 401/403 are legitimate here: a role hitting a module it may not read is
+    // the RBAC working, and the page shows an access-denied state.
+    if (r.status() >= 500 && !r.url().includes('favicon')) {
+      problems.push([current, `HTTP ${r.status()} ${r.url().replace(BASE, '')}`]);
+    }
+  });
+}
+
+async function signIn(page, email) {
+  await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded' });
+  await page.evaluate(() => localStorage.clear());
+  await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
+  await page.fill('input[type="email"]', email);
+  await page.fill('input[type="password"]', PASSWORD);
+  await page.click('button[type="submit"]');
+  await page.waitForURL((u) => !u.pathname.startsWith('/login'), { timeout: 20000 });
+  await page.waitForLoadState('networkidle');
+}
+
+async function setTheme(page, theme) {
+  await page.evaluate((t) => {
+    localStorage.setItem('gcoms-theme', t);
+    document.documentElement.classList.toggle('dark', t === 'dark');
+  }, theme);
+}
+
+/** Flags a page that rendered essentially nothing — a silent blank screen. */
+async function contentSize(page) {
+  return page.evaluate(() => document.body.innerText.trim().length);
+}
 
 async function main() {
   await mkdir(OUT, { recursive: true });
-  // Use the Chrome already installed on this machine rather than downloading a
-  // second browser; fall back to Playwright's bundled build if it is present.
   let browser;
   try {
     browser = await chromium.launch({ channel: 'chrome' });
@@ -43,57 +99,68 @@ async function main() {
   }
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
+  watch(page);
 
-  // Anything the app logs as an error, or any request that fails, is a defect
-  // that a curl smoke test cannot see.
-  page.on('console', (msg) => {
-    if (msg.type() === 'error') problems.push(`console: ${msg.text().slice(0, 200)}`);
-  });
-  page.on('pageerror', (err) => problems.push(`uncaught: ${err.message.slice(0, 200)}`));
-  page.on('response', (res) => {
-    if (res.status() >= 400 && !res.url().includes('favicon')) {
-      problems.push(`http ${res.status()} ${res.url().replace(BASE, '')}`);
-    }
-  });
+  const thin = [];
 
-  await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
-  await page.screenshot({ path: `${OUT}/00-login.png` });
-
-  await page.fill('input[type="email"]', EMAIL);
-  await page.fill('input[type="password"]', PASSWORD);
-  await page.click('button[type="submit"]');
-  await page.waitForURL(`${BASE}/`, { timeout: 15000 });
-  await page.waitForLoadState('networkidle');
-
-  for (const theme of ['light', 'dark']) {
-    if (theme === 'dark') {
-      await page.evaluate(() => {
-        localStorage.setItem('gcoms-theme', 'dark');
-        document.documentElement.classList.add('dark');
-      });
-    }
-    for (const [name, path] of PAGES) {
-      await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle' });
-      await page.waitForTimeout(700); // let client fetches paint
-      await page.screenshot({ path: `${OUT}/${theme}-${name}.png`, fullPage: false });
+  // ---- Sweep 1: every route, as an executive ----
+  await signIn(page, 'executive@gcoms.org');
+  for (const theme of QUICK ? ['light'] : ['light', 'dark']) {
+    await setTheme(page, theme);
+    for (const route of ROUTES) {
+      const name = route === '/' ? 'dashboard' : route.slice(1);
+      current = `${theme} ${route}`;
+      await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(600);
+      const size = await contentSize(page);
+      if (size < 200) thin.push(`${theme} ${route} (${size} chars of text)`);
+      await page.screenshot({ path: `${OUT}/${theme}-${name}.png` });
     }
   }
 
-  // Report what the DOM actually holds, not what the API returned.
-  await page.goto(`${BASE}/patients`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(700);
-  const rows = await page.locator('table tbody tr').count();
-  console.log(`patients table rows rendered: ${rows}`);
+  // ---- Sweep 2: every role's landing workspace ----
+  const roleNotes = [];
+  for (const [label, email] of ROLES) {
+    current = `role:${label} /`;
+    try {
+      await signIn(page, email);
+    } catch {
+      problems.push([current, 'could not sign in']);
+      continue;
+    }
+    await setTheme(page, 'light');
+    await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(800);
+    const size = await contentSize(page);
+    if (size < 200) thin.push(`role:${label} / (${size} chars)`);
+    const heading = await page
+      .locator('h1')
+      .first()
+      .innerText()
+      .catch(() => '(no h1)');
+    roleNotes.push(`${label.padEnd(18)} ${heading.replace(/\n/g, ' ').slice(0, 60)}`);
+    await page.screenshot({ path: `${OUT}/role-${label}.png` });
+  }
 
   await browser.close();
 
   console.log(`\nscreenshots: ${OUT}`);
-  if (problems.length === 0) {
-    console.log('no console errors, uncaught exceptions or failed requests');
-  } else {
-    console.log(`\n${problems.length} problem(s):`);
-    for (const p of [...new Set(problems)].slice(0, 25)) console.log(`  - ${p}`);
+  console.log('\nrole landing pages:');
+  for (const n of roleNotes) console.log(`  ${n}`);
+
+  if (thin.length) {
+    console.log(`\n${thin.length} page(s) rendered almost no text:`);
+    for (const t of thin) console.log(`  - ${t}`);
   }
+
+  const unique = [...new Map(problems.map(([c, m]) => [`${c}|${m}`, [c, m]])).values()];
+  if (!unique.length) {
+    console.log('\nno console errors, uncaught exceptions or 5xx responses');
+  } else {
+    console.log(`\n${unique.length} problem(s):`);
+    for (const [where, what] of unique.slice(0, 40)) console.log(`  [${where}] ${what}`);
+  }
+  process.exitCode = unique.some(([, w]) => w.startsWith('UNCAUGHT')) ? 1 : 0;
 }
 
 main().catch((err) => {

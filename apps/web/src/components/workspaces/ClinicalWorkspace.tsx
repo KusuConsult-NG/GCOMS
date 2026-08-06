@@ -82,12 +82,11 @@ export function ClinicalWorkspace({ user }: { user: any }) {
   ];
 
   // Hardcoded Data for Reports
-  const referralTracking = [
-    { id: 1, participantId: 'NG-PL-101', condition: 'CIN-2', destination: 'JUTH Oncology', date: '2026-08-01', status: 'PENDING' },
-    { id: 2, participantId: 'NG-PL-205', condition: 'Suspected Breast Mass', destination: 'Bingham Teaching Hospital', date: '2026-07-28', status: 'ACCEPTED' },
-    { id: 3, participantId: 'NG-PL-312', condition: 'Elevated PSA', destination: 'JUTH Urology', date: '2026-07-15', status: 'TREATED' },
-    { id: 4, participantId: 'NG-PL-440', condition: 'VIA Positive', destination: 'Pankshin General Hospital', date: '2026-08-02', status: 'PENDING' },
-  ];
+  // Was a hardcoded array of four invented patients (NG-PL-101, "CIN-2",
+  // "JUTH Oncology"). It rendered for every clinician regardless of caseload, so
+  // a nurse with no patients was shown four fabricated referrals — inventing
+  // clinical data and bypassing PHI scoping at the same time.
+  const [referralTracking, setReferralTracking] = useState<any[]>([]);
 
   const fetchDashboardData = () => {
     Promise.all([
@@ -111,8 +110,18 @@ export function ClinicalWorkspace({ user }: { user: any }) {
     api.get('/follow-ups').then(res => setAllFollowUps(res.data)).catch(console.error);
   };
 
+  // Scoped by the API to the caller's caseload, so a clinician sees their own
+  // referrals rather than everyone's.
+  const fetchReferrals = () => {
+    api
+      .get('/referrals')
+      .then(res => setReferralTracking(res.data))
+      .catch(err => console.error('Failed to fetch referrals', err));
+  };
+
   useEffect(() => {
     fetchDashboardData();
+    fetchReferrals();
   }, []);
 
   useEffect(() => {
@@ -273,7 +282,7 @@ export function ClinicalWorkspace({ user }: { user: any }) {
             </div>
             <div className="clinical-card">
               <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Urgent Referrals</span>
-              <p className="text-3xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">{referralTracking.filter((r: any) => r.status === 'URGENT' || r.urgency === 'HIGH').length || referralTracking.length}</p>
+              <p className="text-3xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">{referralTracking.filter((r: any) => r.status === 'PENDING').length}</p>
             </div>
           </div>
 

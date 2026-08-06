@@ -39,6 +39,7 @@ model User {
   patientAssignments  PatientAssignment[]
   volunteerTasks      VolunteerTask[]
   appointments        Appointment[]     @relation("ClinicianAppointments")
+  volunteerProfile    VolunteerProfile?
 }
 
 model ApprovalRequest {
@@ -122,6 +123,7 @@ model Grant {
   updatedAt   DateTime @updatedAt
 
   milestones  GrantMilestone[]
+  reportSchedules GrantReportSchedule[]
 }
 
 model GrantMilestone {
@@ -156,6 +158,7 @@ model Project {
   updatedAt   DateTime @updatedAt
 
   tasks       ProjectTask[]
+  risks       ProjectRisk[]
 }
 
 model ProjectTask {
@@ -188,6 +191,8 @@ model InventoryItem {
   managedBy   User     @relation("ManagedInventory", fields: [managedById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  movements   StockMovement[]
 }
 
 model DocumentRecord {
@@ -212,6 +217,8 @@ model GovernanceMeeting {
   organizedBy   User     @relation("OrganizedMeetings", fields: [organizedById], references: [id])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  actions       BoardAction[]
 }
 
 model SystemConfig {
@@ -568,3 +575,210 @@ model GrantProposal {
   createdAt       DateTime @default(now())
 }
 
+
+// ---------------------------------------------------------------------------
+// Records that the UI has always displayed from hardcoded browser arrays. Field
+// shapes are taken from those arrays so nothing the screens already show is
+// lost. SQLite has no array type, so list-valued fields (committees, interests)
+// are stored comma-separated and documented as such.
+// ---------------------------------------------------------------------------
+
+model JobOpening {
+  id          String   @id @default(uuid())
+  title       String
+  department  String
+  employmentType String @default("FULL_TIME") // FULL_TIME, PART_TIME, CONTRACT
+  location    String
+  deadline    DateTime
+  description String?
+  status      String   @default("OPEN") // OPEN, CLOSED, FILLED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  applicants  JobApplicant[]
+}
+
+model JobApplicant {
+  id           String   @id @default(uuid())
+  jobOpeningId String
+  jobOpening   JobOpening @relation(fields: [jobOpeningId], references: [id], onDelete: Cascade)
+  name         String
+  email        String?
+  phone        String?
+  stage        String   @default("APPLIED") // APPLIED, INTERVIEW, OFFER, ACCEPTED, REJECTED
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([jobOpeningId])
+}
+
+model TrainingRecord {
+  id          String   @id @default(uuid())
+  staffId     String?  // User id when the trainee is a system user
+  staffName   String
+  title       String
+  provider    String?
+  type        String   @default("CLINICAL_SKILLS")
+  trainingDate DateTime
+  certified   Boolean  @default(false)
+  expiryDate  DateTime?
+  status      String   @default("ACTIVE") // ACTIVE, EXPIRED, PENDING
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model VolunteerProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lga       String
+  ward      String?
+  address   String?
+  stipend   Float    @default(0)
+  status    String   @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BoardMember {
+  id         String   @id @default(uuid())
+  name       String
+  title      String?
+  role       String   @default("MEMBER") // CHAIRPERSON, VICE_CHAIRPERSON, SECRETARY, MEMBER, PATRON
+  committees String?  // comma-separated; SQLite has no array type
+  phone      String?
+  email      String?
+  termStart  DateTime
+  termEnd    DateTime
+  status     String   @default("ACTIVE")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model BoardAction {
+  id          String   @id @default(uuid())
+  description String
+  responsible String
+  dueDate     DateTime
+  priority    String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  meetingId   String?
+  meeting     GovernanceMeeting? @relation(fields: [meetingId], references: [id])
+  status      String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([meetingId])
+}
+
+model StockMovement {
+  id              String   @id @default(uuid())
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  type            String   // STOCK_RECEIPT, STOCK_ISSUE, TRANSFER, ADJUSTMENT, DISPOSAL
+  quantity        Int
+  fromLocation    String?
+  toLocation      String?
+  reference       String?
+  authorisedBy    String?
+  movementDate    DateTime @default(now())
+  remarks         String?
+  createdAt       DateTime @default(now())
+
+  @@index([inventoryItemId])
+}
+
+model ProjectRisk {
+  id         String   @id @default(uuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title      String
+  category   String   @default("OPERATIONAL")
+  likelihood String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  impact     String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  score      Int      @default(0)        // derived from likelihood x impact
+  mitigation String?
+  owner      String?
+  status     String   @default("OPEN")   // OPEN, MITIGATING, CLOSED
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model Donor {
+  id          String   @id @default(uuid())
+  organisation String  @unique
+  country     String?
+  type        String   @default("MULTILATERAL") // MULTILATERAL, BILATERAL, FOUNDATION, CORPORATE, INDIVIDUAL
+  contactName String?
+  contactTitle String?
+  email       String?
+  phone       String?
+  interests   String?  // comma-separated
+  lastContact DateTime?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model GrantReportSchedule {
+  id        String   @id @default(uuid())
+  grantId   String
+  grant     Grant    @relation(fields: [grantId], references: [id], onDelete: Cascade)
+  title     String
+  type      String   @default("QUARTERLY") // QUARTERLY, SEMI_ANNUAL, ANNUAL, SPECIAL
+  dueDate   DateTime
+  officer   String?
+  status    String   @default("UPCOMING") // UPCOMING, SUBMITTED, LATE
+  submittedAt DateTime?
+  reference String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([grantId])
+}
+
+model Vendor {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  category  String?
+  rating    Float    @default(0)
+  taxId     String?
+  status    String   @default("PENDING") // PENDING, VERIFIED, SUSPENDED
+  email     String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quotes    RfqQuote[]
+}
+
+model Rfq {
+  id          String   @id @default(uuid())
+  reference   String   @unique
+  description String
+  status      String   @default("OPEN") // OPEN, EVALUATION, COMPLETE, CANCELLED
+  closingDate DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  quotes      RfqQuote[]
+}
+
+model RfqQuote {
+  id        String   @id @default(uuid())
+  rfqId     String
+  rfq       Rfq      @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id])
+  price     Float
+  warranty  String?
+  score     Int      @default(0)
+  status    String   @default("SUBMITTED") // SUBMITTED, RECOMMENDED, REJECTED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([rfqId])
+  @@unique([rfqId, vendorId])
+}

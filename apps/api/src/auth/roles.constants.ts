@@ -238,3 +238,75 @@ export const PROPOSAL_STATUSES = [
   'AWARDED',
   'REJECTED',
 ] as const;
+
+/** Recruitment, training and volunteer rosters sit with HR. */
+export const RECRUITMENT_ROLES: Role[] = [
+  'HR',
+  'ADMIN',
+  'EXECUTIVE',
+  'SYSTEM_ADMIN',
+];
+/** Procurement vendors and RFQs. */
+export const PROCUREMENT_READ_ROLES: Role[] = [
+  'PROCUREMENT',
+  'FINANCE',
+  'ADMIN',
+  'EXECUTIVE',
+  'SYSTEM_ADMIN',
+  'BOARD',
+];
+export const PROCUREMENT_WRITE_ROLES: Role[] = [
+  'PROCUREMENT',
+  'ADMIN',
+  'EXECUTIVE',
+  'SYSTEM_ADMIN',
+];
+
+export const JOB_STATUSES = ['OPEN', 'CLOSED', 'FILLED'] as const;
+export const APPLICANT_STAGES = [
+  'APPLIED',
+  'INTERVIEW',
+  'OFFER',
+  'ACCEPTED',
+  'REJECTED',
+] as const;
+export const EMPLOYMENT_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT'] as const;
+export const BOARD_ROLES = [
+  'CHAIRPERSON',
+  'VICE_CHAIRPERSON',
+  'SECRETARY',
+  'MEMBER',
+  'PATRON',
+] as const;
+export const ACTION_STATUSES = ['PENDING', 'IN_PROGRESS', 'COMPLETED'] as const;
+export const RISK_LEVELS = ['LOW', 'MEDIUM', 'HIGH'] as const;
+export const RISK_STATUSES = ['OPEN', 'MITIGATING', 'CLOSED'] as const;
+export const MOVEMENT_TYPES = [
+  'STOCK_RECEIPT',
+  'STOCK_ISSUE',
+  'TRANSFER',
+  'ADJUSTMENT',
+  'DISPOSAL',
+] as const;
+export const DONOR_TYPES = [
+  'MULTILATERAL',
+  'BILATERAL',
+  'FOUNDATION',
+  'CORPORATE',
+  'INDIVIDUAL',
+] as const;
+export const REPORT_TYPES = [
+  'QUARTERLY',
+  'SEMI_ANNUAL',
+  'ANNUAL',
+  'SPECIAL',
+] as const;
+export const REPORT_STATUSES = ['UPCOMING', 'SUBMITTED', 'LATE'] as const;
+export const VENDOR_STATUSES = ['PENDING', 'VERIFIED', 'SUSPENDED'] as const;
+export const RFQ_STATUSES = [
+  'OPEN',
+  'EVALUATION',
+  'COMPLETE',
+  'CANCELLED',
+] as const;
+export const QUOTE_STATUSES = ['SUBMITTED', 'RECOMMENDED', 'REJECTED'] as const;

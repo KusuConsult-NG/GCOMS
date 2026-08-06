@@ -2,6 +2,29 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import type { ExecutionContext } from '@nestjs/common';
+import {
+  loginAccountTracker,
+  loginSourceTracker,
+  requestTracker,
+} from './common/throttling';
+
+/**
+ * Login limits. Per-account is the tight one: it is what stops an account being
+ * guessed at, from anywhere. Per-source is looser and catches spraying across
+ * many accounts from one address.
+ */
+const LOGIN_ACCOUNT_LIMIT = Number(process.env.LOGIN_RATE_LIMIT ?? 5);
+const LOGIN_SOURCE_LIMIT = Number(process.env.LOGIN_SOURCE_RATE_LIMIT ?? 30);
+const LOGIN_TTL_MS = Number(process.env.LOGIN_RATE_TTL_MS ?? 60_000);
+
+/** Matched on the handler, not the URL, so a route rename cannot silently unbind it. */
+function isLoginRequest(context: ExecutionContext): boolean {
+  return (
+    context.getClass?.()?.name === 'AuthController' &&
+    context.getHandler?.()?.name === 'login'
+  );
+}
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { validateEnv } from './config/env.validation';
@@ -52,8 +75,32 @@ import { SchedulerModule } from './scheduler/scheduler.module';
       cache: true,
       validate: validateEnv,
     }),
-    // Global ceiling. Individual routes tighten it — see AuthController.login.
-    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
+    // Three buckets. `default` covers all traffic; the two login buckets apply
+    // only to AuthController.login (see their skipIf) and limit an account and a
+    // source address independently, so a guessing storm against one account
+    // cannot lock out everyone else.
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60_000,
+        limit: 120,
+        getTracker: (req) => requestTracker(req),
+      },
+      {
+        name: 'login-account',
+        ttl: LOGIN_TTL_MS,
+        limit: LOGIN_ACCOUNT_LIMIT,
+        getTracker: (req) => loginAccountTracker(req),
+        skipIf: (context) => !isLoginRequest(context),
+      },
+      {
+        name: 'login-source',
+        ttl: LOGIN_TTL_MS,
+        limit: LOGIN_SOURCE_LIMIT,
+        getTracker: (req) => loginSourceTracker(req),
+        skipIf: (context) => !isLoginRequest(context),
+      },
+    ]),
     PrismaModule,
     PhiModule,
     HealthModule,

@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
+import { parseTrustProxy } from './common/throttling';
 
 /**
  * Parses ALLOWED_ORIGINS ("https://a.org,https://b.org"). The previous CORS
@@ -36,6 +37,27 @@ async function bootstrap() {
     logger.warn(
       'ALLOWED_ORIGINS is empty — all cross-origin browser requests will be refused. ' +
         'This aborts startup when NODE_ENV=production.',
+    );
+  }
+
+  // Rate limiting buckets anonymous traffic by client address, so Express has to
+  // resolve that address correctly. Unset means "direct connection": the safe
+  // default, because trusting X-Forwarded-For when nothing sets it lets a caller
+  // spoof the header and opt out of rate limiting entirely.
+  const trustProxy = parseTrustProxy(config.get<string>('TRUST_PROXY'));
+  if (trustProxy !== undefined) {
+    app.getHttpAdapter().getInstance().set('trust proxy', trustProxy);
+    logger.log(`trust proxy: ${JSON.stringify(trustProxy)}`);
+    if (trustProxy === true) {
+      logger.warn(
+        'TRUST_PROXY=true trusts any X-Forwarded-For hop, which a caller can ' +
+          'forge to evade rate limiting. Prefer a hop count or an explicit proxy list.',
+      );
+    }
+  } else if (isProduction) {
+    logger.warn(
+      'TRUST_PROXY is not set. If this runs behind a load balancer, every client ' +
+        'resolves to the proxy address and shares one rate-limit bucket.',
     );
   }
 

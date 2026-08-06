@@ -23,6 +23,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 
 const EMAIL = 'ratelimit@e2e.test';
+const OTHER_EMAIL = 'bystander@e2e.test';
 const PASSWORD = 'e2e-test-password';
 const LOGIN_LIMIT = 5;
 
@@ -38,15 +39,18 @@ describe('login rate limiting (e2e)', () => {
     });
 
     prisma = new PrismaClient();
-    await prisma.user.create({
-      data: {
-        email: EMAIL,
-        password: await bcrypt.hash(PASSWORD, 4),
-        firstName: 'Rate',
-        lastName: 'Limit',
-        role: 'CLINICIAN',
-      },
-    });
+    const hash = await bcrypt.hash(PASSWORD, 4);
+    for (const email of [EMAIL, OTHER_EMAIL]) {
+      await prisma.user.create({
+        data: {
+          email,
+          password: hash,
+          firstName: 'Rate',
+          lastName: 'Limit',
+          role: 'CLINICIAN',
+        },
+      });
+    }
 
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
@@ -82,6 +86,14 @@ describe('login rate limiting (e2e)', () => {
       .post('/auth/login')
       .send({ email: EMAIL, password: PASSWORD })
       .expect(429));
+
+  // The bug this guards against: with an IP-keyed bucket and a load balancer in
+  // front, one account being guessed at locked out the whole organisation.
+  it('does not lock out a bystander account from the same address', () =>
+    request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: OTHER_EMAIL, password: PASSWORD })
+      .expect(201));
 
   it('leaves health probes reachable', () =>
     request(app.getHttpServer()).get('/health').expect(200));

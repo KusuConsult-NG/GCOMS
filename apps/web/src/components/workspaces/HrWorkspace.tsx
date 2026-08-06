@@ -163,7 +163,9 @@ export function HrWorkspace({ user }: { user: any }) {
     e.preventDefault();
     setJobOpenings([...jobOpenings, { id: Date.now(), ...jobForm, status: 'OPEN', applicants: [] }]);
     // @ts-ignore
-    api.post('/hr', { ...jobForm, recordType: 'JOB_OPENING' }).catch(() => {});
+    // NOT PERSISTED. This POSTed a job opening at the staff-record endpoint,
+    // which rejected it 400; the error was swallowed. Local until a JobOpening
+    // model exists.
     setActiveModal(null);
     setJobForm({ title: '', dept: 'Clinical', type: 'FULL_TIME', location: '', qualifications: '', deadline: '' });
   };
@@ -301,7 +303,7 @@ export function HrWorkspace({ user }: { user: any }) {
       type: trainingForm.type, date: trainingForm.date, cert: trainingForm.cert, expiry: trainingForm.expiry, status: 'ACTIVE'
     }]);
     // @ts-ignore
-    api.post('/hr', { ...trainingForm, recordType: 'TRAINING_LOG' }).catch(() => {});
+    // NOT PERSISTED — no training-log table. See the job-opening note above.
     setActiveModal(null);
     setTrainingForm({ staffId: '', title: '', provider: '', type: 'CLINICAL_SKILLS', date: '', cert: 'YES', expiry: '' });
   };

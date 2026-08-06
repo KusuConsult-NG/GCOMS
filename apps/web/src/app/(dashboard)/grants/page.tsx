@@ -101,7 +101,9 @@ function GrantsPageContent() {
   const handleDonorSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setDonors([...donors, { id: Date.now(), ...donorForm }]);
-    api.post('/grants', { type: 'DONOR_RECORD', grantTitle: donorForm.org || 'Donor', donorName: donorForm.org, amount: '0', startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] }).catch(() => {});
+    // NOT PERSISTED. There is no donor table; this POST fabricated a Grant row,
+    // was rejected 400, and the error was swallowed so the screen looked saved.
+    // Kept as local state until a Donor model exists, rather than pretending.
     setActiveModal(null);
     setDonorForm({ org: '', country: '', type: 'BILATERAL', contact: '', title: '', email: '', phone: '', interests: [], lastComm: '', notes: '' });
   };
@@ -158,7 +160,18 @@ function GrantsPageContent() {
   const handlePipelineSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPipeline([...pipeline, { id: Date.now(), ...pipelineForm, value: Number(pipelineForm.value) }]);
-    api.post('/grants', { type: 'PIPELINE_OPPORTUNITY', grantTitle: pipelineForm.title || 'Pipeline Opportunity', donorName: pipelineForm.donor || 'TBD', amount: String(pipelineForm.value) || '0', startDate: new Date().toISOString().split('T')[0], endDate: pipelineForm.deadline || new Date().toISOString().split('T')[0] }).catch(() => {});
+    // Was POSTing a fabricated Grant row and swallowing the 400. GrantProposal
+    // is the table for pipeline opportunities.
+    api.post('/grants/proposals', {
+      title: pipelineForm.title,
+      donorName: pipelineForm.donor || 'TBD',
+      requestedAmount: Number(pipelineForm.value) || 0,
+      submissionDeadline: pipelineForm.deadline || new Date().toISOString().split('T')[0],
+      leadAuthor: 'Grants Office',
+      status: 'DRAFT',
+    })
+      .then(() => fetchProposals())
+      .catch(err => console.error('Failed to save pipeline opportunity', err));
     setActiveModal(null);
     setPipelineForm({ title: '', donor: '', value: '', deadline: '', status: 'ELIGIBLE', stage: 'IDENTIFIED', notes: '' });
   };
@@ -166,7 +179,7 @@ function GrantsPageContent() {
   const handleReportSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setReports([...reports, { id: Date.now(), ...reportForm, status: 'UPCOMING' }]);
-    api.post('/grants', { type: 'REPORT_SCHEDULE', grantTitle: reportForm.grant || 'Report', donorName: 'Internal', amount: '0', startDate: reportForm.due || new Date().toISOString().split('T')[0], endDate: reportForm.due || new Date().toISOString().split('T')[0] }).catch(() => {});
+    // NOT PERSISTED — no report-schedule table. See the donor note above.
     setActiveModal(null);
     setReportForm({ grant: '', type: 'QUARTERLY', title: '', due: '', officer: '' });
   };

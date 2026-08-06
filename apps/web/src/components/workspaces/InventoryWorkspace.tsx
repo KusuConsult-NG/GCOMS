@@ -192,13 +192,21 @@ export function InventoryWorkspace({ user }: { user: any }) {
       status: 'SCHEDULED'
     }]);
 
-    api.post('/inventory', {
-      itemName: `[MAINT_SCHED] ${maintenanceForm.asset}`,
-      category: `MAINTENANCE_${maintenanceForm.type}`,
-      quantity: 1,
-      unit: 'service',
-      minThreshold: 0
-    }).catch(() => {});
+    // Was POSTing a fake InventoryItem named "[MAINT_SCHED] ..." into the stock
+    // table and swallowing the 400, so the schedule looked saved and was gone on
+    // refresh. EquipmentServiceLog is the table for this.
+    api.post('/inventory/service-logs', {
+      inventoryItemId: maintenanceForm.asset,
+      serviceType: maintenanceForm.type === 'PREVENTIVE' ? 'PREVENTIVE_MAINTENANCE' : maintenanceForm.type,
+      performedBy: maintenanceForm.technician || 'Unassigned',
+      serviceDate: maintenanceForm.scheduledDate,
+      nextDueDate: maintenanceForm.scheduledDate,
+      cost: Number(maintenanceForm.cost) || 0,
+      status: 'SCHEDULED',
+      notes: maintenanceForm.description || undefined,
+    })
+      .then(() => fetchServiceLogs())
+      .catch(err => console.error('Failed to schedule maintenance', err));
 
     setActiveModal(null);
     setMaintenanceForm({ asset: '', type: 'PREVENTIVE', scheduledDate: '', technician: '', cost: '', description: '' });
@@ -209,13 +217,9 @@ export function InventoryWorkspace({ user }: { user: any }) {
     setMaintenanceSchedule(maintenanceSchedule.map(m => m.id === maintenanceCompleteData.id ? { ...m, status: 'COMPLETED' } : m));
     
     const completedAsset = maintenanceSchedule.find(m => m.id === maintenanceCompleteData.id)?.asset;
-    api.post('/inventory', { 
-      itemName: `[MAINT_COMPLETE] ${completedAsset}`,
-      category: 'MAINTENANCE_LOG',
-      quantity: 1,
-      unit: 'service',
-      minThreshold: 0
-    }).catch(() => {});
+    api.patch(`/inventory/service-logs/${maintenanceCompleteData.id}`, { status: 'COMPLETED' })
+      .then(() => fetchServiceLogs())
+      .catch(err => console.error('Failed to complete maintenance', err));
 
     setActiveModal(null);
   };

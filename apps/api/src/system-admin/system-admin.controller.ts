@@ -21,5 +21,6 @@ export class SystemAdminController {
   getConfigs(@Request() req: any) {
     return this.systemAdminService.getConfigs();
   }
-}
 
+
+}

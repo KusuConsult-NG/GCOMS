@@ -28,11 +28,7 @@ export function GovernanceWorkspace({ user }: { user: any }) {
     { id: 5, name: 'Dr. Emmanuel S. Lawal', title: 'Country Director, WHO Nigeria', role: 'PATRON', committees: ['Clinical Governance'], phone: '+234-809-555-6666', email: 'elawal@who.int', termStart: '2024-01-01', termEnd: '2025-12-31' }
   ]);
 
-  const [resolutions, setResolutions] = useState<any[]>([
-    { id: 1, resNum: 'RES-2026-001', title: 'Approval of FY2026 Annual Budget of ₦120,000,000', type: 'FINANCIAL_APPROVAL', meetingDate: '2026-01-15', proposedBy: 'Mrs. Blessing O. Yakubu', secondedBy: 'Dr. George A. Adaeze', text: 'RESOLVED that the Board approves the organizational budget of ₦120,000,000 for the financial year 2026...', status: 'PASSED', votes: { favour: 5, against: 0, abstain: 0 } },
-    { id: 2, resNum: 'RES-2026-002', title: 'Adoption of Clinical Governance Policy Framework', type: 'POLICY', meetingDate: '2026-03-10', proposedBy: 'Dr. George A. Adaeze', secondedBy: 'Prof. Maryam B. Bello', text: 'RESOLVED that the Board adopts the Clinical Governance Policy Framework...', status: 'PASSED', votes: { favour: 4, against: 0, abstain: 1 } },
-    { id: 3, resNum: 'RES-2026-003', title: 'Approval of Global Fund Grant Application - Cervical Cancer Initiative', type: 'PROGRAMME_APPROVAL', meetingDate: '2026-06-20', proposedBy: 'Mrs. Blessing O. Yakubu', secondedBy: 'Prof. Maryam B. Bello', text: 'RESOLVED that the Board approves the submission of grant application to the Global Fund...', status: 'TABLED', votes: { favour: 0, against: 0, abstain: 0 } }
-  ]);
+  const [resolutions, setResolutions] = useState<any[]>([]);
 
   const [actions, setActions] = useState<any[]>([
     { id: 1, description: 'Circulate revised HR policy', responsible: 'Mrs. Blessing O. Yakubu', due: '2026-08-15', priority: 'HIGH', meeting: 'Q2 Executive Board', status: 'PENDING' },
@@ -47,6 +43,17 @@ export function GovernanceWorkspace({ user }: { user: any }) {
 
   // Vote State for activeVoteModal
   const [currentVotes, setCurrentVotes] = useState<Record<number, string>>({});
+
+  const fetchResolutions = async () => {
+    try {
+      const res = await api.get('/governance/resolutions');
+      setResolutions(res.data);
+    } catch (err) { console.error('Failed to fetch resolutions', err); }
+  };
+
+  useEffect(() => {
+    fetchResolutions();
+  }, []);
 
   useEffect(() => {
     const tabParam = searchParams.get('tab');

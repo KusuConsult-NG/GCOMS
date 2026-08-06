@@ -13,16 +13,9 @@ export function AdminWorkspace({ user }: { user: any }) {
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState('ALL');
   
-  const [auditLogs, setAuditLogs] = useState([
-    { id: 1, time: '2026-08-05 09:12', user: 'Mrs. Blessing O. Yakubu', action: 'LOGIN', module: 'Auth', details: 'Successful login from Jos office', ip: '197.210.xx.xx' },
-    { id: 2, time: '2026-08-05 08:45', user: 'John Danladi', action: 'CREATE', module: 'Procurement', details: 'Created PO: Acetic Acid VIA Kits ₦1,850,000', ip: '197.210.xx.xx' },
-    { id: 3, time: '2026-08-04 17:30', user: 'Grace Bello', action: 'POST', module: 'Finance', details: 'Posted grant inflow: Global Fund ₦50,000,000', ip: '197.210.xx.xx' },
-    { id: 4, time: '2026-08-04 15:20', user: 'Dr. Amara Okafor', action: 'CREATE', module: 'Clinical', details: 'New clinical encounter: Patient PAT-2026-0847', ip: '197.210.xx.xx' },
-    { id: 5, time: '2026-08-04 14:10', user: 'Ngozi Adeyemi', action: 'SUBMIT', module: 'HR', details: 'Leave request submitted: Adaeze Nwosu - Sick Leave', ip: '197.210.xx.xx' },
-    { id: 6, time: '2026-08-04 11:05', user: 'System Admin', action: 'CONFIG', module: 'System', details: 'Session timeout policy updated: 8 hours', ip: '192.168.1.1' },
-    { id: 7, time: '2026-08-03 16:45', user: 'Ibrahim Danladi', action: 'UPDATE', module: 'Projects', details: 'Risk register updated: Reagent Supply Delay - status MITIGATING', ip: '197.210.xx.xx' },
-    { id: 8, time: '2026-08-03 10:00', user: 'Mrs. Blessing O. Yakubu', action: 'APPROVE', module: 'Governance', details: 'Resolution RES-2026-001 passed: Annual Budget Approved', ip: '197.210.xx.xx' }
-  ]);
+  // The real audit trail: PHI break-glass access and role changes. This was a
+  // hardcoded array while genuine security events accumulated unread.
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [auditModuleFilter, setAuditModuleFilter] = useState('ALL');
   const [auditDateFilter, setAuditDateFilter] = useState('');
 
@@ -37,10 +30,7 @@ export function AdminWorkspace({ user }: { user: any }) {
 
   useEffect(() => {
     fetchUsers();
-
-    api.get('/system-admin/audit-logs').then(res => setAuditLogs(res.data)).catch(() => {
-      // keep seeded data as fallback if endpoint doesn't exist
-    });
+    fetchAuditLogs();
 
     api.get('/system-admin/config').then(res => {
       if (res.data?.org) setOrgSettings(res.data.org);
@@ -49,6 +39,12 @@ export function AdminWorkspace({ user }: { user: any }) {
       // keep defaults as fallback
     });
   }, []);
+
+  const fetchAuditLogs = () => {
+    api.get('/system-admin/audit-logs', { params: { limit: 100 } })
+      .then(res => setAuditLogs(res.data))
+      .catch(err => console.error('Failed to fetch audit logs', err));
+  };
 
   const fetchUsers = () => {
     setLoading(true);
@@ -120,17 +116,27 @@ export function AdminWorkspace({ user }: { user: any }) {
     }
   };
 
-  const handleRefreshAudit = () => {
-    setAuditLogs([{
-      id: Date.now(),
-      time: new Date().toISOString().slice(0, 16).replace('T', ' '),
-      user: 'System Admin',
-      action: 'VIEW',
-      module: 'Audit',
-      details: 'Refreshed audit logs',
-      ip: '192.168.1.1'
-    }, ...auditLogs]);
+  // Was inserting a fabricated "refreshed audit logs" row into the audit trail
+  // itself. Refresh now re-reads it.
+  const handleRefreshAudit = () => fetchAuditLogs();
+
+  // The trail records action + old/new payloads; derive display fields from those.
+  const auditModule = (log: any) => String(log.action ?? '').split('_')[0] || 'SYSTEM';
+  const auditActor = (log: any) =>
+    log.user ? `${log.user.firstName} ${log.user.lastName}` : 'Unknown';
+  const auditDetails = (log: any) => {
+    const before = log.oldData ? JSON.parse(log.oldData) : null;
+    const after = log.newData ? JSON.parse(log.newData) : null;
+    if (before && after) {
+      const changed = Object.keys(after).filter(k => before[k] !== after[k]);
+      return changed.length
+        ? changed.map(k => `${k}: ${before[k]} → ${after[k]}`).join(', ')
+        : JSON.stringify(after);
+    }
+    return after ? JSON.stringify(after) : (log.oldData ?? '');
   };
+  const auditTime = (log: any) =>
+    String(log.createdAt ?? '').replace('T', ' ').slice(0, 16);
 
   const filteredUsers = users.filter(u => {
     const matchSearch = (u.firstName + ' ' + u.lastName + ' ' + u.email).toLowerCase().includes(userSearch.toLowerCase());
@@ -139,8 +145,8 @@ export function AdminWorkspace({ user }: { user: any }) {
   });
 
   const filteredAuditLogs = auditLogs.filter(a => {
-    const matchModule = auditModuleFilter === 'ALL' || a.module === auditModuleFilter;
-    const matchDate = !auditDateFilter || a.time.startsWith(auditDateFilter);
+    const matchModule = auditModuleFilter === 'ALL' || auditModule(a) === auditModuleFilter;
+    const matchDate = !auditDateFilter || auditTime(a).startsWith(auditDateFilter);
     return matchModule && matchDate;
   });
 
@@ -314,12 +320,12 @@ export function AdminWorkspace({ user }: { user: any }) {
               <tbody className="divide-y divide-[#e2e8f0]">
                 {filteredAuditLogs.map(log => (
                   <tr key={log.id} className="hover:bg-[#e5eeff]">
-                    <td className="p-3 font-mono text-[#74777f]">{log.time}</td>
-                    <td className="p-3 font-semibold text-[#002045]">{log.user}</td>
+                    <td className="p-3 font-mono text-[#74777f]">{auditTime(log)}</td>
+                    <td className="p-3 font-semibold text-[#002045]">{auditActor(log)}</td>
                     <td className="p-3"><span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded font-bold text-[10px]">{log.action}</span></td>
-                    <td className="p-3 text-[#13696a] font-bold">{log.module}</td>
-                    <td className="p-3">{log.details}</td>
-                    <td className="p-3 font-mono text-[10px] text-gray-500">{log.ip}</td>
+                    <td className="p-3 text-[#13696a] font-bold">{auditModule(log)}</td>
+                    <td className="p-3 max-w-md truncate" title={auditDetails(log)}>{auditDetails(log)}</td>
+                    <td className="p-3 font-mono text-[10px] text-gray-500">{log.user?.role ?? '—'}</td>
                   </tr>
                 ))}
                 {filteredAuditLogs.length === 0 && (

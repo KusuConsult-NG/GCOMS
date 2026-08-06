@@ -30,11 +30,7 @@ export function HrWorkspace({ user }: { user: any }) {
   ]);
   const [selectedJob, setSelectedJob] = useState<any>(null);
 
-  const [leaveRequests, setLeaveRequests] = useState<any[]>([
-    { id: 1, staff: 'Adaeze Nwosu', type: 'SICK', start: '2026-08-05', end: '2026-08-07', days: 3, reason: 'Malaria treatment', status: 'PENDING' },
-    { id: 2, staff: 'Ibrahim Danladi', type: 'ANNUAL', start: '2026-08-12', end: '2026-08-19', days: 7, reason: 'Family vacation', status: 'APPROVED' },
-    { id: 3, staff: 'Grace Bello', type: 'MATERNITY', start: '2026-09-01', end: '2026-11-30', days: 91, reason: 'Maternity leave', status: 'APPROVED' }
-  ]);
+  const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
   const [attendanceLogs, setAttendanceLogs] = useState<any[]>([]);
   const [performanceReviews, setPerformanceReviews] = useState<any[]>([]);
   
@@ -103,7 +99,34 @@ export function HrWorkspace({ user }: { user: any }) {
     }
   };
 
-  useEffect(() => { fetchStaff(); }, []);
+  const fetchLeave = async () => {
+    try {
+      const res = await api.get('/hr/leave');
+      setLeaveRequests(res.data);
+    } catch (err) { console.error('Failed to fetch leave requests', err); }
+  };
+
+  // Performance reviews are the Appraisal table. There is no onboarding screen
+  // yet, so /hr/onboarding is left unconsumed rather than faked.
+  const fetchAppraisals = async () => {
+    try {
+      const res = await api.get('/hr/appraisals');
+      setPerformanceReviews(res.data);
+    } catch (err) { console.error('Failed to fetch appraisals', err); }
+  };
+
+  useEffect(() => {
+    fetchStaff();
+    fetchLeave();
+    fetchAppraisals();
+  }, []);
+
+  const handleLeaveDecision = async (id: string, status: 'APPROVED' | 'REJECTED') => {
+    try {
+      await api.patch(`/hr/leave/${id}`, { status });
+      await fetchLeave();
+    } catch (err) { console.error('Failed to update leave request', err); }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,22 +202,33 @@ export function HrWorkspace({ user }: { user: any }) {
     const diffTime = Math.abs(new Date(end).getTime() - new Date(start).getTime());
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
   };
-  const handleLeaveRequest = (e: React.FormEvent) => {
+  const staffName = (employeeId: string) => {
+    const member = staff.find((m: any) => m.id === employeeId || m.user?.id === employeeId);
+    if (!member) return 'Unknown staff';
+    const u = member.user ?? member;
+    return `${u.firstName} ${u.lastName}`;
+  };
+
+  const handleLeaveRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    const staffMember = staff.find(s => s.id === leaveForm.staffId);
-    const staffName = staffMember ? `${staffMember.firstName} ${staffMember.lastName}` : 'Unknown Staff';
-    setLeaveRequests([...leaveRequests, {
-      id: Date.now(), staff: staffName, type: leaveForm.type, start: leaveForm.start, end: leaveForm.end,
-      days: calculateDays(leaveForm.start, leaveForm.end), reason: leaveForm.reason, status: 'PENDING'
-    }]);
-    // @ts-ignore
-    api.post('/hr', { ...leaveForm, recordType: 'LEAVE_REQUEST' }).catch(() => {});
-    setActiveModal(null);
-    setLeaveForm({ staffId: '', type: 'ANNUAL', start: '', end: '', reason: '' });
+    try {
+      await api.post('/hr/leave', {
+        employeeId: leaveForm.staffId,
+        type: leaveForm.type,
+        startDate: leaveForm.start,
+        endDate: leaveForm.end,
+        reason: leaveForm.reason || undefined,
+      });
+      setActiveModal(null);
+      setLeaveForm({ staffId: '', type: 'ANNUAL', start: '', end: '', reason: '' });
+      await fetchLeave();
+    } catch (err) {
+      console.error('Failed to submit leave request', err);
+    }
   };
-  const updateLeaveStatus = (id: number, status: string) => {
-    setLeaveRequests(leaveRequests.map(r => r.id === id ? { ...r, status } : r));
-  };
+
+  const updateLeaveStatus = (id: string, status: 'APPROVED' | 'REJECTED') =>
+    handleLeaveDecision(id, status);
 
   // Attendance Actions
   const handleLogAttendance = (e: React.FormEvent) => {
@@ -221,16 +255,40 @@ export function HrWorkspace({ user }: { user: any }) {
   };
 
   // Performance Actions
-  const handlePerformanceReview = (e: React.FormEvent) => {
+  // Appraisal stores a 0-5 score; the form offers a rating band, so map between
+  // them in one place rather than letting the two vocabularies drift.
+  const scoreToRating = (score: number) =>
+    score >= 4.5 ? 'EXCEPTIONAL'
+      : score >= 3.5 ? 'STRONG'
+      : score >= 2.5 ? 'MEETS_EXPECTATIONS'
+      : score >= 1.5 ? 'NEEDS_IMPROVEMENT'
+      : 'UNSATISFACTORY';
+
+  const RATING_SCORES: Record<string, number> = {
+    UNSATISFACTORY: 1,
+    NEEDS_IMPROVEMENT: 2,
+    MEETS_EXPECTATIONS: 3,
+    STRONG: 4,
+    EXCEPTIONAL: 5,
+  };
+
+  const handlePerformanceReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    const staffMember = staff.find(s => s.id === performanceForm.staffId);
-    const staffName = staffMember ? `${staffMember.firstName} ${staffMember.lastName}` : 'Unknown Staff';
-    setPerformanceReviews([...performanceReviews, {
-      id: Date.now(), staff: staffName, period: performanceForm.period, rating: performanceForm.rating,
-      date: new Date().toISOString().split('T')[0]
-    }]);
-    setActiveModal(null);
-    setPerformanceForm({ staffId: '', period: 'Q3 2026', rating: 'MEETS_EXPECTATIONS', achievements: '', development: '', comments: '' });
+    try {
+      await api.post('/hr/appraisals', {
+        employeeId: performanceForm.staffId,
+        period: performanceForm.period,
+        score: RATING_SCORES[performanceForm.rating] ?? 3,
+        comments: [performanceForm.achievements, performanceForm.development, performanceForm.comments]
+          .filter(Boolean)
+          .join('\n\n') || undefined,
+      });
+      setActiveModal(null);
+      setPerformanceForm({ staffId: '', period: 'Q3 2026', rating: 'MEETS_EXPECTATIONS', achievements: '', development: '', comments: '' });
+      await fetchAppraisals();
+    } catch (err) {
+      console.error('Failed to record appraisal', err);
+    }
   };
 
   // Training Actions
@@ -347,10 +405,10 @@ export function HrWorkspace({ user }: { user: any }) {
                   ) : (
                     performanceReviews.map((r, i) => (
                       <tr key={i} className="hover:bg-[#e5eeff]">
-                        <td className="p-3 font-bold text-[#002045]">{r.staff}</td>
+                        <td className="p-3 font-bold text-[#002045]">{staffName(r.employeeId)}</td>
                         <td className="p-3">{r.period}</td>
-                        <td className="p-3"><span className="badge-low-risk">{r.rating}</span></td>
-                        <td className="p-3">{r.date}</td>
+                        <td className="p-3"><span className="badge-low-risk">{scoreToRating(r.score)} ({r.score})</span></td>
+                        <td className="p-3">{String(r.createdAt).slice(0, 10)}</td>
                         <td className="p-3"><button className="text-[#13696a] hover:underline" onClick={() => setViewReview(r)}>View</button></td>
                       </tr>
                     ))
@@ -564,9 +622,9 @@ export function HrWorkspace({ user }: { user: any }) {
                   <tbody className="divide-y divide-[#e2e8f0] font-medium text-[#0d1c2e]">
                     {leaveRequests.map(r => (
                       <tr key={r.id} className="hover:bg-[#e5eeff]">
-                        <td className="p-3 font-bold text-[#002045]">{r.staff}</td>
+                        <td className="p-3 font-bold text-[#002045]">{staffName(r.employeeId)}</td>
                         <td className="p-3">{r.type}</td>
-                        <td className="p-3">{r.start} to {r.end} ({r.days}d)</td>
+                        <td className="p-3">{String(r.startDate).slice(0, 10)} to {String(r.endDate).slice(0, 10)} ({calculateDays(r.startDate, r.endDate)}d)</td>
                         <td className="p-3">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                             r.status === 'PENDING' ? 'bg-orange-100 text-orange-800' : 
@@ -974,7 +1032,7 @@ export function HrWorkspace({ user }: { user: any }) {
             <h3 className="text-sm font-bold text-[#002045] mb-4">Performance Review — {viewReview.staff || viewReview.staffName}</h3>
             <div className="space-y-2 text-xs">
               <div><span className="font-semibold">Review Period:</span> {viewReview.period}</div>
-              <div><span className="font-semibold">Rating:</span> <span className={`px-2 py-0.5 rounded font-bold ${viewReview.rating === 'EXCEPTIONAL' ? 'bg-green-100 text-green-800' : viewReview.rating === 'NEEDS_IMPROVEMENT' ? 'bg-orange-100 text-orange-800' : viewReview.rating === 'UNSATISFACTORY' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>{viewReview.rating}</span></div>
+              <div><span className="font-semibold">Rating:</span> <span className={`px-2 py-0.5 rounded font-bold ${scoreToRating(viewReview.score) === 'EXCEPTIONAL' ? 'bg-green-100 text-green-800' : scoreToRating(viewReview.score) === 'NEEDS_IMPROVEMENT' ? 'bg-orange-100 text-orange-800' : scoreToRating(viewReview.score) === 'UNSATISFACTORY' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>{scoreToRating(viewReview.score)}</span></div>
               <div><span className="font-semibold">Key Achievements:</span><p className="mt-1 text-gray-600 whitespace-pre-wrap">{viewReview.achievements}</p></div>
               <div><span className="font-semibold">Areas for Development:</span><p className="mt-1 text-gray-600 whitespace-pre-wrap">{viewReview.development}</p></div>
               <div><span className="font-semibold">Reviewer Comments:</span><p className="mt-1 text-gray-600 whitespace-pre-wrap">{viewReview.comments}</p></div>

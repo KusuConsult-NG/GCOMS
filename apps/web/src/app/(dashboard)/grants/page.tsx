@@ -35,11 +35,7 @@ function GrantsPageContent() {
   const [milestoneForm, setMilestoneForm] = useState({ grantId: '', title: '', description: '', due: '', metric: '' });
   const [milestoneUpdateData, setMilestoneUpdateData] = useState({ id: 0, progress: 0, notes: '' });
 
-  const [pipeline, setPipeline] = useState([
-    { id: 1, title: 'Plateau State HIV/TB Integration Programme', donor: 'PEPFAR/USAID', value: 250000000, deadline: '2026-09-01', stage: 'IDENTIFIED', status: 'ELIGIBLE', notes: '' },
-    { id: 2, title: 'WASH & Nutrition in Schools Programme', donor: 'UNICEF Nigeria', value: 85000000, deadline: '2026-08-15', stage: 'LOI_SUBMITTED', status: 'ELIGIBLE', notes: '' },
-    { id: 3, title: 'Community Mental Health Scale-up Grant', donor: 'Gates Foundation', value: 120000000, deadline: '2026-10-31', stage: 'IDENTIFIED', status: 'ASSESSING', notes: '' }
-  ]);
+  const [pipeline, setPipeline] = useState<any[]>([]);
   const [pipelineForm, setPipelineForm] = useState({ title: '', donor: '', value: '', deadline: '', status: 'ELIGIBLE', stage: 'IDENTIFIED', notes: '' });
 
   const [reports, setReports] = useState([
@@ -79,6 +75,7 @@ function GrantsPageContent() {
     if (user && allowedRoles.includes(user.role)) {
       fetchGrants();
       fetchMilestones();
+      fetchProposals();
     }
   }, [user]);
 
@@ -107,6 +104,13 @@ function GrantsPageContent() {
     api.post('/grants', { type: 'DONOR_RECORD', grantTitle: donorForm.org || 'Donor', donorName: donorForm.org, amount: '0', startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] }).catch(() => {});
     setActiveModal(null);
     setDonorForm({ org: '', country: '', type: 'BILATERAL', contact: '', title: '', email: '', phone: '', interests: [], lastComm: '', notes: '' });
+  };
+
+  const fetchProposals = async () => {
+    try {
+      const res = await api.get('/grants/proposals');
+      setPipeline(res.data);
+    } catch (err) { console.error('Failed to fetch proposals', err); }
   };
 
   const fetchMilestones = async () => {

@@ -30,10 +30,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
     type: 'STOCK_RECEIPT', itemId: '', qty: '', from: '', to: '', ref: '', remarks: '', date: new Date().toISOString().split('T')[0], authorized: ''
   });
 
-  const [maintenanceSchedule, setMaintenanceSchedule] = useState<any[]>([
-    { id: 1, asset: 'CO2 Cryotherapy Unit (TAG-GC-EQUIP-001)', type: 'PREVENTIVE', scheduledDate: '2026-08-15', technician: 'MedTech Services Ltd', cost: 85000, description: 'Annual preventive maintenance and gas cylinder refill', status: 'SCHEDULED' },
-    { id: 2, asset: 'Portable Ultrasound Scanner (TAG-GC-EQUIP-002)', type: 'CALIBRATION', scheduledDate: '2026-07-30', technician: 'SonoTech Nigeria', cost: 45000, description: 'Quarterly calibration check', status: 'OVERDUE' }
-  ]);
+  const [maintenanceSchedule, setMaintenanceSchedule] = useState<any[]>([]);
 
   const [maintenanceForm, setMaintenanceForm] = useState({
     asset: '', type: 'PREVENTIVE', scheduledDate: '', technician: '', cost: '', description: ''
@@ -45,6 +42,17 @@ export function InventoryWorkspace({ user }: { user: any }) {
   const [maintenanceCompleteData, setMaintenanceCompleteData] = useState({ id: null, actualDate: '', partsReplaced: '', findings: '', nextServiceDue: '' });
 
   const [submitting, setSubmitting] = useState(false);
+
+  const fetchServiceLogs = async () => {
+    try {
+      const res = await api.get('/inventory/service-logs');
+      setMaintenanceSchedule(res.data);
+    } catch (err) { console.error('Failed to fetch service logs', err); }
+  };
+
+  useEffect(() => {
+    fetchServiceLogs();
+  }, []);
 
   useEffect(() => {
     const tabParam = searchParams.get('tab');

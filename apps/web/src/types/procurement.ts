@@ -63,17 +63,64 @@ export type PurchaseRequest = {
   requestedBy?: { firstName: string; lastName: string; role: string } | null;
 };
 
-/**
- * Not a server model. The Contracts tab collects these but there is no Contract
- * table or endpoint behind it, so they live only in component state. Kept as a
- * named type so the absence is explicit rather than an untyped array.
- */
-export type ContractDraft = {
-  vendor: string;
+export type PlanQuarter = 'Q1' | 'Q2' | 'Q3' | 'Q4';
+export type PlanPriority = 'LOW' | 'MEDIUM' | 'HIGH';
+export type PlanStatus = 'PLANNED' | 'APPROVED' | 'PROCURED' | 'CANCELLED';
+
+export type PlanItem = {
+  id: string;
+  fiscalYear: number;
+  category: string;
+  description: string;
+  quantity: number;
+  unitPrice: string | number;
+  /**
+   * quantity x unitPrice, computed by the server on read. There is no stored
+   * total column: a derived value written once can disagree with its own inputs
+   * the moment either is edited.
+   */
+  totalCost: number;
+  quarter: PlanQuarter;
+  priority: PlanPriority;
+  status: PlanStatus;
+  createdBy: { firstName: string; lastName: string } | null;
+};
+
+export type GrnCondition = 'GOOD' | 'DAMAGED' | 'PARTIAL';
+
+export type GoodsReceivedNote = {
+  id: string;
+  reference: string;
+  procurementOrderId: string;
+  /** The order the delivery was against — a relation, not a typed-in string. */
+  procurementOrder: {
+    id: string;
+    itemName: string;
+    quantity: number;
+    vendor: string | null;
+  } | null;
+  deliveryNote: string;
+  itemsReceived: string;
+  quantity: number;
+  condition: GrnCondition;
+  inspectionDate: string;
+  officer: string;
+  remarks: string | null;
+  receivedBy: { firstName: string; lastName: string } | null;
+};
+
+export type ContractStatus = 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'TERMINATED';
+
+export type Contract = {
+  id: string;
+  reference: string;
+  vendorId: string;
+  vendor: Pick<Vendor, 'id' | 'name'> | null;
   title: string;
-  value: string;
+  value: string | number;
   startDate: string;
   endDate: string;
-  deliverables: string;
-  status: string;
+  deliverables: string | null;
+  status: ContractStatus;
+  createdBy: { firstName: string; lastName: string } | null;
 };

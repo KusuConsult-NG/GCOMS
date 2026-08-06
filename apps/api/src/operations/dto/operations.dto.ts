@@ -17,6 +17,11 @@ import {
 import {
   ACTION_STATUSES,
   APPLICANT_STAGES,
+  CONTRACT_STATUSES,
+  GRN_CONDITIONS,
+  PLAN_PRIORITIES,
+  PLAN_QUARTERS,
+  PLAN_STATUSES,
   BOARD_ROLES,
   DONOR_TYPES,
   EMPLOYMENT_TYPES,
@@ -230,4 +235,55 @@ export class CreateQuoteDto {
 export class UpdateQuoteDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(100) score?: number;
   @IsOptional() @IsIn(QUOTE_STATUSES) status?: string;
+}
+
+// ---------------- Annual procurement plan ----------------
+export class CreatePlanItemDto {
+  // Defaults to the current year on the server rather than being required, so a
+  // plan cannot be filed against a year the client picked by accident.
+  @IsOptional() @Type(() => Number) @IsInt() @Min(2000) @Max(2100)
+  fiscalYear?: number;
+  @IsString() @MinLength(1) @MaxLength(120) category: string;
+  @IsString() @MinLength(1) @MaxLength(500) description: string;
+  @Type(() => Number) @IsInt() @Min(1) quantity: number;
+  @Type(() => Number) @IsNumber() @Min(0) unitPrice: number;
+  @IsOptional() @IsIn(PLAN_QUARTERS) quarter?: string;
+  @IsOptional() @IsIn(PLAN_PRIORITIES) priority?: string;
+}
+export class UpdatePlanItemDto {
+  @IsOptional() @IsIn(PLAN_STATUSES) status?: string;
+  @IsOptional() @IsIn(PLAN_PRIORITIES) priority?: string;
+  @IsOptional() @IsIn(PLAN_QUARTERS) quarter?: string;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) quantity?: number;
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(0) unitPrice?: number;
+}
+
+// ---------------- Goods received notes ----------------
+export class CreateGrnDto {
+  // The order is referenced by id. It used to be a free-text "poRef" that
+  // matched nothing, so a note could name an order that did not exist.
+  @IsUUID() procurementOrderId: string;
+  @IsString() @MinLength(1) @MaxLength(120) deliveryNote: string;
+  @IsString() @MinLength(1) @MaxLength(1000) itemsReceived: string;
+  @Type(() => Number) @IsInt() @Min(1) quantity: number;
+  @IsOptional() @IsIn(GRN_CONDITIONS) condition?: string;
+  @IsDateString() inspectionDate: string;
+  @IsString() @MinLength(1) @MaxLength(160) officer: string;
+  @IsOptional() @IsString() @MaxLength(1000) remarks?: string;
+}
+
+// ---------------- Contracts ----------------
+export class CreateContractDto {
+  @IsUUID() vendorId: string;
+  @IsString() @MinLength(1) @MaxLength(200) title: string;
+  @Type(() => Number) @IsNumber() @Min(0) value: number;
+  @IsDateString() startDate: string;
+  @IsDateString() endDate: string;
+  @IsOptional() @IsString() @MaxLength(2000) deliverables?: string;
+  @IsOptional() @IsIn(CONTRACT_STATUSES) status?: string;
+}
+export class UpdateContractDto {
+  @IsOptional() @IsIn(CONTRACT_STATUSES) status?: string;
+  @IsOptional() @IsString() @MaxLength(2000) deliverables?: string;
+  @IsOptional() @IsDateString() endDate?: string;
 }

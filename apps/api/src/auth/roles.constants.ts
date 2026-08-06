@@ -370,3 +370,20 @@ export const DIAGNOSING_WRITE_ROLES: Role[] = [
   'EXECUTIVE',
   'ADMIN',
 ];
+
+/** Annual procurement plan, goods received notes and contracts. */
+export const PLAN_QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4'] as const;
+export const PLAN_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH'] as const;
+export const PLAN_STATUSES = [
+  'PLANNED',
+  'APPROVED',
+  'PROCURED',
+  'CANCELLED',
+] as const;
+export const GRN_CONDITIONS = ['GOOD', 'DAMAGED', 'PARTIAL'] as const;
+export const CONTRACT_STATUSES = [
+  'DRAFT',
+  'ACTIVE',
+  'COMPLETED',
+  'TERMINATED',
+] as const;

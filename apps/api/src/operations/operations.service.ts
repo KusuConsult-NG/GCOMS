@@ -7,6 +7,10 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import * as dto from './dto/operations.dto';
+import {
+  createWithReference,
+  referencePrefix,
+} from '../common/reference-sequence';
 
 /** likelihood x impact, so a risk score can never contradict its own inputs. */
 const LEVEL: Record<string, number> = { LOW: 1, MEDIUM: 2, HIGH: 3 };
@@ -470,63 +474,23 @@ export class OperationsService {
     });
   }
 
-  /**
-   * Mints the next reference for a year: RFQ-2026-0001, -0002, and so on.
-   *
-   * The browser used to generate this as `RFQ-${year}-${random(0..999)}` and
-   * send it up, which is the wrong place for it twice over. There are only 1000
-   * values, so by the birthday bound a collision is more likely than not at
-   * around 38 records in a year — and the field is rendered read-only, so the
-   * user who hit one was shown "That RFQ reference already exists" about a value
-   * they could not change and had not chosen. The uniqueness constraint lives
-   * here; so should the value that has to satisfy it.
-   */
-  private async nextRfqReference(now: Date, offset = 0): Promise<string> {
-    const year = now.getFullYear();
-    const prefix = `RFQ-${year}-`;
-    // Compared numerically, not lexically. Ordering by `reference: 'desc'` and
-    // taking the first row looks equivalent and is not: references written by
-    // the previous browser-side scheme are three digits, so "RFQ-2026-004"
-    // sorts above "RFQ-2026-0005" as a string. The highest reference by that
-    // reading was 4, the next was 5, and 5 was already taken — every create
-    // after the first failed until the retries ran out.
-    const existing = await this.prisma.rfq.findMany({
-      where: { reference: { startsWith: prefix } },
-      select: { reference: true },
-    });
-    const highest = existing.reduce((max, row) => {
-      const value = Number(row.reference.slice(prefix.length));
-      return Number.isFinite(value) && value > max ? value : max;
-    }, 0);
-    // The offset advances on retry, so a caller that lost a race takes the next
-    // number rather than recomputing the one it just collided with.
-    return `${prefix}${String(highest + 1 + offset).padStart(4, '0')}`;
-  }
-
   async createRfq(d: dto.CreateRfqDto) {
-    // Two references issued in the same tick would read the same latest row, so
-    // the retry is on the unique constraint rather than on the read. P2002 here
-    // can only be the reference: it is the one unique column on this table.
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const reference = await this.nextRfqReference(new Date(), attempt);
-      try {
-        return await this.prisma.rfq.create({
+    return createWithReference(
+      referencePrefix('RFQ', new Date()),
+      (prefix) =>
+        this.prisma.rfq.findMany({
+          where: { reference: { startsWith: prefix } },
+          select: { reference: true },
+        }),
+      (reference) =>
+        this.prisma.rfq.create({
           data: {
             reference,
             description: d.description.trim(),
             closingDate: d.closingDate ? new Date(d.closingDate) : null,
           },
           include: { quotes: true },
-        });
-      } catch (error) {
-        const clashed =
-          error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === 'P2002';
-        if (!clashed) throw error;
-      }
-    }
-    throw new ConflictException(
-      'Could not allocate an RFQ reference. Please try again.',
+        }),
     );
   }
 
@@ -585,6 +549,200 @@ export class OperationsService {
         data,
         include: { vendor: { select: { id: true, name: true } } },
       });
+    });
+  }
+
+  // ---------------- Annual procurement plan ----------------
+
+  /**
+   * quantity x unitPrice, computed on read.
+   *
+   * There is no stored total column on purpose: a derived value written once is
+   * a value that can disagree with its own inputs the moment either is edited.
+   */
+  private withPlanTotal<T extends { quantity: number; unitPrice: Prisma.Decimal }>(
+    item: T,
+  ) {
+    return { ...item, totalCost: item.unitPrice.mul(item.quantity).toNumber() };
+  }
+
+  async listPlanItems(fiscalYear?: number, status?: string) {
+    const items = await this.prisma.procurementPlanItem.findMany({
+      where: {
+        ...(fiscalYear ? { fiscalYear } : {}),
+        ...(status ? { status } : {}),
+      },
+      orderBy: [{ fiscalYear: 'desc' }, { quarter: 'asc' }],
+      include: {
+        createdBy: { select: { firstName: true, lastName: true } },
+      },
+    });
+    return items.map((item) => this.withPlanTotal(item));
+  }
+
+  async createPlanItem(d: dto.CreatePlanItemDto, userId: string) {
+    const item = await this.prisma.procurementPlanItem.create({
+      data: {
+        fiscalYear: d.fiscalYear ?? new Date().getFullYear(),
+        category: d.category.trim(),
+        description: d.description.trim(),
+        quantity: d.quantity,
+        unitPrice: d.unitPrice,
+        quarter: d.quarter ?? 'Q1',
+        priority: d.priority ?? 'MEDIUM',
+        createdById: userId,
+      },
+      include: { createdBy: { select: { firstName: true, lastName: true } } },
+    });
+    return this.withPlanTotal(item);
+  }
+
+  async updatePlanItem(id: string, d: dto.UpdatePlanItemDto) {
+    this.mustExist(
+      await this.prisma.procurementPlanItem.findUnique({ where: { id } }),
+      'Plan item',
+    );
+    const data: Prisma.ProcurementPlanItemUpdateInput = {};
+    if (d.status !== undefined) data.status = d.status;
+    if (d.priority !== undefined) data.priority = d.priority;
+    if (d.quarter !== undefined) data.quarter = d.quarter;
+    if (d.quantity !== undefined) data.quantity = d.quantity;
+    if (d.unitPrice !== undefined) data.unitPrice = d.unitPrice;
+    const item = await this.prisma.procurementPlanItem.update({
+      where: { id },
+      data,
+      include: { createdBy: { select: { firstName: true, lastName: true } } },
+    });
+    return this.withPlanTotal(item);
+  }
+
+  // ---------------- Goods received notes ----------------
+  listGrns(procurementOrderId?: string) {
+    return this.prisma.goodsReceivedNote.findMany({
+      where: procurementOrderId ? { procurementOrderId } : {},
+      orderBy: { inspectionDate: 'desc' },
+      include: {
+        procurementOrder: {
+          select: { id: true, itemName: true, quantity: true, vendor: true },
+        },
+        receivedBy: { select: { firstName: true, lastName: true } },
+      },
+    });
+  }
+
+  async createGrn(d: dto.CreateGrnDto, userId: string) {
+    const order = this.mustExist(
+      await this.prisma.procurementOrder.findUnique({
+        where: { id: d.procurementOrderId },
+      }),
+      'Purchase order',
+    );
+    // Receiving more than was ordered is a data-entry error worth refusing, not
+    // a number to store and reconcile later.
+    if (d.quantity > order.quantity) {
+      throw new BadRequestException(
+        `Cannot receive ${d.quantity} against an order for ${order.quantity}.`,
+      );
+    }
+    return createWithReference(
+      referencePrefix('GRN', new Date()),
+      (prefix) =>
+        this.prisma.goodsReceivedNote.findMany({
+          where: { reference: { startsWith: prefix } },
+          select: { reference: true },
+        }),
+      (reference) =>
+        this.prisma.goodsReceivedNote.create({
+          data: {
+            reference,
+            procurementOrderId: d.procurementOrderId,
+            deliveryNote: d.deliveryNote.trim(),
+            itemsReceived: d.itemsReceived.trim(),
+            quantity: d.quantity,
+            condition: d.condition ?? 'GOOD',
+            inspectionDate: new Date(d.inspectionDate),
+            officer: d.officer.trim(),
+            remarks: d.remarks?.trim() || null,
+            receivedById: userId,
+          },
+          include: {
+            procurementOrder: {
+              select: { id: true, itemName: true, quantity: true, vendor: true },
+            },
+            receivedBy: { select: { firstName: true, lastName: true } },
+          },
+        }),
+    );
+  }
+
+  // ---------------- Contracts ----------------
+  listContracts(status?: string) {
+    return this.prisma.contract.findMany({
+      where: status ? { status } : {},
+      orderBy: { startDate: 'desc' },
+      include: {
+        vendor: { select: { id: true, name: true } },
+        createdBy: { select: { firstName: true, lastName: true } },
+      },
+    });
+  }
+
+  async createContract(d: dto.CreateContractDto, userId: string) {
+    this.mustExist(
+      await this.prisma.vendor.findUnique({ where: { id: d.vendorId } }),
+      'Vendor',
+    );
+    if (new Date(d.endDate) < new Date(d.startDate)) {
+      throw new BadRequestException('endDate cannot be before startDate');
+    }
+    return createWithReference(
+      referencePrefix('CTR', new Date()),
+      (prefix) =>
+        this.prisma.contract.findMany({
+          where: { reference: { startsWith: prefix } },
+          select: { reference: true },
+        }),
+      (reference) =>
+        this.prisma.contract.create({
+          data: {
+            reference,
+            vendorId: d.vendorId,
+            title: d.title.trim(),
+            value: d.value,
+            startDate: new Date(d.startDate),
+            endDate: new Date(d.endDate),
+            deliverables: d.deliverables?.trim() || null,
+            status: d.status ?? 'ACTIVE',
+          createdById: userId,
+          },
+          include: {
+            vendor: { select: { id: true, name: true } },
+            createdBy: { select: { firstName: true, lastName: true } },
+          },
+        }),
+    );
+  }
+
+  async updateContract(id: string, d: dto.UpdateContractDto) {
+    const existing = this.mustExist(
+      await this.prisma.contract.findUnique({ where: { id } }),
+      'Contract',
+    );
+    if (d.endDate !== undefined && new Date(d.endDate) < existing.startDate) {
+      throw new BadRequestException('endDate cannot be before startDate');
+    }
+    const data: Prisma.ContractUpdateInput = {};
+    if (d.status !== undefined) data.status = d.status;
+    if (d.deliverables !== undefined)
+      data.deliverables = d.deliverables.trim() || null;
+    if (d.endDate !== undefined) data.endDate = new Date(d.endDate);
+    return this.prisma.contract.update({
+      where: { id },
+      data,
+      include: {
+        vendor: { select: { id: true, name: true } },
+        createdBy: { select: { firstName: true, lastName: true } },
+      },
     });
   }
 }

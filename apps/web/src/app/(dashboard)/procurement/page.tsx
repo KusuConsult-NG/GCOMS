@@ -5,7 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { AccessDenied } from '@/components/AccessDenied';
-import type { ContractDraft, PurchaseRequest, Rfq, RfqQuote, Vendor } from '@/types/procurement';
+import type { Contract, GoodsReceivedNote, PlanItem, PurchaseRequest, Rfq, RfqQuote, Vendor } from '@/types/procurement';
+import { daysUntil, useToday } from '@/lib/useToday';
 
 const TABS = ['orders', 'plan', 'vendors', 'rfq', 'grn', 'contracts'] as const;
 type Tab = (typeof TABS)[number];
@@ -26,6 +27,7 @@ function ProcurementPageContent() {
   const searchParams = useSearchParams();
 
   const [activeTab, setActiveTab] = useState<Tab>('orders');
+  const today = useToday();
   const [orders, setOrders] = useState<PurchaseRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState<null | 'requisition' | 'plan' | 'vendor' | 'rfq' | 'grn' | 'contract'>(null);
@@ -42,8 +44,8 @@ function ProcurementPageContent() {
   const [planForm, setPlanForm] = useState({ category: 'Medical Consumables', description: '', quantity: '1', unitPrice: '', quarter: 'Q1', priority: 'MEDIUM' });
   const [vendorForm, setVendorForm] = useState({ name: '', category: 'Medical Reagents', taxId: '', contactPerson: '', phone: '', email: '', address: '' });
   const [rfqForm, setRfqForm] = useState({ description: '', quantity: '1', deadline: '', invitedVendors: [] as string[] });
-  const [grnForm, setGrnForm] = useState({ poRef: '', deliveryNote: '', itemsReceived: '', quantity: '1', condition: 'GOOD', officer: '', inspectionDate: '', remarks: '' });
-  const [contractForm, setContractForm] = useState({ vendor: '', title: '', value: '', startDate: '', endDate: '', deliverables: '' });
+  const [grnForm, setGrnForm] = useState({ procurementOrderId: '', deliveryNote: '', itemsReceived: '', quantity: '1', condition: 'GOOD', officer: '', inspectionDate: '', remarks: '' });
+  const [contractForm, setContractForm] = useState({ vendorId: '', title: '', value: '', startDate: '', endDate: '', deliverables: '' });
   const [quoteModal, setQuoteModal] = useState<{ rfqId: string } | null>(null);
   const [quoteForm, setQuoteForm] = useState({ vendorId: '', price: '', warranty: '', score: '' });
   
@@ -51,14 +53,9 @@ function ProcurementPageContent() {
 
   const [rfqs, setRfqs] = useState<Rfq[]>([]);
   
-  /**
-   * Contracts have no table and no endpoint — unlike vendors, RFQs and quotes,
-   * which do. This list is therefore local to the tab and is lost on reload.
-   * Typed and labelled rather than left as `any[]` so the gap is visible in the
-   * code and, below, to the user; a form that silently discards what someone
-   * typed is worse than one that says it will.
-   */
-  const [contracts, setContracts] = useState<ContractDraft[]>([]);
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [planItems, setPlanItems] = useState<PlanItem[]>([]);
+  const [grns, setGrns] = useState<GoodsReceivedNote[]>([]);
 
   // Read URL action & tab params from Sidebar links
   useEffect(() => {
@@ -101,6 +98,33 @@ function ProcurementPageContent() {
     }
   };
 
+  const fetchPlanItems = async () => {
+    try {
+      const res = await api.get('/operations/plan-items');
+      setPlanItems(res.data ?? []);
+    } catch (err) {
+      console.error('Failed to load the procurement plan', err);
+    }
+  };
+
+  const fetchGrns = async () => {
+    try {
+      const res = await api.get('/operations/grns');
+      setGrns(res.data ?? []);
+    } catch (err) {
+      console.error('Failed to load goods received notes', err);
+    }
+  };
+
+  const fetchContracts = async () => {
+    try {
+      const res = await api.get('/operations/contracts');
+      setContracts(res.data ?? []);
+    } catch (err) {
+      console.error('Failed to load contracts', err);
+    }
+  };
+
   const fetchRfqs = async () => {
     try {
       const res = await api.get('/operations/rfqs');
@@ -115,6 +139,9 @@ function ProcurementPageContent() {
       fetchOrders();
       fetchVendors();
       fetchRfqs();
+      fetchPlanItems();
+      fetchGrns();
+      fetchContracts();
     }
   }, [user]);
 
@@ -141,15 +168,20 @@ function ProcurementPageContent() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.post('/procurement', {
-        itemName: `[ANNUAL PLAN] ${planForm.category}: ${planForm.description} [${planForm.quarter}] [${planForm.priority}]`,
-        quantity: planForm.quantity,
-        estimatedCost: String(Number(planForm.quantity) * Number(planForm.unitPrice)),
-        vendor: 'TBD - Annual Plan'
+      // Its own table. This used to be posted as a purchase requisition with
+      // "[ANNUAL PLAN] " glued onto the item name and the category, quarter and
+      // priority packed into the same string, then parsed back out on read.
+      await api.post('/operations/plan-items', {
+        category: planForm.category,
+        description: planForm.description,
+        quantity: Number(planForm.quantity),
+        unitPrice: Number(planForm.unitPrice),
+        quarter: planForm.quarter,
+        priority: planForm.priority,
       });
       setActiveModal(null);
       setPlanForm({ category: 'Medical Consumables', description: '', quantity: '1', unitPrice: '', quarter: 'Q1', priority: 'MEDIUM' });
-      fetchOrders();
+      await fetchPlanItems();
     } catch (err) {
       console.error('Failed to add plan', err);
     } finally {
@@ -241,15 +273,21 @@ function ProcurementPageContent() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.post('/procurement', {
-        itemName: `[GRN] ${grnForm.poRef} | ${grnForm.itemsReceived}`,
-        quantity: grnForm.quantity,
-        estimatedCost: '0',
-        vendor: `GRN-${Date.now()}`
+      // The reference is allocated by the server; it used to be `GRN-${Date.now()}`
+      // stuffed into the vendor column of a zero-cost purchase requisition.
+      await api.post('/operations/grns', {
+        procurementOrderId: grnForm.procurementOrderId,
+        deliveryNote: grnForm.deliveryNote,
+        itemsReceived: grnForm.itemsReceived,
+        quantity: Number(grnForm.quantity),
+        condition: grnForm.condition,
+        inspectionDate: new Date(grnForm.inspectionDate).toISOString(),
+        officer: grnForm.officer,
+        remarks: grnForm.remarks || undefined,
       });
       setActiveModal(null);
-      setGrnForm({ poRef: '', deliveryNote: '', itemsReceived: '', quantity: '1', condition: 'GOOD', officer: '', inspectionDate: '', remarks: '' });
-      fetchOrders();
+      setGrnForm({ procurementOrderId: '', deliveryNote: '', itemsReceived: '', quantity: '1', condition: 'GOOD', officer: '', inspectionDate: '', remarks: '' });
+      await fetchGrns();
     } catch (err) {
       console.error('Failed to issue GRN', err);
     } finally {
@@ -257,16 +295,29 @@ function ProcurementPageContent() {
     }
   };
 
-  const handleAddContract = (e: React.FormEvent) => {
+  const handleAddContract = async (e: React.FormEvent) => {
     e.preventDefault();
-    setContracts([...contracts, { ...contractForm, status: 'ACTIVE' }]);
-    setActiveModal(null);
-    setContractForm({ vendor: '', title: '', value: '', startDate: '', endDate: '', deliverables: '' });
+    setSubmitting(true);
+    try {
+      await api.post('/operations/contracts', {
+        vendorId: contractForm.vendorId,
+        title: contractForm.title,
+        value: Number(contractForm.value),
+        startDate: new Date(contractForm.startDate).toISOString(),
+        endDate: new Date(contractForm.endDate).toISOString(),
+        deliverables: contractForm.deliverables || undefined,
+      });
+      setActiveModal(null);
+      setContractForm({ vendorId: '', title: '', value: '', startDate: '', endDate: '', deliverables: '' });
+      await fetchContracts();
+    } catch (err) {
+      console.error('Failed to add contract', err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const totalCost = orders.reduce((sum, o) => sum + (Number(o.estimatedCost) || 0), 0);
-  const planOrders = orders.filter(o => o.itemName && o.itemName.startsWith('[ANNUAL PLAN]'));
-  const grnOrders = orders.filter(o => o.itemName && o.itemName.startsWith('[GRN]'));
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -511,9 +562,11 @@ function ProcurementPageContent() {
             <form onSubmit={handleIssueGRN} className="space-y-4 text-xs">
               <div>
                 <label className="block font-semibold text-[var(--on-background)] mb-1">PO Reference *</label>
-                <select value={grnForm.poRef} onChange={e => setGrnForm({ ...grnForm, poRef: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
-                  <option value="">Select PO...</option>
-                  {orders.filter(o => o.itemName && !o.itemName.startsWith('[')).map(o => <option key={o.id} value={o.itemName}>{o.itemName}</option>)}
+                <select required value={grnForm.procurementOrderId} onChange={e => setGrnForm({ ...grnForm, procurementOrderId: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
+                  <option value="">Select a purchase order…</option>
+                  {orders.map(o => (
+                    <option key={o.id} value={o.id}>{o.itemName} — {o.quantity} ordered</option>
+                  ))}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -570,9 +623,9 @@ function ProcurementPageContent() {
             <form onSubmit={handleAddContract} className="space-y-4 text-xs">
               <div>
                 <label className="block font-semibold text-[var(--on-background)] mb-1">Vendor *</label>
-                <select value={contractForm.vendor} onChange={e => setContractForm({ ...contractForm, vendor: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
-                  <option value="">Select Vendor...</option>
-                  {vendors.map((v, i) => <option key={i} value={v.name}>{v.name}</option>)}
+                <select required value={contractForm.vendorId} onChange={e => setContractForm({ ...contractForm, vendorId: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
+                  <option value="">Select a registered vendor…</option>
+                  {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
                 </select>
               </div>
               <div>
@@ -688,29 +741,22 @@ function ProcurementPageContent() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--outline)]">
-              {planOrders.map((o, idx) => {
-                const parts = o.itemName.replace('[ANNUAL PLAN] ', '').split(/[:\[\]]/).map((s: string) => s.trim()).filter(Boolean);
-                const category = parts[0];
-                const desc = parts[1];
-                const quarter = parts[2];
-                const priority = parts[3];
-                const unitPrice = Number(o.estimatedCost) / Number(o.quantity);
-                return (
-                  <tr key={idx} className="hover:bg-[var(--primary-surface)]">
-                    <td className="p-3 font-semibold text-[var(--secondary)]">{category}</td>
-                    <td className="p-3 font-bold text-[var(--primary)]">{desc}</td>
-                    <td className="p-3 font-mono tabular-nums">{o.quantity}</td>
-                    <td className="p-3 font-mono tabular-nums">₦{unitPrice.toLocaleString()}</td>
-                    <td className="p-3 font-bold font-mono tabular-nums text-[var(--primary)]">₦{Number(o.estimatedCost).toLocaleString()}</td>
-                    <td className="p-3 font-bold">{quarter}</td>
-                    <td className="p-3 font-bold text-amber-600">{priority}</td>
-                    <td className="p-3"><span className="badge-low-risk">{o.status}</span></td>
-                  </tr>
-                );
-              })}
-              {planOrders.length === 0 && (
+              {planItems.map((item) => (
+                <tr key={item.id} className="hover:bg-[var(--primary-surface)]">
+                  <td className="p-3 font-semibold text-[var(--secondary)]">{item.category}</td>
+                  <td className="p-3 font-bold text-[var(--primary)]">{item.description}</td>
+                  <td className="p-3 font-mono tabular-nums">{item.quantity}</td>
+                  <td className="p-3 font-mono tabular-nums">₦{Number(item.unitPrice).toLocaleString()}</td>
+                  {/* Derived by the server from the two columns to its left. */}
+                  <td className="p-3 font-bold font-mono tabular-nums text-[var(--primary)]">₦{item.totalCost.toLocaleString()}</td>
+                  <td className="p-3 font-bold">{item.quarter}</td>
+                  <td className={`p-3 font-bold ${item.priority === 'HIGH' ? 'text-red-600 dark:text-red-400' : item.priority === 'LOW' ? 'text-[var(--muted)]' : 'text-amber-600 dark:text-amber-400'}`}>{item.priority}</td>
+                  <td className="p-3"><span className="badge-low-risk">{item.status}</span></td>
+                </tr>
+              ))}
+              {planItems.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-xs text-[var(--muted)]">No annual plan items found.</td>
+                  <td colSpan={8} className="p-8 text-center text-xs text-[var(--muted)]">No annual plan items yet.</td>
                 </tr>
               )}
             </tbody>
@@ -816,21 +862,27 @@ function ProcurementPageContent() {
             <button onClick={() => setActiveModal('grn')} className="btn-primary text-xs">+ Issue GRN</button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {grnOrders.map((g, idx) => {
-              const info = g.itemName.replace('[GRN] ', '');
-              return (
-                <div key={idx} className="p-4 bg-[var(--background)] border border-[var(--outline)] rounded space-y-2">
-                  <div className="flex justify-between font-bold text-[var(--primary)]">
-                    <span>{g.vendor}</span>
-                    <span className="badge-low-risk">{g.status}</span>
-                  </div>
-                  <p className="text-[var(--on-background)] font-semibold">{info}</p>
-                  <p className="text-[var(--on-surface-variant)] text-[11px]">Received: <strong className="text-[var(--primary)]">{g.quantity} Units</strong></p>
+            {grns.map((g) => (
+              <div key={g.id} className="p-4 bg-[var(--background)] border border-[var(--outline)] rounded space-y-2">
+                <div className="flex justify-between font-bold text-[var(--primary)]">
+                  <span className="font-mono">{g.reference}</span>
+                  <span className={g.condition === 'GOOD' ? 'badge-low-risk' : 'badge-high-risk'}>{g.condition}</span>
                 </div>
-              );
-            })}
-            {grnOrders.length === 0 && (
-              <p className="text-gray-500 italic p-4">No GRNs issued yet.</p>
+                <p className="text-[var(--on-background)] font-semibold">{g.itemsReceived}</p>
+                <p className="text-[var(--on-surface-variant)] text-[11px]">
+                  Against: <strong className="text-[var(--primary)]">{g.procurementOrder?.itemName ?? 'Unknown order'}</strong>
+                  {g.procurementOrder && ` (${g.quantity} of ${g.procurementOrder.quantity} ordered)`}
+                </p>
+                <p className="text-[var(--on-surface-variant)] text-[11px]">
+                  Delivery note <span className="font-mono text-[var(--on-background)]">{g.deliveryNote}</span> · inspected {new Date(g.inspectionDate).toLocaleDateString()} by {g.officer}
+                </p>
+                {g.remarks && <p className="text-[var(--muted)] text-[11px] italic">{g.remarks}</p>}
+              </div>
+            ))}
+            {grns.length === 0 && (
+              <p className="col-span-full p-6 text-center text-xs text-[var(--muted)] border border-dashed border-[var(--outline)] rounded">
+                No goods received notes yet. Issuing one records a delivery against a purchase order.
+              </p>
             )}
           </div>
         </div>
@@ -843,12 +895,10 @@ function ProcurementPageContent() {
             <h2 className="font-bold text-[var(--primary)] text-sm">📝 Contract Management</h2>
             <button onClick={() => setActiveModal('contract')} className="btn-primary text-xs bg-indigo-700 hover:bg-indigo-800">+ Add Contract</button>
           </div>
-          <p className="px-4 py-2 text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 border-b border-[var(--outline)]">
-            Contracts are not yet stored on the server. Anything added here is visible in this tab only and will be lost when the page reloads.
-          </p>
           <table className="w-full text-left text-xs">
             <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
               <tr>
+                <th className="p-3">Reference</th>
                 <th className="p-3">Vendor</th>
                 <th className="p-3">Title</th>
                 <th className="p-3">Value</th>
@@ -859,23 +909,28 @@ function ProcurementPageContent() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--outline)]">
-              {contracts.map((c, idx) => {
-                const daysRemaining = Math.ceil((new Date(c.endDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+              {contracts.map((c) => {
+                // Relative to a date captured after mount, not to the clock read
+                // during render — otherwise the server and the browser disagree.
+                const remaining = daysUntil(c.endDate, today);
                 return (
-                  <tr key={idx} className="hover:bg-[var(--primary-surface)]">
-                    <td className="p-3 font-bold text-[var(--primary)]">{c.vendor}</td>
+                  <tr key={c.id} className="hover:bg-[var(--primary-surface)]">
+                    <td className="p-3 font-mono text-[var(--muted)]">{c.reference}</td>
+                    <td className="p-3 font-bold text-[var(--primary)]">{c.vendor?.name ?? 'Unknown vendor'}</td>
                     <td className="p-3 font-semibold text-[var(--secondary)]">{c.title}</td>
                     <td className="p-3 font-mono tabular-nums font-bold">₦{Number(c.value).toLocaleString()}</td>
-                    <td className="p-3">{c.startDate}</td>
-                    <td className="p-3">{c.endDate}</td>
-                    <td className={`p-3 font-bold ${daysRemaining <= 30 ? 'text-orange-600' : 'text-green-700'}`}>{daysRemaining} days</td>
+                    <td className="p-3 tabular-nums">{new Date(c.startDate).toLocaleDateString()}</td>
+                    <td className="p-3 tabular-nums">{new Date(c.endDate).toLocaleDateString()}</td>
+                    <td className={`p-3 font-bold tabular-nums ${remaining === null ? 'text-[var(--muted)]' : remaining < 0 ? 'text-red-600 dark:text-red-400' : remaining <= 30 ? 'text-orange-600 dark:text-orange-400' : 'text-green-700 dark:text-green-400'}`}>
+                      {remaining === null ? '—' : remaining < 0 ? `expired ${Math.abs(remaining)}d ago` : `${remaining} days`}
+                    </td>
                     <td className="p-3"><span className="badge-low-risk">{c.status}</span></td>
                   </tr>
                 );
               })}
               {contracts.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-xs text-[var(--muted)]">No contracts found.</td>
+                  <td colSpan={8} className="p-8 text-center text-xs text-[var(--muted)]">No contracts yet.</td>
                 </tr>
               )}
             </tbody>

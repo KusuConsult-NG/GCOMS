@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
+import { ageInYears, useToday } from '@/lib/useToday';
 
 interface Patient {
   id: string;
@@ -24,6 +25,7 @@ interface Patient {
 
 export default function PatientsPage() {
   const { user } = useAuthStore();
+  const today = useToday();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -66,10 +68,11 @@ export default function PatientsPage() {
     setSearch(searchInput);
   };
 
-  const getAge = (dob: string) => {
-    if (!dob) return 'N/A';
-    return Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-  };
+  // Age is relative to today, and today cannot be read during render: the server
+  // and the browser would answer differently and hydration would mismatch. It is
+  // also proper calendar arithmetic now rather than a division by 365.25 days,
+  // which was wrong by a year for anyone whose birthday had not come round yet.
+  const getAge = (dob: string) => ageInYears(dob, today) ?? 'N/A';
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">

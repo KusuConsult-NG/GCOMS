@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  Request,
   UseGuards,
 } from '@nestjs/common';
 import { OperationsService } from './operations.service';
@@ -27,6 +28,9 @@ import {
   RECRUITMENT_ROLES,
 } from '../auth/roles.constants';
 import * as dto from './dto/operations.dto';
+
+/** The authenticated caller, as JwtStrategy puts it on the request. */
+type Actor = { user: { id: string; role: string } };
 
 /**
  * Operational records that previously lived only in browser state. Grouped in
@@ -251,5 +255,71 @@ export class OperationsController {
     @Body() d: dto.UpdateQuoteDto,
   ) {
     return this.ops.updateQuote(id, d);
+  }
+
+  // Annual procurement plan
+  @Get('plan-items')
+  @Roles(...PROCUREMENT_READ_ROLES)
+  listPlanItems(
+    @Query('fiscalYear') fiscalYear?: string,
+    @Query('status') status?: string,
+  ) {
+    // Parsed here rather than trusted: a non-numeric year must not reach the
+    // query as NaN and silently match nothing.
+    const year = fiscalYear ? Number(fiscalYear) : undefined;
+    return this.ops.listPlanItems(
+      Number.isFinite(year) ? year : undefined,
+      status,
+    );
+  }
+
+  @Post('plan-items')
+  @Roles(...PROCUREMENT_WRITE_ROLES)
+  createPlanItem(@Body() d: dto.CreatePlanItemDto, @Request() req: Actor) {
+    return this.ops.createPlanItem(d, req.user.id);
+  }
+
+  @Patch('plan-items/:id')
+  @Roles(...PROCUREMENT_WRITE_ROLES)
+  updatePlanItem(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() d: dto.UpdatePlanItemDto,
+  ) {
+    return this.ops.updatePlanItem(id, d);
+  }
+
+  // Goods received notes
+  @Get('grns')
+  @Roles(...PROCUREMENT_READ_ROLES)
+  listGrns(@Query('procurementOrderId') procurementOrderId?: string) {
+    return this.ops.listGrns(procurementOrderId);
+  }
+
+  @Post('grns')
+  @Roles(...PROCUREMENT_WRITE_ROLES)
+  createGrn(@Body() d: dto.CreateGrnDto, @Request() req: Actor) {
+    return this.ops.createGrn(d, req.user.id);
+  }
+
+  // Contracts
+  @Get('contracts')
+  @Roles(...PROCUREMENT_READ_ROLES)
+  listContracts(@Query('status') status?: string) {
+    return this.ops.listContracts(status);
+  }
+
+  @Post('contracts')
+  @Roles(...PROCUREMENT_WRITE_ROLES)
+  createContract(@Body() d: dto.CreateContractDto, @Request() req: Actor) {
+    return this.ops.createContract(d, req.user.id);
+  }
+
+  @Patch('contracts/:id')
+  @Roles(...PROCUREMENT_WRITE_ROLES)
+  updateContract(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() d: dto.UpdateContractDto,
+  ) {
+    return this.ops.updateContract(id, d);
   }
 }

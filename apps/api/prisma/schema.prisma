@@ -28,6 +28,9 @@ model User {
   approvedApprovals   ApprovalRequest[] @relation("ApprovedApprovals")
   financeTransactions FinanceTransaction[]
   procurementOrders   ProcurementOrder[]
+  createdPlanItems    ProcurementPlanItem[] @relation("CreatedPlanItems")
+  receivedGoods       GoodsReceivedNote[]   @relation("ReceivedGoods")
+  createdContracts    Contract[]            @relation("CreatedContracts")
   managedStaff        StaffRecord[]     @relation("ManagedStaff")
   staffRecord         StaffRecord?      @relation("UserStaffRecord")
   facilityRequests    FacilityRequest[]
@@ -82,6 +85,8 @@ model ProcurementOrder {
   requestedBy   User     @relation(fields: [requestedById], references: [id])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  goodsReceived GoodsReceivedNote[]
 }
 
 model StaffRecord {
@@ -761,6 +766,7 @@ model Vendor {
   updatedAt DateTime @updatedAt
 
   quotes    RfqQuote[]
+  contracts Contract[]
 }
 
 model Rfq {
@@ -790,4 +796,73 @@ model RfqQuote {
 
   @@index([rfqId])
   @@unique([rfqId, vendorId])
+}
+
+/// The annual procurement plan: what the organisation intends to buy this year,
+/// approved ahead of the individual requisitions that draw against it.
+model ProcurementPlanItem {
+  id          String   @id @default(uuid())
+  fiscalYear  Int
+  category    String
+  description String
+  quantity    Int
+  unitPrice   Decimal
+  /// No stored total. quantity x unitPrice is derived on read, so the two can
+  /// never disagree with a third column that was written once and never updated.
+  quarter     String   @default("Q1") // Q1, Q2, Q3, Q4
+  priority    String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  status      String   @default("PLANNED") // PLANNED, APPROVED, PROCURED, CANCELLED
+  createdById String
+  createdBy   User     @relation("CreatedPlanItems", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([fiscalYear])
+}
+
+/// Goods Received Note: the record that a delivery against a purchase order was
+/// inspected and accepted, and in what condition.
+model GoodsReceivedNote {
+  id                 String   @id @default(uuid())
+  reference          String   @unique
+  /// A GRN is always against a purchase order. This was previously a free-text
+  /// "poRef" string that matched nothing, so a note could name an order that did
+  /// not exist and nothing would object.
+  procurementOrderId String
+  procurementOrder   ProcurementOrder @relation(fields: [procurementOrderId], references: [id])
+  deliveryNote       String
+  itemsReceived      String
+  quantity           Int
+  condition          String   @default("GOOD") // GOOD, DAMAGED, PARTIAL
+  inspectionDate     DateTime
+  officer            String
+  remarks            String?
+  receivedById       String
+  receivedBy         User     @relation("ReceivedGoods", fields: [receivedById], references: [id])
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([procurementOrderId])
+}
+
+/// A supply contract awarded to a registered vendor.
+model Contract {
+  id           String   @id @default(uuid())
+  reference    String   @unique
+  /// A relation, not a vendor name copied in as text: renaming a vendor must not
+  /// silently orphan its contracts.
+  vendorId     String
+  vendor       Vendor   @relation(fields: [vendorId], references: [id])
+  title        String
+  value        Decimal
+  startDate    DateTime
+  endDate      DateTime
+  deliverables String?
+  status       String   @default("ACTIVE") // DRAFT, ACTIVE, COMPLETED, TERMINATED
+  createdById  String
+  createdBy    User     @relation("CreatedContracts", fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([vendorId])
 }

@@ -6,6 +6,18 @@ import type { ApprovalRequest, FinanceTransaction, Grant, InventoryItem, Project
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { StatCard } from '@/components/StatCard';
+import {
+  ArrowRight,
+  Banknote,
+  FolderKanban,
+  HeartPulse,
+  Landmark,
+  Package,
+  ScrollText,
+  Users,
+  Warehouse,
+} from 'lucide-react';
 
 export function ExecutiveWorkspace() {
   const router = useRouter();
@@ -88,13 +100,13 @@ export function ExecutiveWorkspace() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Section 1: Enterprise Command Centre Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--nav-surface)] text-white p-6 rounded-lg border border-[var(--nav-surface-raised)] shadow-md">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[var(--outline)] pb-5">
         <div>
-          <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             Executive Command Centre • GCOMS
           </span>
-          <h1 className="text-2xl font-extrabold tracking-tight mt-1 text-white">Enterprise-Wide Operations Dashboard</h1>
-          <p className="text-slate-300 text-xs mt-0.5">Real-time visibility across all departments and programmes</p>
+          <h1 className="text-2xl font-extrabold tracking-tight mt-1 text-[var(--on-background)]">Enterprise-Wide Operations Dashboard</h1>
+          <p className="text-[var(--muted)] text-xs mt-0.5">Real-time visibility across all departments and programmes</p>
         </div>
 
         <div className="mt-4 md:mt-0 flex gap-2">
@@ -109,31 +121,29 @@ export function ExecutiveWorkspace() {
 
       {/* Section 2: Live KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Active Grant Portfolio</span>
-          <p className="text-2xl font-bold text-[var(--primary)] mt-1">{grants.length}</p>
-          <p className="text-[10px] text-[var(--on-surface-variant)]">Total: ₦{totalGrantValue.toLocaleString()}</p>
-        </div>
-        <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Active Projects</span>
-          <p className="text-2xl font-bold text-[var(--secondary)] mt-1 tabular-nums">{projects.length}</p>
-        </div>
-        <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Pending Procurement Orders</span>
-          <p className="text-2xl font-bold text-[var(--risk-high-text)] mt-1 tabular-nums">{pendingProcurement}</p>
-        </div>
-        <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Financial Balance</span>
-          <p className="text-2xl font-bold text-[var(--risk-low-text)] mt-1 tabular-nums">₦{financialBalance.toLocaleString()}</p>
-        </div>
-        <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Low Stock Alerts</span>
-          <p className="text-2xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">{lowStockCount}</p>
-        </div>
-        <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Pending Approvals</span>
-          <p className="text-2xl font-bold text-[var(--risk-high-text)] mt-1 tabular-nums">{pendingApprovalsCount}</p>
-        </div>
+        <StatCard
+          label="Active grant portfolio"
+          value={grants.length}
+          detail={`Total: ₦${totalGrantValue.toLocaleString()}`}
+        />
+        <StatCard label="Active projects" value={projects.length} />
+        <StatCard label="Pending procurement orders" value={pendingProcurement} />
+        <StatCard
+          label="Financial balance"
+          value={`₦${financialBalance.toLocaleString()}`}
+        />
+        {/* Colour here is a state, not a category: nothing is wrong until a
+            count is above zero. */}
+        <StatCard
+          label="Low stock alerts"
+          value={lowStockCount}
+          tone={lowStockCount > 0 ? 'warning' : 'neutral'}
+        />
+        <StatCard
+          label="Pending approvals"
+          value={pendingApprovalsCount}
+          tone={pendingApprovalsCount > 0 ? 'critical' : 'neutral'}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -167,7 +177,7 @@ export function ExecutiveWorkspace() {
                   {filteredApprovals.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="p-4 text-center text-gray-500">
-                        {approvalFilter === 'PENDING' ? '✅ No pending approvals. All departments are up to date.' : 'No approvals found.'}
+                        {approvalFilter === 'PENDING' ? 'No pending approvals. All departments are up to date.' : 'No approvals found.'}
                       </td>
                     </tr>
                   ) : (
@@ -266,19 +276,19 @@ export function ExecutiveWorkspace() {
             <h3 className="font-bold text-[var(--primary)] text-sm border-b border-[var(--outline)] pb-2">Quick Navigation</h3>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { name: 'Finance', icon: '💰', link: '/finance', stat: `Bal: ₦${financialBalance.toLocaleString()}` },
-                { name: 'Procurement', icon: '🛒', link: '/procurement', stat: `${pendingProcurement} pending` },
-                { name: 'HR', icon: '👥', link: '/hr', stat: 'Staff' },
-                { name: 'Grants', icon: '🤝', link: '/grants', stat: `${grants.length} active` },
-                { name: 'Projects', icon: '📋', link: '/projects', stat: `${projects.length} active` },
-                { name: 'Inventory', icon: '📦', link: '/inventory', stat: `${stockHealth}% health` },
-                { name: 'Governance', icon: '⚖️', link: '/governance', stat: 'Policies' },
-                { name: 'Clinical', icon: '🏥', link: '/clinical', stat: 'Records' },
+                { name: 'Finance', Icon: Banknote, link: '/finance', stat: `Bal: ₦${financialBalance.toLocaleString()}` },
+                { name: 'Procurement', Icon: Package, link: '/procurement', stat: `${pendingProcurement} pending` },
+                { name: 'HR', Icon: Users, link: '/hr', stat: 'Staff' },
+                { name: 'Grants', Icon: ScrollText, link: '/grants', stat: `${grants.length} active` },
+                { name: 'Projects', Icon: FolderKanban, link: '/projects', stat: `${projects.length} active` },
+                { name: 'Inventory', Icon: Warehouse, link: '/inventory', stat: `${stockHealth}% health` },
+                { name: 'Governance', Icon: Landmark, link: '/governance', stat: 'Policies' },
+                { name: 'Clinical', Icon: HeartPulse, link: '/clinical', stat: 'Records' },
               ].map(d => (
                 <a key={d.name} href={d.link} className="flex flex-col p-3 bg-[var(--background)] border border-[var(--outline)] rounded hover:border-[var(--secondary)] hover:bg-[var(--primary-surface)] transition-colors cursor-pointer group">
                   <div className="flex justify-between items-center">
-                    <span className="text-lg">{d.icon}</span>
-                    <span className="text-xs text-gray-400 group-hover:text-[var(--secondary)]">→</span>
+                    <d.Icon className="h-4 w-4 text-[var(--secondary)]" aria-hidden />
+                    <ArrowRight className="h-3.5 w-3.5 text-[var(--muted)] transition-colors group-hover:text-[var(--secondary)]" aria-hidden />
                   </div>
                   <p className="font-bold text-[var(--primary)] text-[11px] mt-1">{d.name}</p>
                   <p className="text-[9px] text-[var(--muted)] mt-0.5 truncate">{d.stat}</p>

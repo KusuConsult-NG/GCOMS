@@ -59,11 +59,11 @@ export function FinanceWorkspace({ user }: { user: SessionUser }) {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[var(--outline)] pb-5">
         <div>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase">Finance & Ledger Control</span>
-          <h1 className="text-2xl font-bold mt-1 text-white">Finance Officer Workspace</h1>
-          <p className="text-xs text-slate-300">Welcome, {user.firstName} {user.lastName} • Real-time ledger, expense requests, and donor disbursement tracking.</p>
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Finance & Ledger Control</span>
+          <h1 className="text-2xl font-bold mt-1 text-[var(--on-background)]">Finance Officer Workspace</h1>
+          <p className="text-xs text-[var(--muted)]">Welcome, {user.firstName} {user.lastName} • Real-time ledger, expense requests, and donor disbursement tracking.</p>
         </div>
         <button onClick={() => setShowModal(true)} className="btn-primary text-xs mt-3 md:mt-0">
           + Log New Transaction
@@ -160,7 +160,7 @@ export function FinanceWorkspace({ user }: { user: SessionUser }) {
       {/* Transactions Table */}
       <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
         <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
-          💳 Real Financial Ledger Entries
+          Real Financial Ledger Entries
         </div>
         {loading ? (
           <div className="p-8 text-center text-xs text-[var(--muted)]">Loading transactions from database...</div>

@@ -288,13 +288,13 @@ function FinancePageContent() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Application Header */}
-      <div className="bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[var(--outline)] pb-5">
         <div>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             Enterprise Financial Operations Application • GCOMS
           </span>
-          <h1 className="text-2xl font-bold mt-1 text-white">Financial Operations Suite & General Ledger</h1>
-          <p className="text-slate-300 text-xs mt-0.5">Manage payment requisitions, cash advances, grant inflows, payment vouchers, and financial statements directly via sidebar navigation.</p>
+          <h1 className="text-2xl font-bold mt-1 text-[var(--on-background)]">Financial Operations Suite & General Ledger</h1>
+          <p className="text-[var(--muted)] text-xs mt-0.5">Manage payment requisitions, cash advances, grant inflows, payment vouchers, and financial statements directly via sidebar navigation.</p>
         </div>
         <div className="flex gap-2 mt-4 md:mt-0">
            <button onClick={() => setActiveModal('retirement')} className="btn-primary text-xs">+ Retire Advance</button>
@@ -304,12 +304,12 @@ function FinancePageContent() {
       {/* Sub-Tabs */}
       <div className="flex border-b border-[var(--outline)] gap-2 text-xs font-semibold overflow-x-auto">
         {[
-          { id: 'ledger', label: '💳 Double-Entry General Ledger' },
-          { id: 'budgets', label: '📊 Budgets' },
-          { id: 'vouchers', label: '💸 Accounts Payable & Payment Vouchers (PV)' },
-          { id: 'advances', label: '✈️ Cash Advances & Retirement Workflow' },
-          { id: 'accounts', label: '🏛 Chart of Accounts & Cost Centres' },
-          { id: 'statements', label: '📑 Income Statement & Balance Sheet' },
+          { id: 'ledger', label: 'Double-Entry General Ledger' },
+          { id: 'budgets', label: 'Budgets' },
+          { id: 'vouchers', label: 'Accounts Payable & Payment Vouchers (PV)' },
+          { id: 'advances', label: 'Cash Advances & Retirement Workflow' },
+          { id: 'accounts', label: 'Chart of Accounts & Cost Centres' },
+          { id: 'statements', label: 'Income Statement & Balance Sheet' },
         ].map(t => (
           <button
             key={t.id}
@@ -797,7 +797,7 @@ function FinancePageContent() {
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
           <div className="p-4 border-b border-[var(--outline)] flex flex-col md:flex-row justify-between items-start md:items-center gap-2 bg-[var(--background)]">
             <div>
-              <h2 className="font-bold text-[var(--primary)] text-sm">💳 Real-Time Double-Entry General Ledger</h2>
+              <h2 className="font-bold text-[var(--primary)] text-sm">Real-Time Double-Entry General Ledger</h2>
               <p className="text-[11px] text-[var(--muted)]">Complete audit trail of all posted debit and credit journal vouchers.</p>
             </div>
             <div className="flex gap-2">
@@ -869,7 +869,7 @@ function FinancePageContent() {
           </div>
           <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
             <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
-              <h2 className="font-bold text-[var(--primary)] text-sm">📊 Budget Lines & Approvals</h2>
+              <h2 className="font-bold text-[var(--primary)] text-sm">Budget Lines & Approvals</h2>
               <button onClick={() => setActiveModal('budget')} className="btn-primary text-xs">+ New Budget Line</button>
             </div>
             <div className="p-4 bg-gray-50 border-b border-[var(--outline)]">
@@ -924,7 +924,7 @@ function FinancePageContent() {
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
           <div className="p-4 border-b border-[var(--outline)] flex flex-col md:flex-row justify-between items-start md:items-center gap-2 bg-[var(--background)]">
             <div>
-              <h2 className="font-bold text-[var(--primary)] text-sm">💸 Payment Voucher Approval Queue</h2>
+              <h2 className="font-bold text-[var(--primary)] text-sm">Payment Voucher Approval Queue</h2>
             </div>
             <div className="flex gap-2 text-xs">
               {['ALL', 'PENDING', 'APPROVED', 'REJECTED'].map(f => (
@@ -978,7 +978,7 @@ function FinancePageContent() {
       {/* SUB-TAB 4: CHART OF ACCOUNTS & COST CENTRES */}
       {activeSubTab === 'accounts' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] p-5 space-y-4 text-xs">
-          <h2 className="font-bold text-[var(--primary)] text-sm border-b border-[var(--outline)] pb-2">🏛 Standardized Chart of Accounts & Cost Centre Matrix</h2>
+          <h2 className="font-bold text-[var(--primary)] text-sm border-b border-[var(--outline)] pb-2">Standardized Chart of Accounts & Cost Centre Matrix</h2>
           <table className="w-full text-left text-xs">
             <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
               <tr>
@@ -1011,7 +1011,7 @@ function FinancePageContent() {
       {activeSubTab === 'statements' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] p-5 space-y-4 text-xs">
           <div className="flex justify-between items-center border-b border-[var(--outline)] pb-2">
-            <h2 className="font-bold text-[var(--primary)] text-sm">📑 Income Statement (Profit & Loss Account)</h2>
+            <h2 className="font-bold text-[var(--primary)] text-sm">Income Statement (Profit & Loss Account)</h2>
             <select value={statementPeriod} onChange={e => setStatementPeriod(e.target.value)} className="border border-[var(--outline)] rounded px-3 py-1">
               <option value="ALL">All Time</option>
               <option value="YEAR">Current Year</option>

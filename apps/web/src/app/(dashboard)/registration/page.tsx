@@ -194,15 +194,15 @@ type RegistrationConfirmation = {
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[var(--outline)] pb-5">
         <div>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             Field Volunteer Mobile Portal • GCOMS
           </span>
-          <h1 className="text-2xl font-bold mt-1 text-white">Field Patient Intake & Patient Consent</h1>
-          <p className="text-slate-300 text-xs mt-0.5">Capture participant demographics, mandatory LGA, Ward, GPS location, patient consent, and auto-generate QR identity pass.</p>
+          <h1 className="text-2xl font-bold mt-1 text-[var(--on-background)]">Field Patient Intake & Patient Consent</h1>
+          <p className="text-[var(--muted)] text-xs mt-0.5">Capture participant demographics, mandatory LGA, Ward, GPS location, patient consent, and auto-generate QR identity pass.</p>
         </div>
-        <button onClick={() => router.push('/patients')} className="btn-secondary text-xs mt-3 md:mt-0 bg-white/10 hover:bg-white/20 text-white">
+        <button onClick={() => router.push('/patients')} className="btn-secondary text-xs mt-3 md:mt-0 bg-white/10 hover:bg-white/20 text-[var(--on-background)]">
           ← View Patient Directory
         </button>
       </div>
@@ -270,7 +270,7 @@ type RegistrationConfirmation = {
                 onClick={() => window.print()}
                 className="btn-secondary text-xs"
               >
-                🖨 Print QR Pass
+                Print QR Pass
               </button>
               <button
                 onClick={() => {
@@ -439,7 +439,7 @@ type RegistrationConfirmation = {
                 disabled={gpsLoading}
                 className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]"
               >
-                {gpsLoading ? 'Capturing GPS Satellite Signal...' : '📡 Capture Live Field GPS Coordinates'}
+                {gpsLoading ? 'Capturing GPS Satellite Signal...' : 'Capture Live Field GPS Coordinates'}
               </button>
               <input
                 type="text"

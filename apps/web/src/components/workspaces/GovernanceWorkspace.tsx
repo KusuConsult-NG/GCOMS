@@ -204,13 +204,13 @@ export function GovernanceWorkspace() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-[var(--outline)] pb-5">
         <div>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             Enterprise Governance & Board Software • GCOMS
           </span>
-          <h1 className="text-2xl font-bold mt-1 text-white">Board Governance & Oversight</h1>
-          <p className="text-slate-300 text-xs mt-0.5">Manage board convenings, official resolutions, committee memberships, and minutes logs.</p>
+          <h1 className="text-2xl font-bold mt-1 text-[var(--on-background)]">Board Governance & Oversight</h1>
+          <p className="text-[var(--muted)] text-xs mt-0.5">Manage board convenings, official resolutions, committee memberships, and minutes logs.</p>
         </div>
         <div className="mt-3 lg:mt-0 flex flex-wrap gap-2">
           <button onClick={() => setActiveModal('meeting')} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">
@@ -225,10 +225,10 @@ export function GovernanceWorkspace() {
       {/* Sub-Tabs */}
       <div className="flex border-b border-[var(--outline)] gap-2 text-xs font-semibold overflow-x-auto">
         {[
-          { id: 'meetings', label: '🏛 Board Meetings' },
-          { id: 'members', label: '👥 Board Members' },
-          { id: 'resolutions', label: '📜 Resolutions & Voting' },
-          { id: 'actions', label: '✅ Action Tracker' },
+          { id: 'meetings', label: 'Board Meetings' },
+          { id: 'members', label: 'Board Members' },
+          { id: 'resolutions', label: 'Resolutions & Voting' },
+          { id: 'actions', label: 'Action Tracker' },
         ].map(t => (
           <button
             key={t.id}
@@ -503,7 +503,7 @@ export function GovernanceWorkspace() {
       {activeTab === 'meetings' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
           <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
-            🏛 Board Meetings & Minutes Log
+            Board Meetings & Minutes Log
           </div>
           {loading ? (
             <div className="p-8 text-center text-xs text-[var(--muted)]">Loading board meetings...</div>
@@ -527,7 +527,7 @@ export function GovernanceWorkspace() {
                     <td className="p-3">
                       {m.minutesUrl ? (
                         <a href={m.minutesUrl} target="_blank" rel="noreferrer" className="text-[var(--secondary)] font-bold hover:underline">
-                          📄 View Minutes
+                          View Minutes
                         </a>
                       ) : (
                         <span className="text-[var(--muted)]">Pending Upload</span>
@@ -546,7 +546,7 @@ export function GovernanceWorkspace() {
       {activeTab === 'members' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] p-5 space-y-4">
           <div className="flex justify-between items-center border-b border-[var(--outline)] pb-2">
-            <h2 className="font-bold text-[var(--primary)] text-sm">👥 Board of Directors & Standing Committees</h2>
+            <h2 className="font-bold text-[var(--primary)] text-sm">Board of Directors & Standing Committees</h2>
             <button onClick={() => setActiveModal('member')} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">+ Add Board Member</button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
@@ -564,9 +564,9 @@ export function GovernanceWorkspace() {
                   <p className="text-[var(--secondary)] font-semibold">{b.committees || 'None assigned'}</p>
                 </div>
                 <div className="text-[10px] text-[var(--muted)] space-y-0.5">
-                  <p>📞 {b.phone}</p>
-                  <p>✉️ {b.email}</p>
-                  <p>🗓 Term: {b.termStart} to {b.termEnd}</p>
+                  <p>{b.phone}</p>
+                  <p>{b.email}</p>
+                  <p>Term: {b.termStart} to {b.termEnd}</p>
                 </div>
               </div>
             ))}
@@ -578,7 +578,7 @@ export function GovernanceWorkspace() {
       {activeTab === 'resolutions' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
           <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
-            <div className="font-bold text-[var(--primary)] text-sm">📜 Official Board Resolutions</div>
+            <div className="font-bold text-[var(--primary)] text-sm">Official Board Resolutions</div>
             <button onClick={() => setActiveModal('resolution')} className="btn-primary text-xs bg-[var(--primary-dark)] text-white">
               + Table New Resolution
             </button>
@@ -636,7 +636,7 @@ export function GovernanceWorkspace() {
       {activeTab === 'actions' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
           <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
-            <div className="font-bold text-[var(--primary)] text-sm">✅ Action Tracker</div>
+            <div className="font-bold text-[var(--primary)] text-sm">Action Tracker</div>
             <button onClick={() => setActiveModal('action')} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">
               + Add Action Item
             </button>

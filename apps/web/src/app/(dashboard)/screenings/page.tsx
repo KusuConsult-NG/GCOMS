@@ -76,7 +76,7 @@ export default function ScreeningsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Form Card */}
         <div className="clinical-card lg:col-span-1 space-y-4">
-          <h2 className="text-base font-bold text-[var(--primary)] border-b border-[var(--outline)] pb-2">➕ Record New Screening</h2>
+          <h2 className="text-base font-bold text-[var(--primary)] border-b border-[var(--outline)] pb-2">Record New Screening</h2>
 
           {message && (
             <div className={`p-3 rounded text-xs font-semibold ${message.includes('success') ? 'bg-[var(--risk-low-bg)] text-[var(--risk-low-text)]' : 'bg-[var(--risk-high-bg)] text-[var(--risk-high-text)]'}`}>
@@ -165,7 +165,7 @@ export default function ScreeningsPage() {
         {/* Data Table Card */}
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden lg:col-span-2">
           <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
-            <h2 className="font-bold text-[var(--primary)] text-sm">📋 Recent Screening Records</h2>
+            <h2 className="font-bold text-[var(--primary)] text-sm">Recent Screening Records</h2>
             <span className="text-xs text-[var(--muted)] font-mono tabular-nums">{screenings.length} Total</span>
           </div>
 

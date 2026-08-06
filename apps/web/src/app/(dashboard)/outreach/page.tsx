@@ -168,7 +168,7 @@ export default function OutreachPage() {
       {/* Campaigns Table */}
       <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
         <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
-          <h2 className="font-bold text-[var(--primary)] text-sm">📍 Scheduled & Completed Campaigns</h2>
+          <h2 className="font-bold text-[var(--primary)] text-sm">Scheduled & Completed Campaigns</h2>
           <span className="text-xs text-[var(--muted)] font-mono tabular-nums">{outreaches.length} Events</span>
         </div>
 

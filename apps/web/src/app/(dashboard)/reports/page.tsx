@@ -52,7 +52,7 @@ export default function ReportsPage() {
           disabled={exporting}
           className="btn-primary text-xs disabled:opacity-50"
         >
-          {exporting ? 'Generating...' : '📥 Export Full Report (JSON / CSV)'}
+          {exporting ? 'Generating...' : 'Export Full Report (JSON / CSV)'}
         </button>
       </div>
 
@@ -79,7 +79,7 @@ export default function ReportsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Breakdown */}
         <div className="bg-white rounded-lg border border-[var(--outline)] p-5 space-y-4">
-          <h3 className="font-bold text-[var(--primary)] text-sm border-b border-[var(--outline)] pb-2">📊 Programmatic Impact Breakdown</h3>
+          <h3 className="font-bold text-[var(--primary)] text-sm border-b border-[var(--outline)] pb-2">Programmatic Impact Breakdown</h3>
           <div className="space-y-3 text-xs font-medium text-[var(--on-background)]">
             <div>
               <div className="flex justify-between mb-1">
@@ -122,7 +122,7 @@ export default function ReportsPage() {
 
         {/* Report Catalog */}
         <div className="bg-white rounded-lg border border-[var(--outline)] p-5 space-y-4">
-          <h3 className="font-bold text-[var(--primary)] text-sm border-b border-[var(--outline)] pb-2">📑 Published Executive Reports</h3>
+          <h3 className="font-bold text-[var(--primary)] text-sm border-b border-[var(--outline)] pb-2">Published Executive Reports</h3>
           <div className="space-y-2 text-xs">
             <div className="p-3 rounded bg-[var(--background)] border border-[var(--outline)] flex justify-between items-center">
               <div>
@@ -130,8 +130,7 @@ export default function ReportsPage() {
                 <p className="text-[var(--muted)] text-[10px]">Published: May 20, 2025</p>
               </div>
               <button onClick={handleExportCSV} className="btn-secondary text-[11px] py-1 px-2.5">
-                Download 📥
-              </button>
+                Download               </button>
             </div>
             <div className="p-3 rounded bg-[var(--background)] border border-[var(--outline)] flex justify-between items-center">
               <div>
@@ -139,8 +138,7 @@ export default function ReportsPage() {
                 <p className="text-[var(--muted)] text-[10px]">Published: May 15, 2025</p>
               </div>
               <button onClick={handleExportCSV} className="btn-secondary text-[11px] py-1 px-2.5">
-                Download 📥
-              </button>
+                Download               </button>
             </div>
           </div>
         </div>

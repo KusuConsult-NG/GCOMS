@@ -54,13 +54,13 @@ export default function ResearchPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[var(--outline)] pb-5">
         <div>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             Data Governance • Research & Surveys
           </span>
-          <h1 className="text-2xl font-bold mt-1 text-white">Oncology Research & KAP Studies</h1>
-          <p className="text-slate-300 text-xs mt-0.5">Manage clinical research protocols, Knowledge Attitude & Practice (KAP) surveys, and study outcomes.</p>
+          <h1 className="text-2xl font-bold mt-1 text-[var(--on-background)]">Oncology Research & KAP Studies</h1>
+          <p className="text-[var(--muted)] text-xs mt-0.5">Manage clinical research protocols, Knowledge Attitude & Practice (KAP) surveys, and study outcomes.</p>
         </div>
         <button onClick={() => setShowModal(true)} className="btn-primary text-xs mt-3 md:mt-0">
           + New Research Study
@@ -121,7 +121,7 @@ export default function ResearchPage() {
       {/* Projects Table */}
       <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
         <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
-          🔬 Registered Research Initiatives
+          Registered Research Initiatives
         </div>
         {loading ? (
           <div className="p-8 text-center text-xs text-[var(--muted)]">Loading research studies...</div>

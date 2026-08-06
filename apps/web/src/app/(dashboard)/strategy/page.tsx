@@ -84,7 +84,7 @@ export default function StrategyDashboard() {
       {/* Goal Creation Card */}
       {(user?.role === 'EXECUTIVE' || user?.role === 'SYSTEM_ADMIN' || user?.role === 'BOARD') && (
         <div className="clinical-card space-y-4">
-          <h2 className="text-base font-bold text-[var(--primary)] border-b border-[var(--outline)] pb-2">🎯 Set New Strategic OKR Goal</h2>
+          <h2 className="text-base font-bold text-[var(--primary)] border-b border-[var(--outline)] pb-2">Set New Strategic OKR Goal</h2>
           <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs items-end">
             <div className="md:col-span-2">
               <label className="block font-semibold text-[var(--on-background)] mb-1">Strategic Objective / Title *</label>
@@ -162,8 +162,7 @@ export default function StrategyDashboard() {
                       onClick={() => handleUpdate(goal.id, goal.currentMetric || 0)}
                       className="text-[var(--secondary)] hover:underline font-bold text-xs"
                     >
-                      Update Metric ✏️
-                    </button>
+                      Update Metric                     </button>
                   )}
                 </div>
               </div>

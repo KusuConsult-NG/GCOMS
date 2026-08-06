@@ -103,7 +103,7 @@ export default function FollowUpPage() {
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-4 py-2 rounded-xl text-sm shadow"
+          className="rounded-lg bg-[var(--secondary)] px-4 py-2.5 text-sm font-semibold text-[var(--on-secondary)] transition hover:bg-[var(--secondary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           + Schedule Follow-up
         </button>
@@ -205,7 +205,7 @@ export default function FollowUpPage() {
                 activeTab === tab ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
               }`}
             >
-              {tab === 'missed' ? `⚠ Missed (${stats?.missed || 0})` : tab === 'upcoming' ? `📅 Upcoming (${stats?.upcoming || 0})` : 'All Follow-ups'}
+              {tab === 'missed' ? `Missed (${stats?.missed || 0})` : tab === 'upcoming' ? `Upcoming (${stats?.upcoming || 0})` : 'All Follow-ups'}
             </button>
           ))}
         </div>

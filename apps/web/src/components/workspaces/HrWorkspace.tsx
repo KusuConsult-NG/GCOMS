@@ -361,13 +361,13 @@ export function HrWorkspace() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* App Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-[var(--outline)] pb-5">
         <div>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             Enterprise HR & Talent Operations Software • GCOMS
           </span>
-          <h1 className="text-2xl font-bold mt-1 text-white">Human Resources & Volunteer Management</h1>
-          <p className="text-slate-300 text-xs mt-0.5">Manage staff directory, field volunteer stipends, recruitment pipelines, and leave approvals.</p>
+          <h1 className="text-2xl font-bold mt-1 text-[var(--on-background)]">Human Resources & Volunteer Management</h1>
+          <p className="text-[var(--muted)] text-xs mt-0.5">Manage staff directory, field volunteer stipends, recruitment pipelines, and leave approvals.</p>
         </div>
         <div className="mt-3 lg:mt-0 flex flex-wrap gap-2">
           <button onClick={() => setActiveModal('staff')} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">
@@ -382,11 +382,11 @@ export function HrWorkspace() {
       {/* Sub-Tabs */}
       <div className="flex border-b border-[var(--outline)] gap-2 text-xs font-semibold overflow-x-auto">
         {[
-          { id: 'staff', label: '👥 Staff & Employee Directory' },
-          { id: 'volunteers', label: '🩺 Volunteer & Field CHW Roster' },
-          { id: 'recruitment', label: '💼 Recruitment & Applicant Pipeline' },
-          { id: 'leave', label: '📅 Leave & Attendance Management' },
-          { id: 'training', label: '📚 Training & Certifications' }
+          { id: 'staff', label: 'Staff & Employee Directory' },
+          { id: 'volunteers', label: 'Volunteer & Field CHW Roster' },
+          { id: 'recruitment', label: 'Recruitment & Applicant Pipeline' },
+          { id: 'leave', label: 'Leave & Attendance Management' },
+          { id: 'training', label: 'Training & Certifications' }
         ].map(t => (
           <button
             key={t.id}
@@ -405,7 +405,7 @@ export function HrWorkspace() {
         <div className="space-y-4">
           <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
             <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
-              👥 Active Employee Directory
+              Active Employee Directory
             </div>
             {loading ? (
               <div className="p-8 text-center text-xs text-[var(--muted)]">Loading staff directory...</div>
@@ -435,7 +435,7 @@ export function HrWorkspace() {
           
           <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
             <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)] cursor-pointer" onClick={() => setShowPerformance(!showPerformance)}>
-              <span className="font-bold text-[var(--primary)] text-sm">📈 Performance Reviews</span>
+              <span className="font-bold text-[var(--primary)] text-sm">Performance Reviews</span>
               <button onClick={(e) => { e.stopPropagation(); setActiveModal('performance'); }} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">
                 + New Performance Review
               </button>
@@ -476,7 +476,7 @@ export function HrWorkspace() {
       {activeTab === 'volunteers' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] p-5 space-y-4">
           <div className="flex justify-between items-center border-b border-[var(--outline)] pb-2">
-            <h2 className="font-bold text-[var(--primary)] text-sm">🩺 Field Volunteer & Community Health Worker Registry</h2>
+            <h2 className="font-bold text-[var(--primary)] text-sm">Field Volunteer & Community Health Worker Registry</h2>
             <button onClick={() => setActiveModal('volunteer')} className="btn-primary text-xs bg-amber-700 hover:bg-amber-800">
               + Register Volunteer (LGA Mandatory)
             </button>
@@ -524,7 +524,7 @@ export function HrWorkspace() {
           
           <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
             <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
-              <span className="font-bold text-[var(--primary)] text-sm">💼 Job Openings</span>
+              <span className="font-bold text-[var(--primary)] text-sm">Job Openings</span>
               <button onClick={() => setActiveModal('job')} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">
                 + Post Job Opening
               </button>
@@ -659,7 +659,7 @@ export function HrWorkspace() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
               <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
-                <span className="font-bold text-[var(--primary)] text-sm">📅 Leave Requests</span>
+                <span className="font-bold text-[var(--primary)] text-sm">Leave Requests</span>
                 <button onClick={() => setActiveModal('leave')} className="btn-primary text-xs bg-[var(--secondary)]">
                   + New Leave Request
                 </button>
@@ -753,7 +753,7 @@ export function HrWorkspace() {
         <div className="space-y-6">
           <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
             <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
-              <span className="font-bold text-[var(--primary)] text-sm">📚 Training & Certification Register</span>
+              <span className="font-bold text-[var(--primary)] text-sm">Training & Certification Register</span>
               <button onClick={() => setActiveModal('training')} className="btn-primary text-xs bg-[var(--secondary)]">
                 + Log Training
               </button>
@@ -761,7 +761,7 @@ export function HrWorkspace() {
             
             {/* Alerts section */}
             <div className="p-3 bg-red-50 border-b border-red-100 text-xs">
-              <span className="font-bold text-red-800">⚠️ Certification Expiry Alerts:</span> Dr. Amara Okafor&apos;s VIA/Cryotherapy Clinical Certification expires in less than 90 days (2026-11-15).
+              <span className="font-bold text-red-800">Certification Expiry Alerts:</span> Dr. Amara Okafor&apos;s VIA/Cryotherapy Clinical Certification expires in less than 90 days (2026-11-15).
             </div>
 
             <table className="w-full text-left text-xs">

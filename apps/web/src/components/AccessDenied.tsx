@@ -11,8 +11,7 @@ export function AccessDenied({ requiredRole }: { requiredRole?: string }) {
     <div className="min-h-[70vh] flex items-center justify-center p-6 bg-[var(--background)]">
       <div className="max-w-md w-full bg-white p-8 rounded-lg border border-[var(--outline)] shadow-sm text-center space-y-4">
         <div className="w-16 h-16 bg-[var(--risk-high-bg)] text-[var(--risk-high-text)] rounded-full flex items-center justify-center mx-auto font-bold text-2xl">
-          🔒
-        </div>
+                  </div>
         <h1 className="text-xl font-bold text-[var(--primary)]">Access Denied — RBAC Restricted</h1>
         <p className="text-xs text-[var(--on-surface-variant)] leading-relaxed">
           Your current session role <strong className="text-[var(--risk-high-text)] font-mono">({user?.role || 'UNAUTHENTICATED'})</strong> is not authorized to access this standalone application module.

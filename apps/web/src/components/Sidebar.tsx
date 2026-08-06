@@ -1,325 +1,155 @@
 'use client';
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import React from "react";
+import Link from 'next/link';
+import { usePathname, useSearchParams } from 'next/navigation';
+import React from 'react';
 import Image from 'next/image';
-import { useAuthStore } from "@/store/authStore";
+import { LogOut, Plus } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
+import { AUDIT_EXPORT_ICON, visibleSections, type NavItem } from './navigation';
+
+/**
+ * Whether a nav entry is the page currently open.
+ *
+ * Most of these links carry a `?tab=`, and half of one screen's entries point
+ * at the same pathname with different tabs. Comparing pathname alone lit up
+ * four Finance entries at once; comparing the whole href fails the other way,
+ * because a `?action=` link leaves the URL somewhere it will never match.
+ */
+function useIsCurrent() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get('tab');
+
+  return (item: NavItem) => {
+    if (item.kind === 'action') return false;
+    const [path, query = ''] = item.href.split('?');
+    if (path !== pathname) return false;
+    const tab = new URLSearchParams(query).get('tab');
+    return tab === currentTab;
+  };
+}
 
 export function Sidebar() {
-  const pathname = usePathname();
   const { user } = useAuthStore();
+  const isCurrent = useIsCurrent();
   const normalizedRole = (user?.role || '').toUpperCase().trim();
-
-  // Management & Administrative roles have cross-departmental oversight
-  const isManagement = ['EXECUTIVE', 'BOARD', 'SUPER_ADMIN', 'ADMIN', 'SYSTEM_ADMIN'].includes(normalizedRole);
-
-  const isFinance = normalizedRole === 'FINANCE' || isManagement;
-  const isProcurement = normalizedRole === 'PROCUREMENT' || isManagement;
-  const isHr = normalizedRole === 'HR' || isManagement;
-  const isGrant = normalizedRole === 'GRANT_MANAGER' || isManagement;
-  const isProject = normalizedRole === 'PROJECT_MANAGER' || isManagement;
-  const isInventory = normalizedRole === 'INVENTORY_MANAGER' || isManagement;
-  const isGovernance = normalizedRole === 'GOVERNANCE' || isManagement;
-  const isClinician = ['CLINICIAN', 'DOCTOR', 'NURSE'].includes(normalizedRole) || isManagement;
-  const isVolunteer = ['VOLUNTEER', 'FIELD_OFFICER', 'COMMUNITY_HEALTH_WORKER'].includes(normalizedRole) || isManagement;
+  const sections = visibleSections(user?.role);
 
   const exportAuditStatement = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ exportedAt: new Date(), role: normalizedRole }, null, 2));
+    const dataStr =
+      'data:text/json;charset=utf-8,' +
+      encodeURIComponent(JSON.stringify({ exportedAt: new Date(), role: normalizedRole }, null, 2));
     const anchor = document.createElement('a');
-    anchor.setAttribute("href", dataStr);
-    anchor.setAttribute("download", `GCOMS_Finance_Audit_Ledger_${Date.now()}.json`);
+    anchor.setAttribute('href', dataStr);
+    anchor.setAttribute('download', `GCOMS_Finance_Audit_Ledger_${Date.now()}.json`);
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
   };
 
+  const AuditIcon = AUDIT_EXPORT_ICON;
+
   return (
-    <aside className="w-64 bg-[var(--nav-surface)] text-white h-screen flex flex-col fixed inset-y-0 left-0 z-50 overflow-y-auto border-r border-[var(--nav-surface-raised)]">
-      {/* Brand Header */}
-      <div className="bg-white p-3 border-b border-[var(--outline)] flex items-center justify-center">
-        <Image
-          src="/georgel-logo.png"
-          alt="Georgel Cancer Foundation Logo"
-          width={48}
-          height={48}
-          className="w-full h-12 object-contain"
-        />
+    <aside className="fixed inset-y-0 left-0 z-50 flex h-screen w-64 flex-col overflow-y-auto border-r border-white/5 bg-[var(--nav-surface)] text-white">
+      {/* The logo carries its own white background, so it gets a white chip
+          rather than a full-width white band butting against the navy. */}
+      <div className="flex items-center gap-3 px-4 py-4">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white p-1.5">
+          <Image
+            src="/georgel-logo.png"
+            alt=""
+            width={32}
+            height={32}
+            className="h-full w-full object-contain"
+          />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-sm font-semibold leading-tight text-white">GCOMS</span>
+          <span className="block truncate text-[11px] leading-tight text-white/50">
+            Georgel Cancer Foundation
+          </span>
+        </span>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-5 text-xs">
-        {/* EXECUTIVE & ADMIN COMMAND CENTRE */}
-        {isManagement && (
-          <div>
-            <h2 className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--secondary-container)] mb-1.5">
-              EXECUTIVE & ADMIN COMMAND
+      <nav className="flex-1 space-y-6 px-3 pb-4">
+        {sections.map((section) => (
+          <div key={section.title}>
+            <h2 className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+              {section.title}
             </h2>
-            <div className="space-y-1">
-              <Link
-                href="/"
-                className={`flex items-center px-3 py-2 rounded font-medium transition-all ${
-                  pathname === '/' ? 'bg-[var(--secondary)] text-white font-semibold shadow-sm' : 'text-slate-200 hover:bg-[var(--nav-surface-raised)]'
-                }`}
-              >
-                👑 Executive Decision Support
-              </Link>
-              <Link
-                href="/admin-mgmt"
-                className={`flex items-center px-3 py-2 rounded font-medium transition-all ${
-                  pathname === '/admin-mgmt' ? 'bg-[var(--secondary)] text-white font-semibold shadow-sm' : 'text-slate-200 hover:bg-[var(--nav-surface-raised)]'
-                }`}
-              >
-                ⚙️ Admin System Management
-              </Link>
-            </div>
-          </div>
-        )}
+            <ul className="space-y-0.5">
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                const current = isCurrent(item);
 
-        {/* 💳 FINANCE OFFICER APPLICATION */}
-        {isFinance && (
-          <div>
-            <h2 className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#adc7f7] mb-1.5 flex items-center justify-between">
-              <span>💳 FINANCE APPLICATION</span>
-            </h2>
-            <div className="space-y-1">
-              <Link
-                href="/finance?tab=ledger"
-                className={`flex items-center px-3 py-1.5 rounded font-medium ${pathname === '/finance' ? 'bg-[var(--nav-surface-raised)] text-white font-semibold border-l-2 border-[var(--secondary)]' : 'text-slate-200 hover:bg-[var(--nav-surface-raised)]'}`}
-              >
-                💳 General Ledger Overview
-              </Link>
-              <button
-                onClick={exportAuditStatement}
-                className="w-full text-left flex items-center px-3 py-1.5 rounded font-semibold text-slate-300 hover:bg-[var(--nav-surface-raised)] hover:text-white bg-[var(--primary-dark)] border border-slate-700/50"
-              >
-                📄 Export Audit Trail
-              </button>
-              <Link
-                href="/finance?tab=vouchers&action=requisition"
-                className="flex items-center px-3 py-1.5 rounded font-semibold text-emerald-300 hover:bg-[var(--nav-surface-raised)] hover:text-white bg-[var(--primary-dark)] border border-emerald-800/40"
-              >
-                + Raise Payment Requisition
-              </Link>
-              <Link
-                href="/finance?tab=advances&action=advance"
-                className="flex items-center px-3 py-1.5 rounded font-semibold text-amber-300 hover:bg-[var(--nav-surface-raised)] hover:text-white bg-[var(--primary-dark)] border border-amber-800/40"
-              >
-                + Request Travel Advance
-              </Link>
-              <Link
-                href="/finance?tab=ledger&action=inflow"
-                className="flex items-center px-3 py-1.5 rounded font-semibold text-cyan-300 hover:bg-[var(--nav-surface-raised)] hover:text-white bg-[var(--primary-dark)] border border-cyan-800/40"
-              >
-                + Register Grant Inflow
-              </Link>
-              <Link
-                href="/finance?tab=ledger&action=journal"
-                className="flex items-center px-3 py-1.5 rounded font-semibold text-indigo-300 hover:bg-[var(--nav-surface-raised)] hover:text-white bg-[var(--primary-dark)] border border-indigo-800/40"
-              >
-                + Post Journal Entry
-              </Link>
-              <Link href="/finance?tab=accounts" className="flex items-center px-3 py-1.5 rounded text-slate-300 hover:bg-[var(--nav-surface-raised)]">
-                🏛 Chart of Accounts (COA)
-              </Link>
-              <Link href="/finance?tab=vouchers" className="flex items-center px-3 py-1.5 rounded text-slate-300 hover:bg-[var(--nav-surface-raised)]">
-                💸 Payment Vouchers (PV)
-              </Link>
-              <Link href="/finance?tab=advances" className="flex items-center px-3 py-1.5 rounded text-slate-300 hover:bg-[var(--nav-surface-raised)]">
-                ✈️ Advances & Retirements
-              </Link>
-              <Link href="/finance?tab=statements" className="flex items-center px-3 py-1.5 rounded text-slate-300 hover:bg-[var(--nav-surface-raised)]">
-                📑 Income & Balance Statements
-              </Link>
-            </div>
-          </div>
-        )}
+                if (item.kind === 'action') {
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        className="group flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13px] text-white/50 transition-colors hover:bg-white/5 hover:text-white/90"
+                      >
+                        <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                    </li>
+                  );
+                }
 
-        {/* 📦 PROCUREMENT APPLICATION */}
-        {isProcurement && (
-          <div>
-            <h2 className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#adc7f7] mb-1.5">
-              📦 PROCUREMENT SUITE
-            </h2>
-            <div className="space-y-1">
-              <Link href="/procurement" className="flex items-center px-3 py-1.5 rounded font-medium text-slate-200 hover:bg-[var(--nav-surface-raised)]">
-                📦 Annual Procurement Plan
-              </Link>
-              <Link href="/procurement?action=new-requisition" className="flex items-center px-3 py-1.5 rounded font-semibold text-emerald-300 bg-[var(--primary-dark)] border border-emerald-800/40">
-                + New Purchase Requisition
-              </Link>
-              <Link href="/procurement?action=rfq" className="flex items-center px-3 py-1.5 rounded font-semibold text-cyan-300 bg-[var(--primary-dark)] border border-cyan-800/40">
-                + Generate RFQ & Bid Matrix
-              </Link>
-              <Link href="/procurement?action=grn" className="flex items-center px-3 py-1.5 rounded font-semibold text-indigo-300 bg-[var(--primary-dark)] border border-indigo-800/40">
-                + Goods Received Note (GRN)
-              </Link>
-              <Link href="/procurement?tab=vendors" className="flex items-center px-3 py-1.5 rounded text-slate-300 hover:bg-[var(--nav-surface-raised)]">
-                🏢 Evaluated Vendor Directory
-              </Link>
-            </div>
-          </div>
-        )}
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      aria-current={current ? 'page' : undefined}
+                      className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] transition-colors ${
+                        current
+                          ? 'bg-white/10 font-semibold text-white shadow-[inset_2px_0_0_0_var(--secondary)]'
+                          : 'text-white/75 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      <Icon
+                        className={`h-4 w-4 shrink-0 ${current ? 'text-[var(--secondary)]' : 'text-white/45'}`}
+                        aria-hidden
+                      />
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
 
-        {/* 👥 HR APPLICATION */}
-        {isHr && (
-          <div>
-            <h2 className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#adc7f7] mb-1.5">
-              👥 HR & TALENT SUITE
-            </h2>
-            <div className="space-y-1">
-              <Link href="/hr" className="flex items-center px-3 py-1.5 rounded font-medium text-slate-200 hover:bg-[var(--nav-surface-raised)]">
-                👥 Employee Directory
-              </Link>
-              <Link href="/hr?action=new-staff" className="flex items-center px-3 py-1.5 rounded font-semibold text-emerald-300 bg-[var(--primary-dark)] border border-emerald-800/40">
-                + Create Staff Requisition
-              </Link>
-              <Link href="/hr?action=new-volunteer" className="flex items-center px-3 py-1.5 rounded font-semibold text-amber-300 bg-[var(--primary-dark)] border border-amber-800/40">
-                + Register Volunteer / CHW
-              </Link>
-              <Link href="/hr?action=leave" className="flex items-center px-3 py-1.5 rounded font-semibold text-cyan-300 bg-[var(--primary-dark)] border border-cyan-800/40">
-                + File Staff Leave Request
-              </Link>
-              <Link href="/hr?tab=recruitment" className="flex items-center px-3 py-1.5 rounded text-slate-300 hover:bg-[var(--nav-surface-raised)]">
-                📋 Recruitment Pipeline
-              </Link>
-            </div>
+              {section.audience === 'finance' && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={exportAuditStatement}
+                    className="flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-left text-[13px] text-white/50 transition-colors hover:bg-white/5 hover:text-white/90"
+                  >
+                    <AuditIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    <span className="truncate">Export audit trail</span>
+                  </button>
+                </li>
+              )}
+            </ul>
           </div>
-        )}
-
-        {/* 📜 GRANT MANAGER APPLICATION */}
-        {isGrant && (
-          <div>
-            <h2 className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#adc7f7] mb-1.5">
-              📜 DONOR & GRANT SUITE
-            </h2>
-            <div className="space-y-1">
-              <Link href="/grants" className="flex items-center px-3 py-1.5 rounded font-medium text-slate-200 hover:bg-[var(--nav-surface-raised)]">
-                🏛 Donor CRM Directory
-              </Link>
-              <Link href="/grants?action=new-grant" className="flex items-center px-3 py-1.5 rounded font-semibold text-emerald-300 bg-[var(--primary-dark)] border border-emerald-800/40">
-                + Register Grant Award
-              </Link>
-              <Link href="/grants?action=new-milestone" className="flex items-center px-3 py-1.5 rounded font-semibold text-cyan-300 bg-[var(--primary-dark)] border border-cyan-800/40">
-                + Add Deliverable Milestone
-              </Link>
-              <Link href="/grants?tab=pipeline" className="flex items-center px-3 py-1.5 rounded text-slate-300 hover:bg-[var(--nav-surface-raised)]">
-                📊 Grant Spend Pipeline
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {/* 🏗 PROJECT MANAGER APPLICATION */}
-        {isProject && (
-          <div>
-            <h2 className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#adc7f7] mb-1.5">
-              🏗 PROJECT MANAGEMENT
-            </h2>
-            <div className="space-y-1">
-              <Link href="/projects" className="flex items-center px-3 py-1.5 rounded font-medium text-slate-200 hover:bg-[var(--nav-surface-raised)]">
-                📁 Project Portfolio
-              </Link>
-              <Link href="/projects?action=new-project" className="flex items-center px-3 py-1.5 rounded font-semibold text-emerald-300 bg-[var(--primary-dark)] border border-emerald-800/40">
-                + Initiate New Project
-              </Link>
-              <Link href="/projects?action=new-task" className="flex items-center px-3 py-1.5 rounded font-semibold text-amber-300 bg-[var(--primary-dark)] border border-amber-800/40">
-                + Create Task Assignment
-              </Link>
-              <Link href="/projects?tab=kanban" className="flex items-center px-3 py-1.5 rounded text-slate-300 hover:bg-[var(--nav-surface-raised)]">
-                📋 Task Kanban Board
-              </Link>
-              <Link href="/projects?tab=risks" className="flex items-center px-3 py-1.5 rounded text-slate-300 hover:bg-[var(--nav-surface-raised)]">
-                ⚠️ Risk & Issue Register
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {/* 🏷 INVENTORY MANAGER APPLICATION */}
-        {isInventory && (
-          <div>
-            <h2 className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#adc7f7] mb-1.5">
-              🏷 INVENTORY & ASSETS
-            </h2>
-            <div className="space-y-1">
-              <Link href="/inventory" className="flex items-center px-3 py-1.5 rounded font-medium text-slate-200 hover:bg-[var(--nav-surface-raised)]">
-                📦 Stock Consumables Register
-              </Link>
-              <Link href="/inventory?action=issue-stock" className="flex items-center px-3 py-1.5 rounded font-semibold text-emerald-300 bg-[var(--primary-dark)] border border-emerald-800/40">
-                + Log Stock Issue / Movement
-              </Link>
-              <Link href="/inventory?action=new-asset" className="flex items-center px-3 py-1.5 rounded font-semibold text-cyan-300 bg-[var(--primary-dark)] border border-cyan-800/40">
-                + Create Barcode Asset Tag
-              </Link>
-              <Link href="/inventory?tab=assets" className="flex items-center px-3 py-1.5 rounded text-slate-300 hover:bg-[var(--nav-surface-raised)]">
-                🏷 Equipment Asset Register
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {/* 🏛 GOVERNANCE APPLICATION */}
-        {isGovernance && (
-          <div>
-            <h2 className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#adc7f7] mb-1.5">
-              🏛 GOVERNANCE & BOARD
-            </h2>
-            <div className="space-y-1">
-              <Link href="/governance" className="flex items-center px-3 py-1.5 rounded font-medium text-slate-200 hover:bg-[var(--nav-surface-raised)]">
-                👥 Board Member Directory
-              </Link>
-              <Link href="/governance?action=new-meeting" className="flex items-center px-3 py-1.5 rounded font-semibold text-emerald-300 bg-[var(--primary-dark)] border border-emerald-800/40">
-                + Schedule Convening
-              </Link>
-              <Link href="/governance?action=new-minutes" className="flex items-center px-3 py-1.5 rounded font-semibold text-cyan-300 bg-[var(--primary-dark)] border border-cyan-800/40">
-                + Record Minutes & Voting
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {/* 🩺 CLINICAL CARE APPLICATION */}
-        {isClinician && (
-          <div>
-            <h2 className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#adc7f7] mb-1.5">
-              🩺 CLINICAL CARE
-            </h2>
-            <div className="space-y-1">
-              <Link href="/clinical" className="flex items-center px-3 py-1.5 rounded font-medium text-slate-200 hover:bg-[var(--nav-surface-raised)]">
-                🩺 Cancer Screening & Staging
-              </Link>
-              <Link href="/patients" className="flex items-center px-3 py-1.5 rounded text-slate-300 hover:bg-[var(--nav-surface-raised)]">
-                👤 Master Patient Directory
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {/* 📝 VOLUNTEER FIELD OPERATIONS */}
-        {isVolunteer && (
-          <div>
-            <h2 className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#adc7f7] mb-1.5">
-              📝 FIELD VOLUNTEER OPERATIONS
-            </h2>
-            <div className="space-y-1">
-              <Link href="/registration" className="flex items-center px-3 py-1.5 rounded font-medium text-slate-200 hover:bg-[var(--nav-surface-raised)]">
-                📝 Field Intake & Consent
-              </Link>
-              <Link href="/volunteers" className="flex items-center px-3 py-1.5 rounded text-slate-300 hover:bg-[var(--nav-surface-raised)]">
-                🩺 Field Volunteer Roster
-              </Link>
-            </div>
-          </div>
-        )}
+        ))}
       </nav>
 
       {user && (
-        <div className="p-3 border-t border-[var(--nav-surface-raised)] bg-[#001b3c] flex items-center justify-between text-xs">
-          <div className="truncate">
-            <p className="font-semibold text-white truncate">{user.firstName} {user.lastName}</p>
-            <p className="text-[10px] text-[var(--secondary-container)] capitalize">{user.role.replace('_', ' ')}</p>
-          </div>
+        <div className="flex items-center gap-3 border-t border-white/5 px-4 py-3">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--secondary)] text-xs font-semibold text-[var(--on-secondary)]">
+            {(user.firstName?.[0] ?? '') + (user.lastName?.[0] ?? '') || '?'}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[13px] font-medium text-white">
+              {user.firstName} {user.lastName}
+            </span>
+            <span className="block truncate text-[11px] capitalize text-white/45">
+              {user.role.replace(/_/g, ' ').toLowerCase()}
+            </span>
+          </span>
           <button
+            type="button"
             onClick={() => {
               useAuthStore.getState().logout();
               // A hard navigation, deliberately. router.push() keeps the SPA
@@ -328,9 +158,11 @@ export function Sidebar() {
               // eslint-disable-next-line @next/next/no-location-assign-relative-destination
               window.location.href = '/login';
             }}
-            className="text-slate-300 hover:text-white font-semibold text-xs ml-2"
+            className="rounded-md p-1.5 text-white/50 transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--secondary)]"
+            aria-label="Sign out"
+            title="Sign out"
           >
-            Logout
+            <LogOut className="h-4 w-4" aria-hidden />
           </button>
         </div>
       )}

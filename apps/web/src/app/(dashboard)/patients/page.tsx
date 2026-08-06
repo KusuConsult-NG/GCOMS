@@ -194,7 +194,7 @@ export default function PatientsPage() {
 
                   {/* Screenings */}
                   <div>
-                    <h3 className="font-semibold text-[var(--primary)] border-b border-[var(--outline)] pb-1 mb-2">🩺 Screenings ({selected.screenings?.length || 0})</h3>
+                    <h3 className="font-semibold text-[var(--primary)] border-b border-[var(--outline)] pb-1 mb-2">Screenings ({selected.screenings?.length || 0})</h3>
                     {selected.screenings && selected.screenings.length > 0 ? (
                       <div className="space-y-1.5 max-h-32 overflow-y-auto">
                         {(selected.screenings ?? []).map((s) => (
@@ -211,7 +211,7 @@ export default function PatientsPage() {
 
                   {/* Referrals */}
                   <div>
-                    <h3 className="font-semibold text-[var(--primary)] border-b border-[var(--outline)] pb-1 mb-2">📋 Referrals ({selected.referrals?.length || 0})</h3>
+                    <h3 className="font-semibold text-[var(--primary)] border-b border-[var(--outline)] pb-1 mb-2">Referrals ({selected.referrals?.length || 0})</h3>
                     {selected.referrals && selected.referrals.length > 0 ? (
                       <div className="space-y-1.5 max-h-24 overflow-y-auto">
                         {(selected.referrals ?? []).map((r) => (
@@ -228,7 +228,7 @@ export default function PatientsPage() {
 
                   {/* Follow-ups */}
                   <div>
-                    <h3 className="font-semibold text-[var(--primary)] border-b border-[var(--outline)] pb-1 mb-2">📅 Follow-ups ({selected.followUps?.length || 0})</h3>
+                    <h3 className="font-semibold text-[var(--primary)] border-b border-[var(--outline)] pb-1 mb-2">Follow-ups ({selected.followUps?.length || 0})</h3>
                     {selected.followUps && selected.followUps.length > 0 ? (
                       <div className="space-y-1.5 max-h-24 overflow-y-auto">
                         {(selected.followUps ?? []).map((f) => (

@@ -322,13 +322,13 @@ function ProcurementPageContent() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-[var(--outline)] pb-5">
         <div>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             Enterprise Procurement & Supply Chain Software • GCOMS
           </span>
-          <h1 className="text-2xl font-bold mt-1 text-white">Procurement Management & Vendor Registry</h1>
-          <p className="text-slate-300 text-xs mt-0.5">Manage annual procurement plans, RFQs, vendor evaluations, contracts, and Goods Received Notes (GRN).</p>
+          <h1 className="text-2xl font-bold mt-1 text-[var(--on-background)]">Procurement Management & Vendor Registry</h1>
+          <p className="text-[var(--muted)] text-xs mt-0.5">Manage annual procurement plans, RFQs, vendor evaluations, contracts, and Goods Received Notes (GRN).</p>
         </div>
         <div className="mt-3 lg:mt-0 flex flex-wrap gap-2">
           <button onClick={() => setActiveModal('requisition')} className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)]">
@@ -340,12 +340,12 @@ function ProcurementPageContent() {
       {/* Sub-Tabs */}
       <div className="flex border-b border-[var(--outline)] gap-2 text-xs font-semibold overflow-x-auto">
         {[
-          { id: 'orders', label: '📦 Purchase Orders & Requisitions' },
-          { id: 'plan', label: '📅 Annual Procurement Plan' },
-          { id: 'vendors', label: '🏬 Approved Vendor Directory & Ratings' },
-          { id: 'rfq', label: '📄 RFQs & Vendor Quotation Comparison' },
-          { id: 'grn', label: '🚚 Goods Received Notes (GRN) & Inspections' },
-          { id: 'contracts', label: '📝 Contract Management' },
+          { id: 'orders', label: 'Purchase Orders & Requisitions' },
+          { id: 'plan', label: 'Annual Procurement Plan' },
+          { id: 'vendors', label: 'Approved Vendor Directory & Ratings' },
+          { id: 'rfq', label: 'RFQs & Vendor Quotation Comparison' },
+          { id: 'grn', label: 'Goods Received Notes (GRN) & Inspections' },
+          { id: 'contracts', label: 'Contract Management' },
         ].map(t => (
           <button
             key={t.id}
@@ -683,7 +683,7 @@ function ProcurementPageContent() {
       {activeTab === 'orders' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
           <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
-            📦 Active Purchase Orders & Requisitions
+            Active Purchase Orders & Requisitions
           </div>
           {loading ? (
             <div className="p-8 text-center text-xs text-[var(--muted)]">Loading purchase orders...</div>
@@ -724,7 +724,7 @@ function ProcurementPageContent() {
       {activeTab === 'plan' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
           <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
-            <h2 className="font-bold text-[var(--primary)] text-sm">📅 Annual Procurement Plan</h2>
+            <h2 className="font-bold text-[var(--primary)] text-sm">Annual Procurement Plan</h2>
             <button onClick={() => setActiveModal('plan')} className="btn-primary text-xs bg-indigo-700 hover:bg-indigo-800">+ Add to Annual Plan</button>
           </div>
           <table className="w-full text-left text-xs">
@@ -768,7 +768,7 @@ function ProcurementPageContent() {
       {activeTab === 'vendors' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] p-5 space-y-4 text-xs">
           <div className="flex justify-between items-center border-b border-[var(--outline)] pb-2">
-            <h2 className="font-bold text-[var(--primary)] text-sm">🏬 Approved Vendor Directory & Tax Compliance</h2>
+            <h2 className="font-bold text-[var(--primary)] text-sm">Approved Vendor Directory & Tax Compliance</h2>
             <button onClick={() => setActiveModal('vendor')} className="btn-primary text-xs">+ Register Vendor</button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -798,7 +798,7 @@ function ProcurementPageContent() {
       {activeTab === 'rfq' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] p-5 space-y-4 text-xs">
           <div className="flex justify-between items-center border-b border-[var(--outline)] pb-2">
-            <h2 className="font-bold text-[var(--primary)] text-sm">📄 Request for Quotations (RFQ) & Technical Evaluation Matrix</h2>
+            <h2 className="font-bold text-[var(--primary)] text-sm">Request for Quotations (RFQ) & Technical Evaluation Matrix</h2>
             <button onClick={() => setActiveModal('rfq')} className="btn-primary text-xs">+ Generate New RFQ</button>
           </div>
           {rfqs.length === 0 && (
@@ -858,7 +858,7 @@ function ProcurementPageContent() {
       {activeTab === 'grn' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] p-5 space-y-4 text-xs">
           <div className="flex justify-between items-center border-b border-[var(--outline)] pb-2">
-            <h2 className="font-bold text-[var(--primary)] text-sm">🚚 Goods Received Notes (GRN) & Physical Inspection Register</h2>
+            <h2 className="font-bold text-[var(--primary)] text-sm">Goods Received Notes (GRN) & Physical Inspection Register</h2>
             <button onClick={() => setActiveModal('grn')} className="btn-primary text-xs">+ Issue GRN</button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -892,7 +892,7 @@ function ProcurementPageContent() {
       {activeTab === 'contracts' && (
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
           <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
-            <h2 className="font-bold text-[var(--primary)] text-sm">📝 Contract Management</h2>
+            <h2 className="font-bold text-[var(--primary)] text-sm">Contract Management</h2>
             <button onClick={() => setActiveModal('contract')} className="btn-primary text-xs bg-indigo-700 hover:bg-indigo-800">+ Add Contract</button>
           </div>
           <table className="w-full text-left text-xs">

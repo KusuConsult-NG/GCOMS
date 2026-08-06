@@ -229,29 +229,29 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Clinical Workspace Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--nav-surface)] text-white p-5 rounded-lg border border-[var(--nav-surface-raised)] shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[var(--outline)] pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--secondary)] text-white uppercase tracking-wider">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
               Clinical Medical Workspace
             </span>
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#adc7f7] text-[#001b3c]">
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--primary-surface)] text-[var(--primary)]">
               Clinician: {user?.firstName} {user?.lastName} (MD / RN)
             </span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight mt-1 text-white">Doctor & Nurse Clinical Journey</h1>
-          <p className="text-slate-300 text-xs mt-0.5">Comprehensive patient evaluation, cancer staging, vitals monitoring, and referral tracking.</p>
+          <h1 className="text-2xl font-bold tracking-tight mt-1 text-[var(--on-background)]">Doctor & Nurse Clinical Journey</h1>
+          <p className="text-[var(--muted)] text-xs mt-0.5">Comprehensive patient evaluation, cancer staging, vitals monitoring, and referral tracking.</p>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex border-b border-[var(--outline)] gap-2 text-xs font-semibold overflow-x-auto">
         {[
-          { id: 'dashboard', label: '📊 Clinical Dashboard & Alerts' },
-          { id: 'encounters', label: '🩺 New Clinical Encounter & Staging' },
-          { id: 'vitals', label: '💓 Patient Vitals & History' },
-          { id: 'followups', label: '📅 Patient Follow-Up Management' },
-          { id: 'reports', label: '📈 Clinical Reports & Staging Stats' },
+          { id: 'dashboard', label: 'Clinical Dashboard & Alerts' },
+          { id: 'encounters', label: 'New Clinical Encounter & Staging' },
+          { id: 'vitals', label: 'Patient Vitals & History' },
+          { id: 'followups', label: 'Patient Follow-Up Management' },
+          { id: 'reports', label: 'Clinical Reports & Staging Stats' },
         ].map(tab => (
           <button
             key={tab.id}
@@ -292,7 +292,7 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
           {missedFu.length > 0 && (
             <div className="p-4 bg-[var(--risk-high-bg)]/40 border border-[var(--risk-high-text)]/30 rounded-lg space-y-2">
               <h3 className="font-bold text-[var(--risk-high-text)] text-sm flex items-center gap-1.5">
-                ⚠ Missed Follow-up Clinical Alerts ({missedFu.length})
+                Missed Follow-up Clinical Alerts ({missedFu.length})
               </h3>
               <div className="divide-y divide-[var(--risk-high-text)]/10 text-xs">
                 {missedFu.map((fu) => (
@@ -310,7 +310,7 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
 
           <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
             <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
-              👥 My Assigned Patient Roster
+              My Assigned Patient Roster
             </div>
             {assignments.length === 0 ? (
               <div className="p-8 text-center text-xs text-[var(--muted)]">No patients currently assigned.</div>
@@ -387,7 +387,7 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
               </div>
             </div>
             <div className="p-4 bg-[var(--background)] border border-[var(--outline)] rounded space-y-3">
-              <h3 className="font-bold text-[var(--primary)] border-b border-[var(--outline)] pb-1">💓 Vital Signs & Physical Metrics</h3>
+              <h3 className="font-bold text-[var(--primary)] border-b border-[var(--outline)] pb-1">Vital Signs & Physical Metrics</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-[11px] font-semibold text-[var(--muted)]">BP Systolic (mmHg)</label>
@@ -484,7 +484,7 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
 
           <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
             <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
-              📈 Vitals History
+              Vitals History
             </div>
             {!vitalsParticipantId ? (
               <div className="p-8 text-center text-xs text-[var(--muted)]">Select a patient to view vitals history.</div>
@@ -509,7 +509,7 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
                       <td className="p-3 tabular-nums">{new Date(v.createdAt).toLocaleDateString()}</td>
                       <td className="p-3 tabular-nums font-bold">
                         {v.bpSystolic}/{v.bpDiastolic}
-                        {(v.bpSystolic ?? 0) > 140 && <span className="ml-2 px-1.5 py-0.5 bg-[var(--risk-high-bg)] text-[var(--risk-high-text)] rounded text-[10px]">⚠️ HIGH BP</span>}
+                        {(v.bpSystolic ?? 0) > 140 && <span className="ml-2 px-1.5 py-0.5 bg-[var(--risk-high-bg)] text-[var(--risk-high-text)] rounded text-[10px]">HIGH BP</span>}
                       </td>
                       <td className="p-3 tabular-nums">{v.pulseRate}</td>
                       <td className="p-3 tabular-nums">{v.temperature}</td>
@@ -551,7 +551,7 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
 
           <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
             <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
-              <h3 className="font-bold text-[var(--primary)] text-sm">📅 Follow-Up Schedule</h3>
+              <h3 className="font-bold text-[var(--primary)] text-sm">Follow-Up Schedule</h3>
               <button onClick={() => setShowFuModal(true)} className="btn-primary bg-[var(--secondary)] text-white px-3 py-1.5 rounded text-xs font-bold">
                 + Schedule Follow-Up
               </button>
@@ -632,7 +632,7 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
               <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
-                📊 Staging Summary YTD 2026
+                Staging Summary YTD 2026
               </div>
               <table className="w-full text-left text-xs">
                 <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)]">
@@ -646,7 +646,7 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
 
             <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
               <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
-                📈 Monthly Screening Trend
+                Monthly Screening Trend
               </div>
               <table className="w-full text-left text-xs">
                 <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)]">
@@ -662,7 +662,7 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
               <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
-                🏥 Referral Tracking
+                Referral Tracking
               </div>
               <table className="w-full text-left text-xs">
                 <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)]">
@@ -683,7 +683,7 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
 
             <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
               <div className="p-4 border-b border-[var(--outline)] font-bold text-[var(--primary)] text-sm bg-[var(--background)]">
-                📍 LGA Performance Breakdown
+                LGA Performance Breakdown
               </div>
               <table className="w-full text-left text-xs">
                 <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)]">

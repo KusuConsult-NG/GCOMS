@@ -1,11 +1,13 @@
 'use client';
 
+import type { AuditLogEntry, UserRecord } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
 export function AdminWorkspace({ user }: { user: any }) {
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'audit' | 'config'>('users');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -15,7 +17,7 @@ export function AdminWorkspace({ user }: { user: any }) {
   
   // The real audit trail: PHI break-glass access and role changes. This was a
   // hardcoded array while genuine security events accumulated unread.
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [auditModuleFilter, setAuditModuleFilter] = useState('ALL');
   const [auditDateFilter, setAuditDateFilter] = useState('');
 
@@ -28,17 +30,6 @@ export function AdminWorkspace({ user }: { user: any }) {
 
   const rolesList = ['EXECUTIVE', 'BOARD', 'ADMIN', 'SYSTEM_ADMIN', 'FINANCE', 'PROCUREMENT', 'HR', 'GRANT_MANAGER', 'PROJECT_MANAGER', 'CLINICIAN', 'DOCTOR', 'NURSE', 'FIELD_OFFICER', 'VOLUNTEER', 'COMMUNITY_HEALTH_WORKER'];
 
-  useEffect(() => {
-    fetchUsers();
-    fetchAuditLogs();
-
-    api.get('/system-admin/config').then(res => {
-      if (res.data?.org) setOrgSettings(res.data.org);
-      if (res.data?.system) setSystemSettings(res.data.system);
-    }).catch(() => {
-      // keep defaults as fallback
-    });
-  }, []);
 
   const fetchAuditLogs = () => {
     api.get('/system-admin/audit-logs', { params: { limit: 100 } })
@@ -53,6 +44,18 @@ export function AdminWorkspace({ user }: { user: any }) {
       .catch(console.error)
       .finally(() => setLoading(false));
   };
+
+  useEffect(() => {
+    fetchUsers();
+    fetchAuditLogs();
+
+    api.get('/system-admin/config').then(res => {
+      if (res.data?.org) setOrgSettings(res.data.org);
+      if (res.data?.system) setSystemSettings(res.data.system);
+    }).catch(() => {
+      // keep defaults as fallback
+    });
+  }, []);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();

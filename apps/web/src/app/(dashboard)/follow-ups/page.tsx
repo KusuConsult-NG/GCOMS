@@ -1,5 +1,7 @@
 'use client';
 
+import { errorMessage } from '@/lib/errors';
+
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -42,9 +44,6 @@ export default function FollowUpPage() {
   const [formMsg, setFormMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchAll();
-  }, [filterStatus]);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -63,6 +62,10 @@ export default function FollowUpPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchAll();
+  }, [filterStatus]);
 
   const handleStatusUpdate = async (id: string, status: string) => {
     try {
@@ -83,8 +86,8 @@ export default function FollowUpPage() {
       setForm({ participantId: '', clinicianId: '', scheduledDate: '', notes: '' });
       fetchAll();
       setTimeout(() => setShowForm(false), 1500);
-    } catch (err: any) {
-      setFormMsg(err.response?.data?.message || 'Failed to schedule follow-up.');
+    } catch (err) {
+      setFormMsg(errorMessage(err, 'Failed to schedule follow-up.'));
     } finally {
       setSubmitting(false);
     }

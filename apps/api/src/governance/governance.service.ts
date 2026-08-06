@@ -1,7 +1,11 @@
 import { CreateGovernanceMeetingDto } from './dto/create-governance-meeting.dto';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  createWithReference,
+  referencePrefix,
+} from '../common/reference-sequence';
+import { NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
   CreateBoardResolutionDto,
@@ -44,31 +48,42 @@ export class GovernanceService {
   }
 
   async createResolution(dto: CreateBoardResolutionDto) {
-    const clash = await this.prisma.boardResolution.findUnique({
-      where: { resolutionNo: dto.resolutionNo.trim() },
-      select: { id: true },
-    });
-    if (clash)
-      throw new ConflictException('That resolution number already exists');
-
-    return this.prisma.boardResolution.create({
-      data: {
-        resolutionNo: dto.resolutionNo.trim(),
-        title: dto.title.trim(),
-        description: dto.description.trim(),
-        votesFor: dto.votesFor ?? 0,
-        votesAgainst: dto.votesAgainst ?? 0,
-        abstentions: dto.abstentions ?? 0,
-        // Derived from the vote unless stated: a resolution's outcome should not
-        // be able to contradict its own tally.
-        status:
-          dto.status ??
-          ((dto.votesFor ?? 0) > (dto.votesAgainst ?? 0)
-            ? 'PASSED'
-            : 'PENDING'),
-        passedDate: dto.passedDate ? new Date(dto.passedDate) : new Date(),
-      },
-    });
+    // Allocated here, not sent up. The screen minted RES-<year>-<count+1> from
+    // the list it happened to be showing, which repeats the moment two people
+    // table a resolution — against a column that is unique.
+    return createWithReference(
+      referencePrefix('RES', new Date()),
+      (prefix) =>
+        this.prisma.boardResolution
+          .findMany({
+            where: { resolutionNo: { startsWith: prefix } },
+            select: { resolutionNo: true },
+          })
+          .then((rows) => rows.map((r) => ({ reference: r.resolutionNo }))),
+      (resolutionNo) =>
+        this.prisma.boardResolution.create({
+          data: {
+            resolutionNo,
+            title: dto.title.trim(),
+            description: dto.description.trim(),
+            resolutionType: dto.resolutionType ?? 'POLICY',
+            meetingDate: dto.meetingDate ? new Date(dto.meetingDate) : null,
+            proposedBy: dto.proposedBy?.trim() || null,
+            secondedBy: dto.secondedBy?.trim() || null,
+            votesFor: dto.votesFor ?? 0,
+            votesAgainst: dto.votesAgainst ?? 0,
+            abstentions: dto.abstentions ?? 0,
+            // Derived from the vote unless stated: a resolution's outcome
+            // should not be able to contradict its own tally.
+            status:
+              dto.status ??
+              ((dto.votesFor ?? 0) > (dto.votesAgainst ?? 0)
+                ? 'PASSED'
+                : 'PENDING'),
+            passedDate: dto.passedDate ? new Date(dto.passedDate) : new Date(),
+          },
+        }),
+    );
   }
 
   async updateResolution(id: string, dto: UpdateBoardResolutionDto) {

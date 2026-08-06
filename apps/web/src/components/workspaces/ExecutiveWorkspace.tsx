@@ -1,5 +1,8 @@
 'use client';
 
+import type { PurchaseRequest } from '@/types/procurement';
+import type { ApprovalRequest, FinanceTransaction, Grant, InventoryItem, Project } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -7,12 +10,12 @@ import Link from 'next/link';
 
 export function ExecutiveWorkspace({ user }: { user: any }) {
   const [analytics, setAnalytics] = useState<any>({});
-  const [approvals, setApprovals] = useState<any[]>([]);
-  const [grants, setGrants] = useState<any[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [procurementOrders, setProcurementOrders] = useState<any[]>([]);
-  const [financeTransactions, setFinanceTransactions] = useState<any[]>([]);
-  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
+  const [grants, setGrants] = useState<Grant[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [procurementOrders, setProcurementOrders] = useState<PurchaseRequest[]>([]);
+  const [financeTransactions, setFinanceTransactions] = useState<FinanceTransaction[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [approvalFilter, setApprovalFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
   const [lgaData, setLgaData] = useState([
@@ -156,7 +159,7 @@ export function ExecutiveWorkspace({ user }: { user: any }) {
                 <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
                   <tr>
                     <th className="p-2">Reference/Title</th>
-                    <th className="p-2">Dept</th>
+                    <th className="p-2">Module</th>
                     <th className="p-2">Requested By</th>
                     <th className="p-2">Details</th>
                     <th className="p-2">Date</th>
@@ -174,11 +177,14 @@ export function ExecutiveWorkspace({ user }: { user: any }) {
                   ) : (
                     filteredApprovals.map(a => (
                       <tr key={a.id} className="hover:bg-[var(--primary-surface)]">
-                        <td className="p-2 font-medium">{a.title || a.reference}</td>
-                        <td className="p-2">{a.department}</td>
+                        <td className="p-2 font-medium">{a.title}</td>
+                        {/* An approval names the module it belongs to; there is
+                            no separate department, and no amount — that lives on
+                            the underlying record. Both columns rendered blank. */}
+                        <td className="p-2">{a.resourceType}</td>
                         <td className="p-2">{a.requestedBy ? `${a.requestedBy.firstName} ${a.requestedBy.lastName}` : '—'}</td>
-                        <td className="p-2">{a.amount ? `₦${Number(a.amount).toLocaleString()}` : 'N/A'}</td>
-                        <td className="p-2">{new Date(a.createdAt || a.date).toLocaleDateString()}</td>
+                        <td className="p-2 max-w-xs truncate" title={a.description ?? ''}>{a.description || '—'}</td>
+                        <td className="p-2 tabular-nums">{new Date(a.createdAt).toLocaleDateString()}</td>
                         <td className="p-2">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${a.status === 'APPROVED' ? 'bg-green-100 text-green-800' : a.status === 'REJECTED' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>{a.status}</span>
                         </td>

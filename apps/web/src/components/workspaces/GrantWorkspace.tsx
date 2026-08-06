@@ -1,10 +1,12 @@
 'use client';
 
+import type { Grant } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
 export function GrantWorkspace({ user }: { user: any }) {
-  const [grants, setGrants] = useState<any[]>([]);
+  const [grants, setGrants] = useState<Grant[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -166,7 +168,7 @@ export function GrantWorkspace({ user }: { user: any }) {
         {loading ? (
           <div className="p-8 text-center text-xs text-[var(--muted)]">Loading grants from database...</div>
         ) : grants.length === 0 ? (
-          <div className="p-8 text-center text-xs text-[var(--muted)]">No grants registered yet. Click "+ Register New Grant Proposal" to create one.</div>
+          <div className="p-8 text-center text-xs text-[var(--muted)]">No grants registered yet. Click &quot;+ Register New Grant Proposal&quot; to create one.</div>
         ) : (
           <table className="w-full text-left text-xs">
             <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
@@ -181,7 +183,7 @@ export function GrantWorkspace({ user }: { user: any }) {
             <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
               {grants.map((g) => (
                 <tr key={g.id} className="hover:bg-[var(--primary-surface)]">
-                  <td className="p-3 font-bold text-[var(--primary)]">{g.title}</td>
+                  <td className="p-3 font-bold text-[var(--primary)]">{g.grantName}</td>
                   <td className="p-3 text-[var(--secondary)] font-semibold">{g.donorName}</td>
                   <td className="p-3 font-bold font-mono tabular-nums text-[var(--primary)]">₦{Number(g.amount).toLocaleString()}</td>
                   <td className="p-3 text-[var(--muted)] tabular-nums">

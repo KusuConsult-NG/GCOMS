@@ -32,8 +32,12 @@ export class ProjectsService {
         managedBy: {
           select: { firstName: true, lastName: true },
         },
-        // Lets the board show task counts without a request per project.
+        // Lets the board show task counts without a request per project, and
+        // lets completion be derived rather than invented — the research screen
+        // rendered a flat "40% Complete" bar for every project because there was
+        // no progress to read.
         _count: { select: { tasks: true } },
+        tasks: { select: { status: true } },
       },
     });
   }

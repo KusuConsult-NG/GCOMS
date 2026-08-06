@@ -1,5 +1,7 @@
 'use client';
 
+import type { BoardAction, BoardMember, BoardResolution, GovernanceMeeting } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -7,7 +9,7 @@ import { api } from '@/lib/api';
 export function GovernanceWorkspace({ user }: { user: any }) {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'meetings' | 'members' | 'resolutions' | 'actions'>('meetings');
-  const [meetings, setMeetings] = useState<any[]>([]);
+  const [meetings, setMeetings] = useState<GovernanceMeeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState<null | 'meeting' | 'minutes' | 'member' | 'resolution' | 'action'>(null);
   const [activeVoteModal, setActiveVoteModal] = useState<any | null>(null);
@@ -20,19 +22,19 @@ export function GovernanceWorkspace({ user }: { user: any }) {
   const [submitting, setSubmitting] = useState(false);
 
   // Local Seeded States
-  const [boardMembers, setBoardMembers] = useState<any[]>([]);
+  const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
 
-  const [resolutions, setResolutions] = useState<any[]>([]);
+  const [resolutions, setResolutions] = useState<BoardResolution[]>([]);
 
-  const [actions, setActions] = useState<any[]>([]);
+  const [actions, setActions] = useState<BoardAction[]>([]);
 
   // Form States
   const [memberForm, setMemberForm] = useState({ name: '', title: '', role: 'MEMBER', committees: [] as string[], phone: '', email: '', termStart: '', termEnd: '' });
-  const [resolutionForm, setResolutionForm] = useState({ title: '', meetingDate: '', type: 'POLICY', text: '', proposedBy: '', secondedBy: '' });
-  const [actionForm, setActionForm] = useState({ description: '', responsible: '', due: '', priority: 'MEDIUM', meeting: '', status: 'PENDING' });
+  const [resolutionForm, setResolutionForm] = useState({ title: '', meetingDate: '', resolutionType: 'POLICY', description: '', proposedBy: '', secondedBy: '' });
+  const [actionForm, setActionForm] = useState({ description: '', responsible: '', due: '', priority: 'MEDIUM', meetingId: '', status: 'PENDING' });
 
   // Vote State for activeVoteModal
-  const [currentVotes, setCurrentVotes] = useState<Record<number, string>>({});
+  const [currentVotes, setCurrentVotes] = useState<Record<string, string>>({});
 
   const fetchBoardMembers = async () => {
     try { setBoardMembers((await api.get('/operations/board-members')).data); }
@@ -100,11 +102,33 @@ export function GovernanceWorkspace({ user }: { user: any }) {
     }
   };
 
-  const handleMemberSubmit = (e: React.FormEvent) => {
+  // Was `setBoardMembers([...boardMembers, { ...memberForm, id: Date.now() }])`:
+  // the record existed in this tab only and the id was a millisecond timestamp.
+  // GET already read the real table, so the list looked live while every
+  // addition disappeared on reload.
+  const handleMemberSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setBoardMembers([...boardMembers, { ...memberForm, id: Date.now() }]);
-    setActiveModal(null);
-    setMemberForm({ name: '', title: '', role: 'MEMBER', committees: [], phone: '', email: '', termStart: '', termEnd: '' });
+    setSubmitting(true);
+    try {
+      await api.post('/operations/board-members', {
+        name: memberForm.name,
+        title: memberForm.title || undefined,
+        role: memberForm.role,
+        // The column is a comma-separated string; SQLite has no array type.
+        committees: memberForm.committees.join(',') || undefined,
+        phone: memberForm.phone || undefined,
+        email: memberForm.email || undefined,
+        termStart: new Date(memberForm.termStart).toISOString(),
+        termEnd: new Date(memberForm.termEnd).toISOString(),
+      });
+      setActiveModal(null);
+      setMemberForm({ name: '', title: '', role: 'MEMBER', committees: [], phone: '', email: '', termStart: '', termEnd: '' });
+      await fetchBoardMembers();
+    } catch (err) {
+      console.error('Failed to add board member', err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleCommitteeToggle = (c: string) => {
@@ -114,19 +138,53 @@ export function GovernanceWorkspace({ user }: { user: any }) {
     }));
   };
 
-  const handleResolutionSubmit = (e: React.FormEvent) => {
+  // The resolution number was minted here as RES-2026-<count+1>, which repeats
+  // the moment two people table a resolution against the same list — and the
+  // column is unique. The server owns it.
+  const handleResolutionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const resNum = `RES-2026-${(resolutions.length + 1).toString().padStart(3, '0')}`;
-    setResolutions([...resolutions, { ...resolutionForm, resNum, status: 'TABLED', votes: { favour: 0, against: 0, abstain: 0 }, id: Date.now() }]);
-    setActiveModal(null);
-    setResolutionForm({ title: '', meetingDate: '', type: 'POLICY', text: '', proposedBy: '', secondedBy: '' });
+    setSubmitting(true);
+    try {
+      await api.post('/governance/resolutions', {
+        title: resolutionForm.title,
+        description: resolutionForm.description,
+        resolutionType: resolutionForm.resolutionType,
+        meetingDate: resolutionForm.meetingDate
+          ? new Date(resolutionForm.meetingDate).toISOString()
+          : undefined,
+        proposedBy: resolutionForm.proposedBy || undefined,
+        secondedBy: resolutionForm.secondedBy || undefined,
+        status: 'PENDING',
+      });
+      setActiveModal(null);
+      setResolutionForm({ title: '', meetingDate: '', resolutionType: 'POLICY', description: '', proposedBy: '', secondedBy: '' });
+      await fetchResolutions();
+    } catch (err) {
+      console.error('Failed to table resolution', err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleActionSubmit = (e: React.FormEvent) => {
+  const handleActionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setActions([...actions, { ...actionForm, id: Date.now() }]);
-    setActiveModal(null);
-    setActionForm({ description: '', responsible: '', due: '', priority: 'MEDIUM', meeting: '', status: 'PENDING' });
+    setSubmitting(true);
+    try {
+      await api.post('/operations/board-actions', {
+        description: actionForm.description,
+        responsible: actionForm.responsible,
+        dueDate: new Date(actionForm.due).toISOString(),
+        priority: actionForm.priority,
+        meetingId: actionForm.meetingId || undefined,
+      });
+      setActiveModal(null);
+      setActionForm({ description: '', responsible: '', due: '', priority: 'MEDIUM', meetingId: '', status: 'PENDING' });
+      await fetchActions();
+    } catch (err) {
+      console.error('Failed to add board action', err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleCloseVoting = () => {
@@ -299,7 +357,7 @@ export function GovernanceWorkspace({ user }: { user: any }) {
               </div>
               <div>
                 <label className="block font-semibold text-[var(--on-background)] mb-1">Resolution Type *</label>
-                <select required value={resolutionForm.type} onChange={e => setResolutionForm({ ...resolutionForm, type: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
+                <select required value={resolutionForm.resolutionType} onChange={e => setResolutionForm({ ...resolutionForm, resolutionType: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                   <option value="POLICY">POLICY</option>
                   <option value="FINANCIAL_APPROVAL">FINANCIAL APPROVAL</option>
                   <option value="PROGRAMME_APPROVAL">PROGRAMME APPROVAL</option>
@@ -323,7 +381,7 @@ export function GovernanceWorkspace({ user }: { user: any }) {
               </div>
               <div>
                 <label className="block font-semibold text-[var(--on-background)] mb-1">Resolution Text *</label>
-                <textarea required rows={4} value={resolutionForm.text} onChange={e => setResolutionForm({ ...resolutionForm, text: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs"></textarea>
+                <textarea required rows={4} value={resolutionForm.description} onChange={e => setResolutionForm({ ...resolutionForm, description: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs"></textarea>
               </div>
               <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary text-xs">Cancel</button>
@@ -369,7 +427,12 @@ export function GovernanceWorkspace({ user }: { user: any }) {
               </div>
               <div>
                 <label className="block font-semibold text-[var(--on-background)] mb-1">Source Meeting *</label>
-                <input type="text" required value={actionForm.meeting} onChange={e => setActionForm({ ...actionForm, meeting: e.target.value })} placeholder="e.g. Q3 Executive Board" className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
+                <select value={actionForm.meetingId} onChange={e => setActionForm({ ...actionForm, meetingId: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
+                  <option value="">Not tied to a meeting</option>
+                  {meetings.map(m => (
+                    <option key={m.id} value={m.id}>{m.title} — {new Date(m.meetingDate).toLocaleDateString()}</option>
+                  ))}
+                </select>
               </div>
               <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary text-xs">Cancel</button>
@@ -460,7 +523,7 @@ export function GovernanceWorkspace({ user }: { user: any }) {
                 {meetings.map((m) => (
                   <tr key={m.id} className="hover:bg-[var(--primary-surface)]">
                     <td className="p-3 font-bold text-[var(--primary)]">{m.title}</td>
-                    <td className="p-3 text-[var(--muted)] tabular-nums">{new Date(m.date || m.meetingDate).toLocaleDateString()}</td>
+                    <td className="p-3 text-[var(--muted)] tabular-nums">{new Date(m.meetingDate).toLocaleDateString()}</td>
                     <td className="p-3">
                       {m.minutesUrl ? (
                         <a href={m.minutesUrl} target="_blank" rel="noreferrer" className="text-[var(--secondary)] font-bold hover:underline">
@@ -498,7 +561,7 @@ export function GovernanceWorkspace({ user }: { user: any }) {
                 </div>
                 <div className="pt-2 border-t">
                   <p className="text-[10px] text-[var(--muted)] font-bold">Committees:</p>
-                  <p className="text-[var(--secondary)] font-semibold">{b.committees.join(', ')}</p>
+                  <p className="text-[var(--secondary)] font-semibold">{b.committees || 'None assigned'}</p>
                 </div>
                 <div className="text-[10px] text-[var(--muted)] space-y-0.5">
                   <p>📞 {b.phone}</p>
@@ -535,15 +598,15 @@ export function GovernanceWorkspace({ user }: { user: any }) {
               {resolutions.map((r) => (
                 <tr key={r.id} className="hover:bg-[var(--primary-surface)] align-top">
                   <td className="p-3 w-64">
-                    <span className="font-bold text-[var(--secondary)]">{r.resNum}</span>
+                    <span className="font-bold text-[var(--secondary)]">{r.resolutionNo}</span>
                     <p className="font-bold text-[var(--primary)] mt-0.5">{r.title}</p>
-                    <p className="text-[10px] text-[var(--muted)] mt-1 line-clamp-2" title={r.text}>{r.text}</p>
+                    <p className="text-[10px] text-[var(--muted)] mt-1 line-clamp-2" title={r.description}>{r.description}</p>
                   </td>
-                  <td className="p-3">{r.type}</td>
-                  <td className="p-3 tabular-nums">{r.meetingDate}</td>
+                  <td className="p-3">{r.resolutionType}</td>
+                  <td className="p-3 tabular-nums">{r.meetingDate ? new Date(r.meetingDate).toLocaleDateString() : '—'}</td>
                   <td className="p-3 text-[10px]">
-                    <p>P: {r.proposedBy}</p>
-                    <p>S: {r.secondedBy}</p>
+                    <p>P: {r.proposedBy || '—'}</p>
+                    <p>S: {r.secondedBy || '—'}</p>
                   </td>
                   <td className="p-3">
                     <span className={`px-2 py-1 rounded text-[10px] font-bold ${r.status === 'PASSED' ? 'bg-emerald-100 text-emerald-800' : r.status === 'REJECTED' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
@@ -551,7 +614,7 @@ export function GovernanceWorkspace({ user }: { user: any }) {
                     </span>
                     {r.status !== 'TABLED' && (
                       <p className="text-[9px] mt-1 text-[var(--muted)]">
-                        {r.votes.favour} In Favour, {r.votes.against} Against, {r.votes.abstain} Abstain
+                        {r.votesFor} In Favour, {r.votesAgainst} Against, {r.abstentions} Abstain
                       </p>
                     )}
                   </td>

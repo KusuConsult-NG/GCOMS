@@ -1,10 +1,12 @@
 'use client';
 
+import type { FinanceTransaction } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
 export function FinanceWorkspace({ user }: { user: any }) {
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -163,7 +165,7 @@ export function FinanceWorkspace({ user }: { user: any }) {
         {loading ? (
           <div className="p-8 text-center text-xs text-[var(--muted)]">Loading transactions from database...</div>
         ) : transactions.length === 0 ? (
-          <div className="p-8 text-center text-xs text-[var(--muted)]">No financial transactions recorded yet. Click "+ Log New Transaction" to create one.</div>
+          <div className="p-8 text-center text-xs text-[var(--muted)]">No financial transactions recorded yet. Click &quot;+ Log New Transaction&quot; to create one.</div>
         ) : (
           <table className="w-full text-left text-xs">
             <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">

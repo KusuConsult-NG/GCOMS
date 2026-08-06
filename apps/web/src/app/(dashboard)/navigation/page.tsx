@@ -1,10 +1,13 @@
 'use client';
 
+import type { Referral } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
 export default function NavigationPage() {
-  const [events, setEvents] = useState<any[]>([]);
+  // This reads /referrals, not outreach events.
+  const [events, setEvents] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchNavigationData = async () => {
@@ -77,15 +80,22 @@ export default function NavigationPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
-              {(events.length ? events : [
-                { participant: { gcId: 'GC-99214', firstName: 'Mary', lastName: 'Luka' }, targetFacility: 'JUTH Oncology', reason: 'VIA Positive Staging', createdAt: new Date().toISOString(), status: 'IN_PROGRESS' },
-                { participant: { gcId: 'GC-77218', firstName: 'Grace', lastName: 'Daniel' }, targetFacility: 'Plateau Specialist Hospital', reason: 'Breast Biopsy Follow-up', createdAt: new Date().toISOString(), status: 'PENDING' },
-              ]).map((e, idx) => (
-                <tr key={idx} className="hover:bg-[var(--primary-surface)]">
-                  <td className="p-3 font-bold text-[var(--primary)]">
-                    {e.participant?.firstName} {e.participant?.lastName} <span className="font-mono text-[10px] text-[var(--muted)]">({e.participant?.gcId || 'GC-001'})</span>
+              {events.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="p-8 text-center text-xs text-[var(--muted)]">
+                    No referrals to navigate yet.
                   </td>
-                  <td className="p-3 text-[var(--secondary)] font-semibold">{e.targetFacility}</td>
+                </tr>
+              )}
+              {/* Two invented patients used to render here whenever the list was
+                  empty — names, registration ids and facilities that looked like
+                  real referrals to anyone reading the screen. */}
+              {events.map((e) => (
+                <tr key={e.id} className="hover:bg-[var(--primary-surface)]">
+                  <td className="p-3 font-bold text-[var(--primary)]">
+                    {e.participant?.firstName} {e.participant?.lastName} <span className="font-mono text-[10px] text-[var(--muted)]">({e.participant?.registrationId ?? '—'})</span>
+                  </td>
+                  <td className="p-3 text-[var(--secondary)] font-semibold">{e.referredTo}</td>
                   <td className="p-3 text-[var(--on-surface-variant)]">{e.reason}</td>
                   <td className="p-3 text-[var(--muted)] tabular-nums">{new Date(e.createdAt).toLocaleDateString()}</td>
                   <td className="p-3"><span className="badge-low-risk">{e.status}</span></td>

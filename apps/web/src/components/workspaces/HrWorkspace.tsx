@@ -1,5 +1,7 @@
 'use client';
 
+import type { Appraisal, JobOpening, LeaveRequest, StaffRecord, TrainingRecord, VolunteerProfile } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -13,20 +15,20 @@ const PLATEAU_LGAS = [
 export function HrWorkspace({ user }: { user: any }) {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'staff' | 'volunteers' | 'recruitment' | 'leave' | 'training'>('staff');
-  const [staff, setStaff] = useState<any[]>([]);
-  const [volunteers, setVolunteers] = useState<any[]>([]);
+  const [staff, setStaff] = useState<StaffRecord[]>([]);
+  const [volunteers, setVolunteers] = useState<VolunteerProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState<null | 'staff' | 'volunteer' | 'leave' | 'job' | 'applicant' | 'interview' | 'offer' | 'attendance' | 'performance' | 'training'>(null);
 
   // States for new features
-  const [jobOpenings, setJobOpenings] = useState<any[]>([]);
+  const [jobOpenings, setJobOpenings] = useState<JobOpening[]>([]);
   const [selectedJob, setSelectedJob] = useState<any>(null);
 
-  const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [attendanceLogs, setAttendanceLogs] = useState<any[]>([]);
-  const [performanceReviews, setPerformanceReviews] = useState<any[]>([]);
+  const [performanceReviews, setPerformanceReviews] = useState<Appraisal[]>([]);
   
-  const [trainings, setTrainings] = useState<any[]>([]);
+  const [trainings, setTrainings] = useState<TrainingRecord[]>([]);
   
   // Form State
   const [formData, setFormData] = useState({
@@ -185,7 +187,7 @@ export function HrWorkspace({ user }: { user: any }) {
       console.error('Failed to post job opening', err);
     }
   };
-  const closeJob = (id: number) => {
+  const closeJob = (id: string) => {
     api.patch(`/operations/job-openings/${id}`, { status: 'CLOSED' })
       .then(() => fetchJobOpenings())
       .catch(err => console.error('Failed to close job opening', err));
@@ -228,10 +230,11 @@ export function HrWorkspace({ user }: { user: any }) {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
   };
   const staffName = (employeeId: string) => {
-    const member = staff.find((m: any) => m.id === employeeId || m.user?.id === employeeId);
-    if (!member) return 'Unknown staff';
-    const u = member.user ?? member;
-    return `${u.firstName} ${u.lastName}`;
+    const member = staff.find(
+      (m) => m.id === employeeId || m.user?.id === employeeId,
+    );
+    if (!member?.user) return 'Unknown staff';
+    return `${member.user.firstName} ${member.user.lastName}`;
   };
 
   const handleLeaveRequest = async (e: React.FormEvent) => {
@@ -259,7 +262,9 @@ export function HrWorkspace({ user }: { user: any }) {
   const handleLogAttendance = (e: React.FormEvent) => {
     e.preventDefault();
     const staffMember = staff.find(s => s.id === attendanceForm.staffId);
-    const staffName = staffMember ? `${staffMember.firstName} ${staffMember.lastName}` : 'Unknown Staff';
+    const staffName = staffMember?.user
+      ? `${staffMember.user.firstName} ${staffMember.user.lastName}`
+      : 'Unknown Staff';
     
     // Calculate hours worked
     let hours = 0;
@@ -401,9 +406,9 @@ export function HrWorkspace({ user }: { user: any }) {
                 <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
                   {staff.map((s) => (
                     <tr key={s.id} className="hover:bg-[var(--primary-surface)]">
-                      <td className="p-3 font-bold text-[var(--primary)]">{s.firstName} {s.lastName}</td>
-                      <td className="p-3 font-mono text-[var(--muted)]">{s.email}</td>
-                      <td className="p-3 text-[var(--secondary)] font-semibold">{s.role}</td>
+                      <td className="p-3 font-bold text-[var(--primary)]">{s.user?.firstName} {s.user?.lastName}</td>
+                      <td className="p-3 font-mono text-[var(--muted)]">{s.user?.email}</td>
+                      <td className="p-3 text-[var(--secondary)] font-semibold">{s.user?.role}</td>
                       <td className="p-3"><span className="badge-low-risk">ACTIVE</span></td>
                     </tr>
                   ))}
@@ -490,13 +495,13 @@ export function HrWorkspace({ user }: { user: any }) {
             <div className="clinical-card">
               <span className="text-xs font-semibold text-[var(--muted)] uppercase">Active Applicants</span>
               <p className="text-3xl font-bold text-[var(--secondary)] mt-1 tabular-nums">
-                {jobOpenings.reduce((acc, job) => acc + job.applicants.length, 0)}
+                {jobOpenings.reduce((acc, job) => acc + (job.applicants?.length ?? 0), 0)}
               </p>
             </div>
             <div className="clinical-card">
               <span className="text-xs font-semibold text-[var(--muted)] uppercase">Interviews Scheduled</span>
               <p className="text-3xl font-bold text-[var(--risk-low-text)] mt-1 tabular-nums">
-                {jobOpenings.reduce((acc, job) => acc + job.applicants.filter((a: any) => a.stage === 'INTERVIEW').length, 0)}
+                {jobOpenings.reduce((acc, job) => acc + (job.applicants ?? []).filter((a: any) => a.stage === 'INTERVIEW').length, 0)}
               </p>
             </div>
           </div>
@@ -525,11 +530,11 @@ export function HrWorkspace({ user }: { user: any }) {
                 {jobOpenings.map(job => (
                   <tr key={job.id} className="hover:bg-[var(--primary-surface)]">
                     <td className="p-3 font-bold text-[var(--primary)]">{job.title}</td>
-                    <td className="p-3">{job.dept}</td>
-                    <td className="p-3">{job.type}</td>
+                    <td className="p-3">{job.department}</td>
+                    <td className="p-3">{job.employmentType}</td>
                     <td className="p-3">{job.location}</td>
-                    <td className="p-3">{job.deadline}</td>
-                    <td className="p-3 font-bold text-[var(--secondary)]">{job.applicants.length}</td>
+                    <td className="p-3 tabular-nums">{new Date(job.deadline).toLocaleDateString()}</td>
+                    <td className="p-3 font-bold text-[var(--secondary)]">{job.applicants?.length ?? 0}</td>
                     <td className="p-3">
                       <span className={job.status === 'OPEN' ? 'badge-low-risk' : 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700 uppercase'}>
                         {job.status}
@@ -625,7 +630,11 @@ export function HrWorkspace({ user }: { user: any }) {
               <p className="text-3xl font-bold text-[var(--primary)] mt-1 tabular-nums">
                 {leaveRequests.filter(l => {
                   const today = new Date().toISOString().split('T')[0];
-                  return l.status === 'APPROVED' && l.start <= today && l.end >= today;
+                  return (
+                    l.status === 'APPROVED' &&
+                    l.startDate.slice(0, 10) <= today &&
+                    l.endDate.slice(0, 10) >= today
+                  );
                 }).length}
               </p>
             </div>
@@ -736,7 +745,7 @@ export function HrWorkspace({ user }: { user: any }) {
             
             {/* Alerts section */}
             <div className="p-3 bg-red-50 border-b border-red-100 text-xs">
-              <span className="font-bold text-red-800">⚠️ Certification Expiry Alerts:</span> Dr. Amara Okafor's VIA/Cryotherapy Clinical Certification expires in less than 90 days (2026-11-15).
+              <span className="font-bold text-red-800">⚠️ Certification Expiry Alerts:</span> Dr. Amara Okafor&apos;s VIA/Cryotherapy Clinical Certification expires in less than 90 days (2026-11-15).
             </div>
 
             <table className="w-full text-left text-xs">
@@ -939,7 +948,7 @@ export function HrWorkspace({ user }: { user: any }) {
               <div><label className="block font-semibold mb-1">Staff Member *</label>
                 <select required value={leaveForm.staffId} onChange={e => setLeaveForm({ ...leaveForm, staffId: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2">
                   <option value="">-- Select Staff --</option>
-                  {staff.map(s => <option key={s.id} value={s.id}>{s.firstName} {s.lastName} - {s.role}</option>)}
+                  {staff.map(s => <option key={s.id} value={s.id}>{s.user?.firstName} {s.user?.lastName} - {s.user?.role}</option>)}
                 </select>
               </div>
               <div><label className="block font-semibold mb-1">Leave Type</label>
@@ -970,7 +979,7 @@ export function HrWorkspace({ user }: { user: any }) {
               <div><label className="block font-semibold mb-1">Staff Member *</label>
                 <select required value={attendanceForm.staffId} onChange={e => setAttendanceForm({ ...attendanceForm, staffId: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2">
                   <option value="">-- Select Staff --</option>
-                  {staff.map(s => <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
+                  {staff.map(s => <option key={s.id} value={s.id}>{s.user?.firstName} {s.user?.lastName}</option>)}
                 </select>
               </div>
               <div><label className="block font-semibold mb-1">Date</label><input type="date" required value={attendanceForm.date} onChange={e => setAttendanceForm({ ...attendanceForm, date: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>
@@ -996,7 +1005,7 @@ export function HrWorkspace({ user }: { user: any }) {
               <div><label className="block font-semibold mb-1">Staff Member *</label>
                 <select required value={performanceForm.staffId} onChange={e => setPerformanceForm({ ...performanceForm, staffId: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2">
                   <option value="">-- Select Staff --</option>
-                  {staff.map(s => <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
+                  {staff.map(s => <option key={s.id} value={s.id}>{s.user?.firstName} {s.user?.lastName}</option>)}
                 </select>
               </div>
               <div><label className="block font-semibold mb-1">Review Period</label>
@@ -1029,7 +1038,7 @@ export function HrWorkspace({ user }: { user: any }) {
               <div><label className="block font-semibold mb-1">Staff Member *</label>
                 <select required value={trainingForm.staffId} onChange={e => setTrainingForm({ ...trainingForm, staffId: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2">
                   <option value="">-- Select Staff --</option>
-                  {staff.map(s => <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
+                  {staff.map(s => <option key={s.id} value={s.id}>{s.user?.firstName} {s.user?.lastName}</option>)}
                 </select>
               </div>
               <div><label className="block font-semibold mb-1">Training Title *</label><input type="text" required value={trainingForm.title} onChange={e => setTrainingForm({ ...trainingForm, title: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2" /></div>

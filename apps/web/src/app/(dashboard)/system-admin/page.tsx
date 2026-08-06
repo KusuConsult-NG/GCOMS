@@ -1,5 +1,7 @@
 'use client';
 
+import { errorMessage } from '@/lib/errors';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
@@ -60,8 +62,8 @@ export default function SystemAdminDashboard() {
       setSuccess('Configuration updated successfully.');
       setKey('');
       setValue('');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Update failed');
+    } catch (err) {
+      setError(errorMessage(err, 'Update failed'));
     } finally {
       setSubmitting(false);
     }

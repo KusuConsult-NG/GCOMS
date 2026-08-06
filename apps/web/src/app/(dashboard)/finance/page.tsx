@@ -1,5 +1,7 @@
 'use client';
 
+import type { FinanceTransaction } from '@/types/api';
+
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -35,7 +37,7 @@ function FinancePageContent() {
   const allowedRoles = ['EXECUTIVE', 'BOARD', 'SYSTEM_ADMIN', 'ADMIN', 'FINANCE'];
 
   const [activeSubTab, setActiveSubTab] = useState<'ledger' | 'vouchers' | 'advances' | 'budgets' | 'accounts' | 'statements'>('ledger');
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [voucherFilter, setVoucherFilter] = useState('ALL');

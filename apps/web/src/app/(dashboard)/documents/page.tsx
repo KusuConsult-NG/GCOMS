@@ -1,5 +1,7 @@
 'use client';
 
+import { errorMessage } from '@/lib/errors';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
@@ -72,8 +74,8 @@ export default function DocumentsDashboard() {
       setTitle('');
       setUrl('');
       setVersion('1.0');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to upload document.');
+    } catch (err) {
+      setError(errorMessage(err, 'Failed to upload document.'));
     } finally {
       setSubmitting(false);
     }

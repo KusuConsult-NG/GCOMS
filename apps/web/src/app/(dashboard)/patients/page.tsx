@@ -34,9 +34,6 @@ export default function PatientsPage() {
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
 
-  useEffect(() => {
-    fetchPatients(search);
-  }, [search]);
 
   const fetchPatients = async (q: string) => {
     setLoading(true);
@@ -50,6 +47,10 @@ export default function PatientsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchPatients(search);
+  }, [search]);
 
   const loadProfile = async (id: string) => {
     setLoadingProfile(true);

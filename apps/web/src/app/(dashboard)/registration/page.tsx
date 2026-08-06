@@ -1,5 +1,7 @@
 'use client';
 
+import { errorMessage } from '@/lib/errors';
+
 import React, { useState } from 'react';
 import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
@@ -121,14 +123,13 @@ export default function RegistrationPage() {
         qrPassId: `QR-${res.data.registrationId}`,
         createdAt: new Date().toLocaleDateString(),
       });
-    } catch (err: any) {
+    } catch (err) {
       // This previously rendered the success screen and a QR identity pass when
       // the request failed, so a field worker got a confirmation for a patient
       // that was never saved.
-      const message =
-        err.response?.data?.message || err.message || 'Registration failed.';
+      const message = errorMessage(err, 'Registration failed.');
       setError(
-        `${Array.isArray(message) ? message.join('; ') : message} — the patient was NOT registered. Your entries have been kept; check your connection and try again.`,
+        `${message} — the patient was NOT registered. Your entries have been kept; check your connection and try again.`,
       );
     } finally {
       setLoading(false);
@@ -408,7 +409,7 @@ export default function RegistrationPage() {
             />
             <label htmlFor="consentGiven" className="text-xs text-[var(--on-background)] leading-relaxed cursor-pointer">
               <span className="font-bold block text-[var(--primary)]">Patient Informed Consent Confirmation *</span>
-              "I confirm that informed consent has been obtained from the participant for cervical cancer screening, VIA evaluation, follow-up communication, and secure digital records processing under GCOMS Clinical Trust."
+              &quot;I confirm that informed consent has been obtained from the participant for cervical cancer screening, VIA evaluation, follow-up communication, and secure digital records processing under GCOMS Clinical Trust.&quot;
             </label>
           </div>
 

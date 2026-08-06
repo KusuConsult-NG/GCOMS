@@ -1,14 +1,17 @@
 'use client';
 
+import { errorMessage } from '@/lib/errors';
+import type { FollowUp, PatientAssignment, Referral, Screening } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
 export function ClinicalWorkspace({ user }: { user: any }) {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'encounters' | 'vitals' | 'followups' | 'reports'>('dashboard');
-  const [assignments, setAssignments] = useState<any[]>([]);
-  const [upcomingFu, setUpcomingFu] = useState<any[]>([]);
-  const [missedFu, setMissedFu] = useState<any[]>([]);
+  const [assignments, setAssignments] = useState<PatientAssignment[]>([]);
+  const [upcomingFu, setUpcomingFu] = useState<FollowUp[]>([]);
+  const [missedFu, setMissedFu] = useState<FollowUp[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Clinical Encounter Form
@@ -50,7 +53,7 @@ export function ClinicalWorkspace({ user }: { user: any }) {
   });
 
   // Follow-ups Tab State
-  const [allFollowUps, setAllFollowUps] = useState<any[]>([]);
+  const [allFollowUps, setAllFollowUps] = useState<FollowUp[]>([]);
   const [showFuModal, setShowFuModal] = useState(false);
   const [fuForm, setFuForm] = useState({
     participantId: '',
@@ -86,7 +89,8 @@ export function ClinicalWorkspace({ user }: { user: any }) {
   // "JUTH Oncology"). It rendered for every clinician regardless of caseload, so
   // a nurse with no patients was shown four fabricated referrals — inventing
   // clinical data and bypassing PHI scoping at the same time.
-  const [referralTracking, setReferralTracking] = useState<any[]>([]);
+  const [referralTracking, setReferralTracking] = useState<Referral[]>([]);
+  const [screenings, setScreenings] = useState<Screening[]>([]);
 
   const fetchDashboardData = () => {
     Promise.all([
@@ -108,6 +112,7 @@ export function ClinicalWorkspace({ user }: { user: any }) {
 
   const fetchFollowUps = () => {
     api.get('/follow-ups').then(res => setAllFollowUps(res.data)).catch(console.error);
+    api.get('/screenings').then(res => setScreenings(res.data)).catch(console.error);
   };
 
   // Scoped by the API to the caller's caseload, so a clinician sees their own
@@ -166,8 +171,8 @@ export function ClinicalWorkspace({ user }: { user: any }) {
 
       setEncounterMessage('Clinical encounter & vital signs logged successfully!');
       setEncounterForm(prev => ({ ...prev, notes: '', diagnosis: '', treatmentPlan: '' }));
-    } catch (err: any) {
-      setEncounterMessage(err.response?.data?.message || 'Failed to save clinical encounter.');
+    } catch (err) {
+      setEncounterMessage(errorMessage(err, 'Failed to save clinical encounter.'));
     } finally {
       setSavingEncounter(false);
     }
@@ -192,8 +197,8 @@ export function ClinicalWorkspace({ user }: { user: any }) {
           .then(res => setPatientVitals(res.data))
           .catch(console.error);
       }
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to save vitals');
+    } catch (err) {
+      alert(errorMessage(err, 'Failed to save vitals'));
     }
   };
 
@@ -209,8 +214,8 @@ export function ClinicalWorkspace({ user }: { user: any }) {
       });
       setShowFuModal(false);
       fetchFollowUps();
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to save follow-up');
+    } catch (err) {
+      alert(errorMessage(err, 'Failed to save follow-up'));
     }
   };
 
@@ -218,8 +223,8 @@ export function ClinicalWorkspace({ user }: { user: any }) {
     try {
       await api.patch(`/follow-ups/${id}/status`, { status });
       fetchFollowUps();
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to update status');
+    } catch (err) {
+      alert(errorMessage(err, 'Failed to update status'));
     }
   };
 
@@ -410,7 +415,7 @@ export function ClinicalWorkspace({ user }: { user: any }) {
                 <input type="text" required value={encounterForm.diagnosis} onChange={e => setEncounterForm({ ...encounterForm, diagnosis: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
               </div>
               <div>
-                <label className="block font-semibold text-[var(--on-background)] mb-1">Clinical Examination & Doctor's Notes *</label>
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Clinical Examination & Doctor&apos;s Notes *</label>
                 <textarea required rows={3} value={encounterForm.notes} onChange={e => setEncounterForm({ ...encounterForm, notes: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
               </div>
               <div>
@@ -563,9 +568,9 @@ export function ClinicalWorkspace({ user }: { user: any }) {
                 ) : allFollowUps.map(fu => (
                   <tr key={fu.id} className="hover:bg-[var(--primary-surface)]">
                     <td className="p-3 font-bold">{fu.participant?.firstName} {fu.participant?.lastName}</td>
-                    <td className="p-3">{fu.type.replace('_', ' ')}</td>
+                    <td className="p-3">{fu.notes || 'Follow-up'}</td>
                     <td className="p-3 tabular-nums">{new Date(fu.scheduledDate).toLocaleDateString()}</td>
-                    <td className="p-3">{fu.assignedTo || 'Unassigned'}</td>
+                    <td className="p-3">{fu.clinician ? `${fu.clinician.firstName} ${fu.clinician.lastName}` : 'Unassigned'}</td>
                     <td className="p-3">
                       <span className={`px-2 py-1 rounded text-[10px] font-bold ${
                         fu.status === 'COMPLETED' ? 'bg-[var(--risk-low-bg)] text-[var(--risk-low-text)]' :
@@ -604,13 +609,13 @@ export function ClinicalWorkspace({ user }: { user: any }) {
             <div className="clinical-card bg-white p-4 rounded border border-[var(--outline)]">
               <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">VIA Screenings</span>
               <p className="text-2xl font-bold text-[var(--primary)] mt-1 tabular-nums">
-                {assignments.filter(e => e.encounterType === 'VIA_SCREENING' || e.screeningType === 'VIA').length}
+                {screenings.filter(sc => (sc.cancerType || '').toUpperCase().includes('CERVICAL')).length}
               </p>
             </div>
             <div className="clinical-card bg-white p-4 rounded border border-[var(--outline)]">
               <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Positive Cases</span>
               <p className="text-2xl font-bold text-[var(--risk-high-text)] mt-1 tabular-nums">
-                {assignments.filter(e => e.viaResult === 'POSITIVE' || e.outcome?.includes('POSITIVE')).length}
+                {screenings.filter(sc => (sc.result || '').toUpperCase().includes('POSITIVE')).length}
               </p>
             </div>
             <div className="clinical-card bg-white p-4 rounded border border-[var(--outline)]">
@@ -662,8 +667,8 @@ export function ClinicalWorkspace({ user }: { user: any }) {
                   {referralTracking.map(rt => (
                     <tr key={rt.id}>
                       <td className="p-3">{rt.participantId}</td>
-                      <td className="p-3">{rt.condition}</td>
-                      <td className="p-3">{rt.destination}</td>
+                      <td className="p-3">{rt.reason}</td>
+                      <td className="p-3">{rt.referredTo}</td>
                       <td className="p-3 font-bold">{rt.status}</td>
                     </tr>
                   ))}

@@ -1,11 +1,14 @@
 'use client';
 
+import { errorMessage } from '@/lib/errors';
+import type { Participant, Screening } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
 export default function ScreeningsPage() {
-  const [participants, setParticipants] = useState<any[]>([]);
-  const [screenings, setScreenings] = useState<any[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [screenings, setScreenings] = useState<Screening[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [formData, setFormData] = useState({
@@ -18,9 +21,6 @@ export default function ScreeningsPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   const fetchData = async () => {
     setLoading(true);
@@ -41,6 +41,10 @@ export default function ScreeningsPage() {
     }
   };
 
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
@@ -54,8 +58,8 @@ export default function ScreeningsPage() {
       await api.post('/screenings', formData);
       setMessage('Screening recorded successfully!');
       fetchData();
-    } catch (err: any) {
-      setMessage(err.response?.data?.message || 'Failed to record screening.');
+    } catch (err) {
+      setMessage(errorMessage(err, 'Failed to record screening.'));
     } finally {
       setSaving(false);
     }

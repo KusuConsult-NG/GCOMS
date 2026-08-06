@@ -1,11 +1,14 @@
 'use client';
+
+import { errorMessage } from '@/lib/errors';
+import type { PatientAssignment } from '@/types/api';
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
 export default function ClinicalDashboard() {
   const { user } = useAuthStore();
-  const [assignments, setAssignments] = useState<any[]>([]);
+  const [assignments, setAssignments] = useState<PatientAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [assignForm, setAssignForm] = useState({ participantId: '', clinicianId: '' });
   const [message, setMessage] = useState('');
@@ -14,9 +17,6 @@ export default function ClinicalDashboard() {
   const [editEncounterId, setEditEncounterId] = useState('');
   const [newNotes, setNewNotes] = useState('');
 
-  useEffect(() => {
-    fetchAssignments();
-  }, [user]);
 
   const fetchAssignments = async () => {
     try {
@@ -29,6 +29,10 @@ export default function ClinicalDashboard() {
     }
   };
 
+  useEffect(() => {
+    fetchAssignments();
+  }, [user]);
+
   const handleAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -36,8 +40,8 @@ export default function ClinicalDashboard() {
       setMessage('Patient assigned successfully!');
       fetchAssignments();
       setAssignForm({ participantId: '', clinicianId: '' });
-    } catch (err: any) {
-      setMessage(err.response?.data?.message || 'Failed to assign patient.');
+    } catch (err) {
+      setMessage(errorMessage(err, 'Failed to assign patient.'));
     }
   };
 
@@ -48,8 +52,8 @@ export default function ClinicalDashboard() {
       setMessage('Clinical note updated (Audit log created).');
       setEditEncounterId('');
       setNewNotes('');
-    } catch (err: any) {
-      setMessage(err.response?.data?.message || 'Failed to update note.');
+    } catch (err) {
+      setMessage(errorMessage(err, 'Failed to update note.'));
     }
   };
 

@@ -1,5 +1,7 @@
 'use client';
 
+import type { InventoryItem, StockMovement } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -7,7 +9,7 @@ import { api } from '@/lib/api';
 export function InventoryWorkspace({ user }: { user: any }) {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'consumables' | 'assets' | 'movements' | 'reorder' | 'maintenance'>('consumables');
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState<null | 'stock' | 'asset' | 'issue' | 'reorder' | 'maintenance' | 'maintenance_complete'>(null);
 
@@ -19,7 +21,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
     assetName: '', assetTag: '', category: 'MEDICAL_EQUIPMENT', serialNumber: '', acquisitionDate: '', purchaseCost: '', currentLocation: '', assignedTo: '', condition: 'GOOD'
   });
 
-  const [movements, setMovements] = useState<any[]>([]);
+  const [movements, setMovements] = useState<StockMovement[]>([]);
 
   const [movementForm, setMovementForm] = useState({
     type: 'STOCK_RECEIPT', itemId: '', qty: '', from: '', to: '', ref: '', remarks: '', date: new Date().toISOString().split('T')[0], authorized: ''
@@ -128,30 +130,32 @@ export function InventoryWorkspace({ user }: { user: any }) {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const item = items.find(i => i.id === movementForm.itemId || i.id === parseInt(movementForm.itemId));
+      const item = items.find((i) => i.id === movementForm.itemId);
       const mQty = parseInt(movementForm.qty) || 0;
       if (item) {
-        let newQty = parseInt(item.quantity);
+        let newQty = item.quantity;
         if (movementForm.type === 'STOCK_RECEIPT') newQty += mQty;
         else if (movementForm.type === 'STOCK_ISSUE' || movementForm.type === 'DISPOSAL') newQty -= mQty;
         else if (movementForm.type === 'ADJUSTMENT') newQty += mQty; 
         await api.patch(`/inventory/${item.id}`, { quantity: newQty });
       }
-      setMovements([...movements, {
-        id: Date.now(),
+      // Was pushed into local state with `id: Date.now()` and a shape of its
+      // own — so the ledger showed the movement until reload, while the stock
+      // level it had just adjusted persisted. The two disagreed from then on.
+      await api.post('/operations/stock-movements', {
+        inventoryItemId: movementForm.itemId,
         type: movementForm.type,
-        item: item ? item.itemName || item.name : 'Unknown Item',
-        qty: mQty,
-        from: movementForm.from,
-        to: movementForm.to,
-        ref: movementForm.ref,
-        authorized: movementForm.authorized,
-        date: movementForm.date,
-        remarks: movementForm.remarks
-      }]);
+        quantity: mQty,
+        fromLocation: movementForm.from || undefined,
+        toLocation: movementForm.to || undefined,
+        reference: movementForm.ref || undefined,
+        authorisedBy: movementForm.authorized || undefined,
+        movementDate: new Date(movementForm.date).toISOString(),
+        remarks: movementForm.remarks || undefined,
+      });
       setActiveModal(null);
       setMovementForm({ type: 'STOCK_RECEIPT', itemId: '', qty: '', from: '', to: '', ref: '', remarks: '', date: new Date().toISOString().split('T')[0], authorized: '' });
-      fetchInventory();
+      await Promise.all([fetchInventory(), fetchMovements()]);
     } catch (err) {
       console.error('Failed to record movement', err);
     } finally {
@@ -164,7 +168,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
     setSubmitting(true);
     try {
       await api.post('/inventory', {
-        itemName: `[REORDER] ${reorderItem.itemName || reorderItem.name}`,
+        itemName: `[REORDER] ${reorderItem.itemName}`,
         category: reorderItem.category,
         quantity: reorderForm.reorderQty,
         unit: reorderItem.unit,
@@ -227,7 +231,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
 
   const lowStockItems = items.filter(i => {
     const qty = Number(i.quantity);
-    const min = Number(i.minThreshold) || 10;
+    const min = i.minThreshold;
     return qty <= min;
   });
 
@@ -334,13 +338,13 @@ export function InventoryWorkspace({ user }: { user: any }) {
                 <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
                   {items.map((i) => (
                     <tr key={i.id} className="hover:bg-[var(--primary-surface)]">
-                      <td className="p-3 font-bold text-[var(--primary)]">{i.itemName || i.name}</td>
+                      <td className="p-3 font-bold text-[var(--primary)]">{i.itemName}</td>
                       <td className="p-3 text-[var(--secondary)] font-semibold">{i.category}</td>
                       <td className="p-3 font-bold font-mono tabular-nums text-[var(--primary)]">{i.quantity} {i.unit}</td>
-                      <td className="p-3 text-[var(--muted)] font-mono tabular-nums">{i.minThreshold || 10} {i.unit}</td>
+                      <td className="p-3 text-[var(--muted)] font-mono tabular-nums">{i.minThreshold} {i.unit}</td>
                       <td className="p-3">
-                        <span className={Number(i.quantity) <= Number(i.minThreshold || 10) ? 'px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800' : 'badge-low-risk'}>
-                          {Number(i.quantity) <= Number(i.minThreshold || 10) ? 'REORDER LOW' : 'OPTIMAL'}
+                        <span className={Number(i.quantity) <= i.minThreshold ? 'px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800' : 'badge-low-risk'}>
+                          {Number(i.quantity) <= i.minThreshold ? 'REORDER LOW' : 'OPTIMAL'}
                         </span>
                       </td>
                     </tr>
@@ -375,16 +379,15 @@ export function InventoryWorkspace({ user }: { user: any }) {
               </thead>
               <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
                 {assetItems.map((a, i) => {
-                  const details = a.assetDetails || {};
                   return (
                     <tr key={i} className="hover:bg-[var(--primary-surface)]">
-                      <td className="p-3"><span className="text-[10px] font-mono font-bold bg-green-100 text-green-800 px-2 py-0.5 rounded border border-green-200">{details.assetTag || 'TAG-PENDING'}</span></td>
-                      <td className="p-3 font-bold text-[var(--primary)]">{a.itemName || a.name}</td>
+                      <td className="p-3"><span className="text-[10px] font-mono font-bold bg-green-100 text-green-800 px-2 py-0.5 rounded border border-green-200">{a.assetTag || 'TAG-PENDING'}</span></td>
+                      <td className="p-3 font-bold text-[var(--primary)]">{a.itemName}</td>
                       <td className="p-3 text-[var(--secondary)] font-semibold">{a.category}</td>
-                      <td className="p-3 font-mono">{details.serialNumber || '-'}</td>
-                      <td className="p-3">{details.currentLocation || '-'}</td>
-                      <td className="p-3">{details.assignedTo || '-'}</td>
-                      <td className="p-3">{details.condition || 'GOOD'}</td>
+                      <td className="p-3 font-mono">{a.serialNumber || '-'}</td>
+                      <td className="p-3">{a.currentLocation || '-'}</td>
+                      <td className="p-3">{a.assignedTo || '-'}</td>
+                      <td className="p-3">{a.condition || 'GOOD'}</td>
                       <td className="p-3"><span className="badge-low-risk">ACTIVE</span></td>
                     </tr>
                   )
@@ -456,7 +459,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
             </div>
             <div className="clinical-card border-blue-200 bg-blue-50">
               <span className="text-xs font-semibold text-blue-800 uppercase">Est. Reorder Value</span>
-              <p className="text-3xl font-bold text-blue-900 mt-1">₦{items.filter(i => (Number(i.quantity) || 0) <= (Number(i.minThreshold) || 10)).reduce((sum, i) => sum + ((Number(i.minThreshold) || 10) * 2 * (i.unitPrice || 5000)), 0).toLocaleString()}</p>
+              <p className="text-3xl font-bold text-blue-900 mt-1">₦{items.filter(i => (Number(i.quantity) || 0) <= (i.minThreshold)).reduce((sum, i) => sum + ((i.minThreshold) * 2 * Number(i.unitPrice ?? 0)), 0).toLocaleString()}</p>
             </div>
           </div>
           <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
@@ -475,7 +478,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
                   return (
                     <div key={idx} className="p-4 border border-[var(--outline)] rounded-lg shadow-sm space-y-3">
                       <div className="flex justify-between items-start">
-                        <h3 className="font-bold text-[var(--primary)]">{i.itemName || i.name}</h3>
+                        <h3 className="font-bold text-[var(--primary)]">{i.itemName}</h3>
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${isOOS ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'}`}>
                           {isOOS ? 'OUT_OF_STOCK' : 'LOW_STOCK'}
                         </span>
@@ -492,7 +495,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
                       </div>
                       <button onClick={() => {
                         setReorderItem(i);
-                        setReorderForm({ reorderQty: (Number(i.minThreshold) || 10) * 2, vendor: '', urgency: isOOS ? 'URGENT' : 'STANDARD' });
+                        setReorderForm({ reorderQty: (i.minThreshold) * 2, vendor: '', urgency: isOOS ? 'URGENT' : 'STANDARD' });
                         setActiveModal('reorder');
                       }} className="w-full btn-primary text-xs bg-[var(--nav-surface)] hover:bg-[var(--nav-surface-raised)]">
                         Raise Reorder Requisition
@@ -695,7 +698,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
                   <label className="block font-semibold text-[var(--on-background)] mb-1">Item *</label>
                   <select required value={movementForm.itemId} onChange={e => setMovementForm({ ...movementForm, itemId: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                     <option value="">-- Select Item --</option>
-                    {items.map(i => <option key={i.id} value={i.id}>{i.itemName || i.name} ({i.quantity} in stock)</option>)}
+                    {items.map(i => <option key={i.id} value={i.id}>{i.itemName} ({i.quantity} in stock)</option>)}
                   </select>
                 </div>
                 <div>
@@ -747,7 +750,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
             <form onSubmit={handleReorderSubmit} className="space-y-4 text-xs">
               <div>
                 <label className="block font-semibold text-[var(--on-background)] mb-1">Item</label>
-                <input type="text" readOnly value={reorderItem.itemName || reorderItem.name} className="w-full bg-gray-100 border border-[var(--outline)] rounded px-3 py-2 text-xs text-gray-600" />
+                <input type="text" readOnly value={reorderItem.itemName} className="w-full bg-gray-100 border border-[var(--outline)] rounded px-3 py-2 text-xs text-gray-600" />
               </div>
               <div>
                 <label className="block font-semibold text-[var(--on-background)] mb-1">Recommended Reorder Qty *</label>

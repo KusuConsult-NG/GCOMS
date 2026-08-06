@@ -1,13 +1,15 @@
 'use client';
 
+import type { LocationRecord, OutreachEvent } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
 export default function OutreachPage() {
   const { user } = useAuthStore();
-  const [outreaches, setOutreaches] = useState<any[]>([]);
-  const [locations, setLocations] = useState<any[]>([]);
+  const [outreaches, setOutreaches] = useState<OutreachEvent[]>([]);
+  const [locations, setLocations] = useState<LocationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [title, setTitle] = useState('');

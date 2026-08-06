@@ -1,5 +1,7 @@
 'use client';
 
+import { errorMessage, errorStatus } from '@/lib/errors';
+
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -33,10 +35,10 @@ function LoginForm() {
       });
       setAuth(response.data.user, response.data.access_token);
       router.push('/');
-    } catch (err: any) {
+    } catch (err) {
       console.error('Login authentication error:', err);
-      const msg = err.response?.data?.message || err.message;
-      if (err.response?.status === 401) {
+      const msg = errorMessage(err, 'Sign-in failed.');
+      if (errorStatus(err) === 401) {
         setError('Invalid email or password. Please check your credentials.');
       } else {
         setError(typeof msg === 'string' ? msg : 'Unable to connect to authentication server.');

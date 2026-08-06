@@ -191,6 +191,21 @@ model InventoryItem {
   quantity    Int
   unit        String
   location    String
+  /// The reorder point for this item. The stock screen has always shown and
+  /// used one, falling back to a hardcoded 10 for every item because there was
+  /// nowhere to store what the form collected.
+  minThreshold Int     @default(10)
+  /// Used for the reorder value estimate, which fell back to a flat ₦5,000 per
+  /// item — a fabricated number in a financial figure.
+  unitPrice   Decimal?
+  /// Fixed-asset register fields, for items of category EQUIPMENT/ASSET. The
+  /// asset tab rendered all five off an `assetDetails` object that no endpoint
+  /// ever returned, so every row showed "TAG-PENDING" and blanks.
+  assetTag        String?  @unique
+  serialNumber    String?
+  currentLocation String?
+  assignedTo      String?
+  condition       String?  // NEW, GOOD, FAIR, NEEDS_REPAIR, RETIRED
   status      String   @default("IN_STOCK") // IN_STOCK, LOW_STOCK, OUT_OF_STOCK
   managedById String
   managedBy   User     @relation("ManagedInventory", fields: [managedById], references: [id])
@@ -556,9 +571,18 @@ model EquipmentServiceLog {
 
 model BoardResolution {
   id              String   @id @default(uuid())
+  /// Allocated by the server. The screen used to mint RES-<year>-<count+1>,
+  /// which repeats as soon as two people table one against the same list — and
+  /// this column is unique.
   resolutionNo    String   @unique
   title           String
   description     String
+  /// Who moved it and who seconded it: the minimum a minuted resolution needs
+  /// to be traceable. The form collected both and discarded them.
+  resolutionType  String   @default("POLICY") // POLICY, FINANCIAL_APPROVAL, PROGRAMME_APPROVAL, PERSONNEL, GOVERNANCE_AMENDMENT
+  meetingDate     DateTime?
+  proposedBy      String?
+  secondedBy      String?
   votesFor        Int      @default(0)
   votesAgainst    Int      @default(0)
   abstentions     Int      @default(0)

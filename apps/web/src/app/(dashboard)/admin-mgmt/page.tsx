@@ -1,5 +1,7 @@
 'use client';
 
+import { errorMessage } from '@/lib/errors';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
@@ -68,8 +70,8 @@ export default function AdminDashboard() {
       setSuccess('Facility request submitted successfully. It is now pending executive approval.');
       setFacilityName('');
       setDescription('');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Submission failed');
+    } catch (err) {
+      setError(errorMessage(err, 'Submission failed'));
     } finally {
       setSubmitting(false);
     }

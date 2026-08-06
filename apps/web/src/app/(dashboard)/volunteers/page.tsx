@@ -1,5 +1,7 @@
 'use client';
 
+import type { UserRecord, VolunteerProfile } from '@/types/api';
+
 import { api } from '@/lib/api';
 import React, { useState, useEffect } from 'react';
 
@@ -26,51 +28,66 @@ const PLATEAU_LGAS = [
 export default function VolunteersPage() {
   // Volunteer rosters live in VolunteerProfile. This page made no API calls at
   // all — every name on it was invented.
-  const [volunteers, setVolunteers] = useState<any[]>([]);
+  const [volunteers, setVolunteers] = useState<VolunteerProfile[]>([]);
+
+  // Flattened into a different shape on the way in, which is what made
+  // `v.firstName` look right. Kept as the API sends it instead.
+  const fetchVolunteers = async () => {
+    try {
+      setVolunteers((await api.get('/operations/volunteers')).data);
+    } catch (err) {
+      console.error('Failed to fetch volunteers', err);
+    }
+  };
+
+  const fetchCandidates = async () => {
+    try {
+      const res = await api.get('/users');
+      setCandidates(
+        (res.data as UserRecord[]).filter(
+          (u) => u.role === 'VOLUNTEER' && u.isActive,
+        ),
+      );
+    } catch (err) {
+      // Not every role that can see this page may list users; the picker simply
+      // stays empty rather than the page failing.
+      console.error('Failed to fetch volunteer accounts', err);
+    }
+  };
 
   useEffect(() => {
-    api.get('/operations/volunteers')
-      .then(res => setVolunteers(res.data.map((v: any) => ({
-        id: v.id,
-        firstName: v.user?.firstName ?? '',
-        lastName: v.user?.lastName ?? '',
-        email: v.user?.email ?? '',
-        phone: '',
-        lga: v.lga,
-        ward: v.ward ?? '',
-        address: v.address ?? '',
-        status: v.status,
-      }))))
-      .catch(err => console.error('Failed to fetch volunteers', err));
+    fetchVolunteers();
+    fetchCandidates();
   }, []);
 
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    lga: 'Barkin Ladi LGA',
-    ward: '',
-    address: '',
-  });
+  const [formData, setFormData] = useState({ userId: '', lga: 'Barkin Ladi LGA', ward: '', address: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const [candidates, setCandidates] = useState<UserRecord[]>([]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // A volunteer profile attaches to an existing user account, which is why the
+  // form now picks one rather than collecting a name and an email: this used to
+  // build a record in local state with `id: Date.now()` and never call the API,
+  // so a registration survived exactly as long as the tab stayed open.
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.lga) {
-      alert('Local Government Area (LGA) is mandatory!');
-      return;
+    if (!formData.userId || !formData.lga) return;
+    setSubmitting(true);
+    try {
+      await api.post('/operations/volunteers', {
+        userId: formData.userId,
+        lga: formData.lga,
+        ward: formData.ward || undefined,
+        address: formData.address || undefined,
+      });
+      setShowModal(false);
+      setFormData({ userId: '', lga: 'Barkin Ladi LGA', ward: '', address: '' });
+      await fetchVolunteers();
+    } catch (err) {
+      console.error('Failed to register volunteer', err);
+    } finally {
+      setSubmitting(false);
     }
-    setVolunteers([
-      {
-        id: Date.now(),
-        ...formData,
-        status: 'Active',
-      },
-      ...volunteers,
-    ]);
-    setShowModal(false);
-    setFormData({ firstName: '', lastName: '', email: '', phone: '', lga: 'Barkin Ladi LGA', ward: '', address: '' });
   };
 
   return (
@@ -99,26 +116,23 @@ export default function VolunteersPage() {
             <form onSubmit={handleSubmit} className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block font-semibold text-[var(--on-background)] mb-1">First Name *</label>
-                  <input
-                    type="text"
+                  <label className="block font-semibold text-[var(--on-background)] mb-1">Volunteer account *</label>
+                  <select
                     required
-                    value={formData.firstName}
-                    onChange={e => setFormData({ ...formData, firstName: e.target.value })}
-                    placeholder="e.g. Grace"
+                    value={formData.userId}
+                    onChange={e => setFormData({ ...formData, userId: e.target.value })}
                     className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-[var(--on-background)] mb-1">Last Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.lastName}
-                    onChange={e => setFormData({ ...formData, lastName: e.target.value })}
-                    placeholder="e.g. Gyang"
-                    className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs"
-                  />
+                  >
+                    <option value="">Select a volunteer account…</option>
+                    {candidates.map(u => (
+                      <option key={u.id} value={u.id}>{u.firstName} {u.lastName} — {u.email}</option>
+                    ))}
+                  </select>
+                  {candidates.length === 0 && (
+                    <p className="text-[10px] text-[var(--muted)] mt-1">
+                      No volunteer accounts available. An administrator creates the account first; this form attaches the field posting to it.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -162,28 +176,6 @@ export default function VolunteersPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block font-semibold text-[var(--on-background)] mb-1">Phone Number</label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="08030000000"
-                    className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-[var(--on-background)] mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="volunteer@gcoms.org"
-                    className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs font-mono"
-                  />
-                </div>
-              </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
                 <button type="button" onClick={() => setShowModal(false)} className="btn-secondary text-xs">Cancel</button>
@@ -215,7 +207,7 @@ export default function VolunteersPage() {
           <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
             {volunteers.map((v) => (
               <tr key={v.id} className="hover:bg-[var(--primary-surface)]">
-                <td className="p-3 font-bold text-[var(--primary)]">{v.firstName} {v.lastName}</td>
+                <td className="p-3 font-bold text-[var(--primary)]">{v.user ? `${v.user.firstName} ${v.user.lastName}` : 'Unknown'}</td>
                 <td className="p-3">
                   <span className="px-2 py-0.5 rounded bg-[var(--secondary)] text-white text-[10px] font-bold">
                     {v.lga}
@@ -223,7 +215,7 @@ export default function VolunteersPage() {
                 </td>
                 <td className="p-3 font-semibold text-[var(--on-background)]">{v.ward || '—'}</td>
                 <td className="p-3 text-[var(--on-surface-variant)]">{v.address || '—'}</td>
-                <td className="p-3 font-mono text-[var(--muted)]">{v.phone}</td>
+                <td className="p-3 font-mono text-[var(--muted)]">{v.user?.email ?? '—'}</td>
                 <td className="p-3"><span className="badge-low-risk">{v.status}</span></td>
               </tr>
             ))}

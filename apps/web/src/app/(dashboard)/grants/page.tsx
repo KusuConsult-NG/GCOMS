@@ -1,5 +1,7 @@
 'use client';
 
+import type { Donor, Grant, GrantMilestone, GrantProposal, ReportSchedule } from '@/types/api';
+
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -12,7 +14,7 @@ function GrantsPageContent() {
   const allowedRoles = ['EXECUTIVE', 'BOARD', 'SUPER_ADMIN', 'SYSTEM_ADMIN', 'ADMIN', 'GRANT_MANAGER'];
 
   const [activeTab, setActiveTab] = useState<'grants' | 'pipeline' | 'donors' | 'milestones' | 'reports'>('grants');
-  const [grants, setGrants] = useState<any[]>([]);
+  const [grants, setGrants] = useState<Grant[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState<null | 'grant' | 'donor' | 'milestone' | 'pipeline' | 'report' | 'milestone_progress' | 'report_submit'>(null);
 
@@ -21,21 +23,21 @@ function GrantsPageContent() {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  const [donors, setDonors] = useState<any[]>([]);
-  const [donorForm, setDonorForm] = useState({ org: '', country: '', type: 'BILATERAL', contact: '', title: '', email: '', phone: '', interests: [] as string[], lastComm: '', notes: '' });
+  const [donors, setDonors] = useState<Donor[]>([]);
+  const [donorForm, setDonorForm] = useState({ organisation: '', country: '', type: 'BILATERAL', contactName: '', contactTitle: '', email: '', phone: '', interests: [] as string[], lastContact: '', notes: '' });
 
   // Milestones live in the GrantMilestone table. This was a hardcoded array
   // while six real rows sat in the database with no endpoint to read them.
-  const [milestones, setMilestones] = useState<any[]>([]);
+  const [milestones, setMilestones] = useState<GrantMilestone[]>([]);
   const [milestoneForm, setMilestoneForm] = useState({ grantId: '', title: '', description: '', due: '', metric: '' });
-  const [milestoneUpdateData, setMilestoneUpdateData] = useState({ id: 0, progress: 0, notes: '' });
+  const [milestoneUpdateData, setMilestoneUpdateData] = useState({ id: '', progress: 0, notes: '' });
 
-  const [pipeline, setPipeline] = useState<any[]>([]);
+  const [pipeline, setPipeline] = useState<GrantProposal[]>([]);
   const [pipelineForm, setPipelineForm] = useState({ title: '', donor: '', value: '', deadline: '', status: 'ELIGIBLE', stage: 'IDENTIFIED', notes: '' });
 
-  const [reports, setReports] = useState<any[]>([]);
-  const [reportForm, setReportForm] = useState({ grant: '', type: 'QUARTERLY', title: '', due: '', officer: '' });
-  const [reportSubmitData, setReportSubmitData] = useState({ id: 0, submitDate: '', ref: '' });
+  const [reports, setReports] = useState<ReportSchedule[]>([]);
+  const [reportForm, setReportForm] = useState({ grantId: '', type: 'QUARTERLY', title: '', dueDate: '', officer: '' });
+  const [reportSubmitData, setReportSubmitData] = useState({ id: '', submitDate: '', ref: '' });
 
   useEffect(() => {
     const tabParam = searchParams.get('tab');
@@ -52,7 +54,7 @@ function GrantsPageContent() {
       const allGrants = res.data || [];
       const donorRecords = allGrants.filter((g: any) => g.type === 'DONOR_RECORD' || g.grantType === 'DONOR_RECORD');
       if (donorRecords.length > 0) {
-        setDonors(prev => [...prev.filter(d => !donorRecords.find((dr: any) => dr.donorName === d.org)), ...donorRecords.map((dr: any) => ({ ...dr, id: dr.id || Date.now(), org: dr.donorName, country: dr.country || '', type: dr.type || 'BILATERAL', contact: dr.contact || '', title: dr.title || '', email: dr.email || '', phone: dr.phone || '', interests: dr.interests || [], lastComm: dr.lastComm || '', notes: dr.notes || '' }))]);
+        setDonors(prev => [...prev.filter(d => !donorRecords.find((dr: any) => dr.donorName === d.organisation)), ...donorRecords.map((dr: any) => ({ ...dr, id: dr.id || Date.now(), org: dr.donorName, country: dr.country || '', type: dr.type || 'BILATERAL', contact: dr.contact || '', title: dr.title || '', email: dr.email || '', phone: dr.phone || '', interests: dr.interests || [], lastComm: dr.lastComm || '', notes: dr.notes || '' }))]);
       }
     } catch (err) {
       console.error('Failed to load grants', err);
@@ -61,19 +63,7 @@ function GrantsPageContent() {
     }
   };
 
-  useEffect(() => {
-    if (user && allowedRoles.includes(user.role)) {
-      fetchGrants();
-      fetchMilestones();
-      fetchProposals();
-      fetchDonors();
-      fetchReportSchedules();
-    }
-  }, [user]);
 
-  if (user && !allowedRoles.includes(user.role)) {
-    return <AccessDenied requiredRole="Grant Manager / Executive" />;
-  }
 
   const handleGrantSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,14 +80,35 @@ function GrantsPageContent() {
     }
   };
 
-  const handleDonorSubmit = (e: React.FormEvent) => {
+  // A Donor table does exist — POST /operations/donors. The comment that used to
+  // sit here said otherwise and the record lived in local state.
+  const handleDonorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setDonors([...donors, { id: Date.now(), ...donorForm }]);
-    // NOT PERSISTED. There is no donor table; this POST fabricated a Grant row,
-    // was rejected 400, and the error was swallowed so the screen looked saved.
-    // Kept as local state until a Donor model exists, rather than pretending.
-    setActiveModal(null);
-    setDonorForm({ org: '', country: '', type: 'BILATERAL', contact: '', title: '', email: '', phone: '', interests: [], lastComm: '', notes: '' });
+    setSubmitting(true);
+    try {
+      await api.post('/operations/donors', {
+        organisation: donorForm.organisation,
+        country: donorForm.country || undefined,
+        type: donorForm.type,
+        contactName: donorForm.contactName || undefined,
+        contactTitle: donorForm.contactTitle || undefined,
+        email: donorForm.email || undefined,
+        phone: donorForm.phone || undefined,
+        // The column is comma-separated; SQLite has no array type.
+        interests: donorForm.interests.join(',') || undefined,
+        lastContact: donorForm.lastContact
+          ? new Date(donorForm.lastContact).toISOString()
+          : undefined,
+        notes: donorForm.notes || undefined,
+      });
+      setActiveModal(null);
+      setDonorForm({ organisation: '', country: '', type: 'BILATERAL', contactName: '', contactTitle: '', email: '', phone: '', interests: [], lastContact: '', notes: '' });
+      await fetchDonors();
+    } catch (err) {
+      console.error('Failed to add donor', err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const fetchDonors = async () => {
@@ -124,6 +135,24 @@ function GrantsPageContent() {
       console.error('Failed to fetch milestones', err);
     }
   };
+
+  useEffect(() => {
+    if (user && allowedRoles.includes(user.role)) {
+      fetchGrants();
+      fetchMilestones();
+      fetchProposals();
+      fetchDonors();
+      fetchReportSchedules();
+    }
+  }, [user]);
+
+  // Below every hook. As an early return above them it sat between the hooks
+  // declared before it and the effect declared after, so a render that denied
+  // access ran a different number of hooks than one that did not — which React
+  // detects as "rendered fewer hooks than expected".
+  if (user && !allowedRoles.includes(user.role)) {
+    return <AccessDenied requiredRole="Grant Manager / Executive" />;
+  }
 
   const handleMilestoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,7 +189,6 @@ function GrantsPageContent() {
 
   const handlePipelineSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setPipeline([...pipeline, { id: Date.now(), ...pipelineForm, value: Number(pipelineForm.value) }]);
     // Was POSTing a fabricated Grant row and swallowing the 400. GrantProposal
     // is the table for pipeline opportunities.
     api.post('/grants/proposals', {
@@ -177,18 +205,41 @@ function GrantsPageContent() {
     setPipelineForm({ title: '', donor: '', value: '', deadline: '', status: 'ELIGIBLE', stage: 'IDENTIFIED', notes: '' });
   };
 
-  const handleReportSubmit = (e: React.FormEvent) => {
+  // GrantReportSchedule is a real table; the note that used to sit here said
+  // there was none.
+  const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setReports([...reports, { id: Date.now(), ...reportForm, status: 'UPCOMING' }]);
-    // NOT PERSISTED — no report-schedule table. See the donor note above.
-    setActiveModal(null);
-    setReportForm({ grant: '', type: 'QUARTERLY', title: '', due: '', officer: '' });
+    setSubmitting(true);
+    try {
+      await api.post('/operations/report-schedules', {
+        grantId: reportForm.grantId,
+        title: reportForm.title,
+        type: reportForm.type,
+        dueDate: new Date(reportForm.dueDate).toISOString(),
+        officer: reportForm.officer || undefined,
+      });
+      setActiveModal(null);
+      setReportForm({ grantId: '', type: 'QUARTERLY', title: '', dueDate: '', officer: '' });
+      await fetchReportSchedules();
+    } catch (err) {
+      console.error('Failed to schedule report', err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleReportMarkSubmitted = (e: React.FormEvent) => {
+  const handleReportMarkSubmitted = async (e: React.FormEvent) => {
     e.preventDefault();
-    setReports(reports.map(r => r.id === reportSubmitData.id ? { ...r, status: 'SUBMITTED' } : r));
-    setActiveModal(null);
+    try {
+      await api.patch(`/operations/report-schedules/${reportSubmitData.id}`, {
+        status: 'SUBMITTED',
+        submittedAt: new Date().toISOString(),
+      });
+      setActiveModal(null);
+      await fetchReportSchedules();
+    } catch (err) {
+      console.error('Failed to mark report submitted', err);
+    }
   };
 
   const toggleInterest = (interest: string) => {
@@ -292,7 +343,7 @@ function GrantsPageContent() {
                 <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
                   {grants.map((g) => (
                     <tr key={g.id} className="hover:bg-[var(--primary-surface)]">
-                      <td className="p-3 font-bold text-[var(--primary)]">{g.title}</td>
+                      <td className="p-3 font-bold text-[var(--primary)]">{g.grantName}</td>
                       <td className="p-3 text-[var(--secondary)] font-semibold">{g.donorName}</td>
                       <td className="p-3 font-bold font-mono tabular-nums text-[var(--primary)]">₦{Number(g.amount).toLocaleString()}</td>
                       <td className="p-3 text-[var(--muted)] tabular-nums">
@@ -331,16 +382,16 @@ function GrantsPageContent() {
                 {pipeline.map(p => (
                   <tr key={p.id} className="hover:bg-[var(--primary-surface)]">
                     <td className="p-3 font-bold text-[var(--primary)]">{p.title}</td>
-                    <td className="p-3">{p.donor}</td>
-                    <td className="p-3 font-mono">₦{p.value.toLocaleString()}</td>
-                    <td className="p-3">{p.deadline}</td>
+                    <td className="p-3">{p.donorName}</td>
+                    <td className="p-3 font-mono">₦{p.requestedAmount.toLocaleString()}</td>
+                    <td className="p-3">{p.submissionDeadline}</td>
                     <td className="p-3">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800">{p.stage}</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800">{p.status}</span>
                     </td>
                     <td className="p-3">
                       <button onClick={() => {
                         const stages = ['IDENTIFIED', 'LOI_SUBMITTED', 'PROPOSAL_SUBMITTED', 'UNDER_REVIEW', 'AWARDED', 'REJECTED'];
-                        const idx = stages.indexOf(p.stage);
+                        const idx = stages.indexOf(p.status);
                         if(idx > -1 && idx < stages.length - 1) {
                           setPipeline(pipeline.map(x => x.id === p.id ? { ...x, stage: stages[idx+1] } : x));
                         }
@@ -363,7 +414,7 @@ function GrantsPageContent() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {donors.map(d => {
-              const donorGrants = grants.filter(g => g.donorName === d.org).length;
+              const donorGrants = grants.filter(g => g.donorName === d.organisation).length;
               return (
                 <div key={d.id} className="p-4 bg-[var(--background)] border border-[var(--outline)] rounded space-y-2">
                   <div className="flex justify-between font-bold text-[var(--primary)]">
@@ -371,7 +422,7 @@ function GrantsPageContent() {
                     <span className="badge-low-risk">{d.type}</span>
                   </div>
                   <p className="text-[var(--muted)] text-[10px] uppercase">{d.country}</p>
-                  <p className="text-[var(--secondary)] font-semibold">{d.contactName} <span className="text-[var(--muted)] font-normal">({d.title})</span></p>
+                  <p className="text-[var(--secondary)] font-semibold">{d.contactName} <span className="text-[var(--muted)] font-normal">({d.contactTitle})</span></p>
                   <p className="text-[var(--muted)] font-mono">{d.email} • {d.phone}</p>
                   <div className="flex flex-wrap gap-1 my-1">
                     {String(d.interests ?? '').split(',').filter(Boolean).map((i: string, idx: number) => <span key={idx} className="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-[9px] rounded-full">{i.trim()}</span>)}
@@ -455,7 +506,7 @@ function GrantsPageContent() {
               </thead>
               <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
                 {reports.map(r => {
-                  const daysToDue = Math.ceil((new Date(r.due).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+                  const daysToDue = Math.ceil((new Date(r.dueDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
                   const isOverdue = r.status !== 'SUBMITTED' && daysToDue < 0;
                   const isSoon = r.status !== 'SUBMITTED' && daysToDue >= 0 && daysToDue <= 14;
                   return (
@@ -542,7 +593,7 @@ function GrantsPageContent() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <label className="block font-semibold text-[var(--on-background)] mb-1">Organization Name *</label>
-                  <input type="text" required value={donorForm.org} onChange={e => setDonorForm({ ...donorForm, org: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
+                  <input type="text" required value={donorForm.organisation} onChange={e => setDonorForm({ ...donorForm, organisation: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
                 </div>
                 <div>
                   <label className="block font-semibold text-[var(--on-background)] mb-1">Country *</label>
@@ -563,11 +614,11 @@ function GrantsPageContent() {
                 </div>
                 <div>
                   <label className="block font-semibold text-[var(--on-background)] mb-1">Contact Name</label>
-                  <input type="text" required value={donorForm.contact} onChange={e => setDonorForm({ ...donorForm, contact: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
+                  <input type="text" required value={donorForm.contactName} onChange={e => setDonorForm({ ...donorForm, contactName: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
                 </div>
                 <div>
                   <label className="block font-semibold text-[var(--on-background)] mb-1">Contact Title</label>
-                  <input type="text" value={donorForm.title} onChange={e => setDonorForm({ ...donorForm, title: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
+                  <input type="text" value={donorForm.contactTitle} onChange={e => setDonorForm({ ...donorForm, contactTitle: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
                 </div>
                 <div>
                   <label className="block font-semibold text-[var(--on-background)] mb-1">Email</label>
@@ -589,7 +640,7 @@ function GrantsPageContent() {
                 </div>
                 <div>
                   <label className="block font-semibold text-[var(--on-background)] mb-1">Last Communication</label>
-                  <input type="date" value={donorForm.lastComm} onChange={e => setDonorForm({ ...donorForm, lastComm: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
+                  <input type="date" value={donorForm.lastContact} onChange={e => setDonorForm({ ...donorForm, lastContact: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
                 </div>
                 <div className="col-span-2">
                   <label className="block font-semibold text-[var(--on-background)] mb-1">Notes</label>
@@ -742,9 +793,9 @@ function GrantsPageContent() {
             <form onSubmit={handleReportSubmit} className="space-y-4 text-xs">
               <div>
                 <label className="block font-semibold text-[var(--on-background)] mb-1">Grant *</label>
-                <select required value={reportForm.grant} onChange={e => setReportForm({ ...reportForm, grant: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
+                <select required value={reportForm.grantId} onChange={e => setReportForm({ ...reportForm, grantId: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                   <option value="">-- Select Grant --</option>
-                  {grants.map(g => <option key={g.id} value={g.title}>{g.title}</option>)}
+                  {grants.map(g => <option key={g.id} value={g.grantName}>{g.grantName}</option>)}
                 </select>
               </div>
               <div>
@@ -763,7 +814,7 @@ function GrantsPageContent() {
               </div>
               <div>
                 <label className="block font-semibold text-[var(--on-background)] mb-1">Due Date *</label>
-                <input type="date" required value={reportForm.due} onChange={e => setReportForm({ ...reportForm, due: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
+                <input type="date" required value={reportForm.dueDate} onChange={e => setReportForm({ ...reportForm, dueDate: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
               </div>
               <div>
                 <label className="block font-semibold text-[var(--on-background)] mb-1">Responsible Officer *</label>

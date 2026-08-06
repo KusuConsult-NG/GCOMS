@@ -412,3 +412,17 @@ export const DOCUMENT_TYPES = [
   'CERTIFICATE',
   'OTHER',
 ] as const;
+export const RESOLUTION_TYPES = [
+  'POLICY',
+  'FINANCIAL_APPROVAL',
+  'PROGRAMME_APPROVAL',
+  'PERSONNEL',
+  'GOVERNANCE_AMENDMENT',
+] as const;
+export const ASSET_CONDITIONS = [
+  'NEW',
+  'GOOD',
+  'FAIR',
+  'NEEDS_REPAIR',
+  'RETIRED',
+] as const;

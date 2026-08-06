@@ -1,5 +1,7 @@
 'use client';
 
+import type { Project, ProjectTask, Risk } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -7,7 +9,7 @@ import { api } from '@/lib/api';
 export function ProjectWorkspace({ user }: { user: any }) {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'projects' | 'tasks' | 'risks' | 'budget' | 'changes'>('projects');
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState<null | 'project' | 'task' | 'risk' | 'expense' | 'change'>(null);
 
@@ -22,15 +24,15 @@ export function ProjectWorkspace({ user }: { user: any }) {
 
   // Tasks live in the ProjectTask table. This used to be a hardcoded array:
   // six real rows sat in the database with no endpoint able to read them.
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<ProjectTask[]>([]);
 
-  const [risks, setRisks] = useState<any[]>([]);
+  const [risks, setRisks] = useState<Risk[]>([]);
 
   const [changeRequests, setChangeRequests] = useState<any[]>([]);
 
   // Form States
   const [taskForm, setTaskForm] = useState({ title: '', projectId: '', assignee: '', dueDate: '', priority: 'MEDIUM', status: 'PENDING', description: '' });
-  const [riskForm, setRiskForm] = useState({ title: '', project: '', category: 'OPERATIONAL', likelihood: 'MEDIUM', impact: 'MEDIUM', mitigation: '', owner: '', status: 'OPEN' });
+  const [riskForm, setRiskForm] = useState({ title: '', projectId: '', category: 'OPERATIONAL', likelihood: 'MEDIUM', impact: 'MEDIUM', mitigation: '', owner: '', status: 'OPEN' });
   const [expenseForm, setExpenseForm] = useState({ project: '', description: '', amount: '', date: '', category: 'Administration' });
   const [changeForm, setChangeForm] = useState({ project: '', title: '', type: 'SCOPE_CHANGE', currentState: '', proposedChange: '', justification: '', impact: '', requestedBy: '' });
 
@@ -129,13 +131,30 @@ export function ProjectWorkspace({ user }: { user: any }) {
     }
   };
 
-  const handleRiskSubmit = (e: React.FormEvent) => {
+  // Was local state with `id: Date.now()` and the score computed here from a
+  // lookup table. The server derives score from likelihood x impact, so two
+  // copies of that rule could drift; there is now one, and the risk persists.
+  const handleRiskSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const map: any = { HIGH: 3, MEDIUM: 2, LOW: 1 };
-    const score = (map[riskForm.likelihood] || 1) * (map[riskForm.impact] || 1);
-    setRisks([...risks, { ...riskForm, score, id: Date.now() }]);
-    setActiveModal(null);
-    setRiskForm({ title: '', project: '', category: 'OPERATIONAL', likelihood: 'MEDIUM', impact: 'MEDIUM', mitigation: '', owner: '', status: 'OPEN' });
+    setSubmitting(true);
+    try {
+      await api.post('/operations/risks', {
+        projectId: riskForm.projectId,
+        title: riskForm.title,
+        category: riskForm.category,
+        likelihood: riskForm.likelihood,
+        impact: riskForm.impact,
+        mitigation: riskForm.mitigation || undefined,
+        owner: riskForm.owner || undefined,
+      });
+      setActiveModal(null);
+      setRiskForm({ title: '', projectId: '', category: 'OPERATIONAL', likelihood: 'MEDIUM', impact: 'MEDIUM', mitigation: '', owner: '', status: 'OPEN' });
+      await fetchRisks();
+    } catch (err) {
+      console.error('Failed to record risk', err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleExpenseSubmit = async (e: React.FormEvent) => {
@@ -318,9 +337,9 @@ export function ProjectWorkspace({ user }: { user: any }) {
               </div>
               <div>
                 <label className="block font-semibold text-[var(--on-background)] mb-1">Project *</label>
-                <select required value={riskForm.project} onChange={e => setRiskForm({ ...riskForm, project: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
+                <select required value={riskForm.projectId} onChange={e => setRiskForm({ ...riskForm, projectId: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                   <option value="">Select Project</option>
-                  {projects.map((p, i) => <option key={i} value={p.title}>{p.title}</option>)}
+                  {projects.map((p) => <option key={p.id} value={p.id}>{p.projectName}</option>)}
                   <option value="Plateau Rural Health Initiative">Plateau Rural Health Initiative</option>
                   <option value="Community Awareness Expansion">Community Awareness Expansion</option>
                 </select>
@@ -391,7 +410,7 @@ export function ProjectWorkspace({ user }: { user: any }) {
                 <label className="block font-semibold text-[var(--on-background)] mb-1">Project *</label>
                 <select required value={expenseForm.project} onChange={e => setExpenseForm({ ...expenseForm, project: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                   <option value="">Select Project</option>
-                  {projects.map((p, i) => <option key={i} value={p.title}>{p.title}</option>)}
+                  {projects.map((p, i) => <option key={i} value={p.projectName}>{p.projectName}</option>)}
                 </select>
               </div>
               <div>
@@ -439,7 +458,7 @@ export function ProjectWorkspace({ user }: { user: any }) {
                 <label className="block font-semibold text-[var(--on-background)] mb-1">Project *</label>
                 <select required value={changeForm.project} onChange={e => setChangeForm({ ...changeForm, project: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                   <option value="">Select Project</option>
-                  {projects.map((p, i) => <option key={i} value={p.title}>{p.title}</option>)}
+                  {projects.map((p, i) => <option key={i} value={p.projectName}>{p.projectName}</option>)}
                 </select>
               </div>
               <div>
@@ -527,7 +546,7 @@ export function ProjectWorkspace({ user }: { user: any }) {
               <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
                 {projects.map((p) => (
                   <tr key={p.id} className="hover:bg-[var(--primary-surface)]">
-                    <td className="p-3 font-bold text-[var(--primary)]">{p.title}</td>
+                    <td className="p-3 font-bold text-[var(--primary)]">{p.projectName}</td>
                     <td className="p-3 font-bold font-mono tabular-nums text-[var(--secondary)]">₦{Number(p.budget).toLocaleString()}</td>
                     <td className="p-3 text-[var(--muted)] tabular-nums">
                       {new Date(p.startDate).toLocaleDateString()} - {new Date(p.endDate).toLocaleDateString()}
@@ -674,7 +693,7 @@ export function ProjectWorkspace({ user }: { user: any }) {
                   const pct = 45;
                   return (
                     <tr key={p.id} className="hover:bg-[var(--primary-surface)]">
-                      <td className="p-3 font-bold text-[var(--primary)]">{p.title}</td>
+                      <td className="p-3 font-bold text-[var(--primary)]">{p.projectName}</td>
                       <td className="p-3 tabular-nums">₦{b.toLocaleString()}</td>
                       <td className="p-3 tabular-nums text-red-700">₦{u.toLocaleString()}</td>
                       <td className="p-3 tabular-nums text-emerald-700">₦{r.toLocaleString()}</td>

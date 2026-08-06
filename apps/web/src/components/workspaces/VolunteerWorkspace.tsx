@@ -1,5 +1,8 @@
 'use client';
 
+import { errorMessage } from '@/lib/errors';
+import type { OutreachEvent } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
@@ -25,7 +28,7 @@ const PLATEAU_LGAS = [
 
 export function VolunteerWorkspace({ user }: { user: any }) {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'register' | 'outreach' | 'queue'>('dashboard');
-  const [outreaches, setOutreaches] = useState<any[]>([]);
+  const [outreaches, setOutreaches] = useState<OutreachEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [offlineQueue, setOfflineQueue] = useState<any[]>([]);
   const [gpsStatus, setGpsStatus] = useState<'CONNECTED' | 'SEARCHING'>('CONNECTED');
@@ -137,17 +140,14 @@ export function VolunteerWorkspace({ user }: { user: any }) {
         gpsCoordinates: '',
         consentGiven: false,
       });
-    } catch (err: any) {
+    } catch (err) {
       // This used to render the success screen and a QR identity pass on
       // failure, then wipe the form — so a volunteer in the field got a
       // confirmation for a patient that was never saved, with no way to recover
       // what they had typed.
-      const message =
-        err.response?.data?.message ||
-        err.message ||
-        'Registration could not be saved.';
+      const message = errorMessage(err, 'Registration could not be saved.');
       setRegError(
-        `${Array.isArray(message) ? message.join('; ') : message} — the patient was NOT registered. Your entries have been kept; check your connection and try again.`,
+        `${message} — the patient was NOT registered. Your entries have been kept; check your connection and try again.`,
       );
     } finally {
       setRegSubmitting(false);
@@ -227,7 +227,7 @@ export function VolunteerWorkspace({ user }: { user: any }) {
 
           <div className="bg-white p-5 rounded-lg border border-[var(--outline)] shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
-              <h3 className="font-bold text-[var(--primary)] text-sm">📍 Today's Active Outreach Campaign</h3>
+              <h3 className="font-bold text-[var(--primary)] text-sm">📍 Today&apos;s Active Outreach Campaign</h3>
               <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">Barkin Ladi Primary Health Center • Community Cervical Screening Drive</p>
             </div>
             <div className="flex gap-2 w-full md:w-auto">
@@ -443,7 +443,7 @@ export function VolunteerWorkspace({ user }: { user: any }) {
               />
               <label htmlFor="consentGiven" className="text-xs text-[var(--on-background)] leading-relaxed cursor-pointer">
                 <span className="font-bold block text-[var(--primary)]">Patient Verbal / Written Informed Consent *</span>
-                "I confirm that the patient has been informed of the screening procedure and has voluntarily granted consent for cancer screening, follow-up notifications, and health data registry storage."
+                &quot;I confirm that the patient has been informed of the screening procedure and has voluntarily granted consent for cancer screening, follow-up notifications, and health data registry storage.&quot;
               </label>
             </div>
 
@@ -469,7 +469,7 @@ export function VolunteerWorkspace({ user }: { user: any }) {
               <div key={o.id} className="py-4 flex justify-between items-center text-xs">
                 <div>
                   <p className="font-bold text-[var(--primary)] text-sm">{o.title}</p>
-                  <p className="text-[var(--on-surface-variant)]">{o.location?.name || 'Barkin Ladi PHC'} • Date: {new Date(o.date).toLocaleDateString()}</p>
+                  <p className="text-[var(--on-surface-variant)]">{o.location?.name || 'Location not set'} • Date: {new Date(o.date).toLocaleDateString()}</p>
                 </div>
                 <span className={o.status === 'COMPLETED' ? 'badge-low-risk' : 'badge-mod-risk'}>{o.status}</span>
               </div>

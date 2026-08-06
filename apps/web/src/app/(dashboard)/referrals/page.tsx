@@ -1,11 +1,13 @@
 'use client';
 
+import type { Participant, Referral } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
 export default function ReferralsPage() {
-  const [referrals, setReferrals] = useState<any[]>([]);
-  const [participants, setParticipants] = useState<any[]>([]);
+  const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [participantId, setParticipantId] = useState('');

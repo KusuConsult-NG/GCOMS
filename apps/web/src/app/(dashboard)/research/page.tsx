@@ -1,10 +1,20 @@
 'use client';
 
+import type { Project } from '@/types/api';
+
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
+/** Share of a project's tasks that are done; 0 when it has none yet. */
+function completion(project: Project): number {
+  const tasks = project.tasks ?? [];
+  if (tasks.length === 0) return 0;
+  const done = tasks.filter((t) => t.status === 'COMPLETED').length;
+  return Math.round((done / tasks.length) * 100);
+}
+
 export default function ResearchPage() {
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [title, setTitle] = useState('');
@@ -122,15 +132,18 @@ export default function ResearchPage() {
             {projects.map((proj) => (
               <div key={proj.id} className="p-4 rounded border border-[var(--outline)] bg-[var(--background)] space-y-2 text-xs">
                 <div className="flex justify-between items-center">
-                  <h4 className="font-bold text-[var(--primary)] text-sm">{proj.title}</h4>
-                  <span className="font-mono font-bold text-[var(--secondary)] tabular-nums">{proj.progress || 40}% Complete</span>
+                  <h4 className="font-bold text-[var(--primary)] text-sm">{proj.projectName}</h4>
+                  {/* Derived from the project's own tasks. Every project used to
+                      show a flat "40% Complete" because Project carries no
+                      progress field and the fallback was a literal 40. */}
+                  <span className="font-mono font-bold text-[var(--secondary)] tabular-nums">{completion(proj)}% Complete</span>
                 </div>
                 <div className="w-full bg-[var(--surface-subtle)] h-2 rounded-full overflow-hidden">
-                  <div className="bg-[var(--secondary)] h-full rounded-full" style={{ width: `${proj.progress || 40}%` }}></div>
+                  <div className="bg-[var(--secondary)] h-full rounded-full" style={{ width: `${completion(proj)}%` }}></div>
                 </div>
                 <div className="flex justify-between items-center pt-1 text-[11px] text-[var(--muted)]">
                   <span>Status: <strong className="text-[var(--on-background)]">{proj.status}</strong></span>
-                  <span className="font-mono">Created: {new Date(proj.createdAt).toLocaleDateString()}</span>
+                  <span className="font-mono tabular-nums">Created: {proj.createdAt ? new Date(proj.createdAt).toLocaleDateString() : '—'}</span>
                 </div>
               </div>
             ))}

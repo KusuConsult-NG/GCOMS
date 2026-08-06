@@ -1,12 +1,15 @@
 'use client';
 
+import { errorMessage } from '@/lib/errors';
+import type { StrategicGoal } from '@/types/api';
+
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
 export default function StrategyDashboard() {
   const { user } = useAuthStore();
-  const [goals, setGoals] = useState<any[]>([]);
+  const [goals, setGoals] = useState<StrategicGoal[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [newGoal, setNewGoal] = useState({
@@ -16,9 +19,6 @@ export default function StrategyDashboard() {
   });
   const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    fetchGoals();
-  }, []);
 
   const fetchGoals = async () => {
     setLoading(true);
@@ -32,6 +32,10 @@ export default function StrategyDashboard() {
     }
   };
 
+  useEffect(() => {
+    fetchGoals();
+  }, []);
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -42,8 +46,8 @@ export default function StrategyDashboard() {
       setMessage('Strategic OKR goal created successfully.');
       fetchGoals();
       setNewGoal({ title: '', targetMetric: '', deadline: '' });
-    } catch (err: any) {
-      setMessage(err.response?.data?.message || 'Failed to create goal.');
+    } catch (err) {
+      setMessage(errorMessage(err, 'Failed to create goal.'));
     }
   };
 

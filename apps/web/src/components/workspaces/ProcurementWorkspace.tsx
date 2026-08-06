@@ -1,10 +1,12 @@
 'use client';
 
+import type { PurchaseRequest } from '@/types/procurement';
+
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
 export function ProcurementWorkspace({ user }: { user: any }) {
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<PurchaseRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -154,7 +156,7 @@ export function ProcurementWorkspace({ user }: { user: any }) {
         {loading ? (
           <div className="p-8 text-center text-xs text-[var(--muted)]">Loading procurement orders from database...</div>
         ) : orders.length === 0 ? (
-          <div className="p-8 text-center text-xs text-[var(--muted)]">No purchase orders logged yet. Click "+ Create Purchase Order" to create one.</div>
+          <div className="p-8 text-center text-xs text-[var(--muted)]">No purchase orders logged yet. Click &quot;+ Create Purchase Order&quot; to create one.</div>
         ) : (
           <table className="w-full text-left text-xs">
             <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">

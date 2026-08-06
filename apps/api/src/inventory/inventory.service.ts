@@ -15,13 +15,15 @@ import {
 export class InventoryService {
   constructor(private prisma: PrismaService) {}
 
+  /** Status follows from the quantity and the item's own reorder point. */
+  private statusFor(quantity: number, minThreshold: number): string {
+    if (quantity <= 0) return 'OUT_OF_STOCK';
+    return quantity <= minThreshold ? 'LOW_STOCK' : 'IN_STOCK';
+  }
+
   async createInventoryItem(data: CreateInventoryItemDto, userId: string) {
-    const status =
-      data.quantity > 0
-        ? data.quantity <= 10
-          ? 'LOW_STOCK'
-          : 'IN_STOCK'
-        : 'OUT_OF_STOCK';
+    const minThreshold = data.minThreshold ?? 10;
+    const status = this.statusFor(data.quantity, minThreshold);
     return this.prisma.inventoryItem.create({
       data: {
         itemName: data.itemName,
@@ -29,6 +31,13 @@ export class InventoryService {
         quantity: data.quantity,
         unit: data.unit,
         location: data.location,
+        minThreshold,
+        unitPrice: data.unitPrice ?? null,
+        assetTag: data.assetTag?.trim() || null,
+        serialNumber: data.serialNumber?.trim() || null,
+        currentLocation: data.currentLocation?.trim() || null,
+        assignedTo: data.assignedTo?.trim() || null,
+        condition: data.condition ?? null,
         status,
         managedById: userId,
       },
@@ -52,21 +61,27 @@ export class InventoryService {
       throw new NotFoundException('Inventory item not found');
     }
 
-    const newQuantity =
-      data.quantity !== undefined ? data.quantity : item.quantity;
-    const status =
-      newQuantity > 0
-        ? newQuantity <= 10
-          ? 'LOW_STOCK'
-          : 'IN_STOCK'
-        : 'OUT_OF_STOCK';
-
+    const newQuantity = data.quantity ?? item.quantity;
+    const minThreshold = data.minThreshold ?? item.minThreshold;
     return this.prisma.inventoryItem.update({
       where: { id },
       data: {
         quantity: newQuantity,
-        status,
+        minThreshold,
+        status: this.statusFor(newQuantity, minThreshold),
         ...(data.location && { location: data.location }),
+        ...(data.unitPrice !== undefined && { unitPrice: data.unitPrice }),
+        ...(data.assetTag !== undefined && { assetTag: data.assetTag || null }),
+        ...(data.serialNumber !== undefined && {
+          serialNumber: data.serialNumber || null,
+        }),
+        ...(data.currentLocation !== undefined && {
+          currentLocation: data.currentLocation || null,
+        }),
+        ...(data.assignedTo !== undefined && {
+          assignedTo: data.assignedTo || null,
+        }),
+        ...(data.condition !== undefined && { condition: data.condition }),
       },
     });
   }

@@ -15,6 +15,7 @@ import { Roles } from '../auth/roles.decorator';
 import { PHI_READ_ROLES } from '../auth/roles.constants';
 import { ParticipantAccessGuard } from '../phi/participant-access.guard';
 import { PhiAccessService } from '../phi/phi-access.service';
+import { CLINICAL_WRITE_ROLES } from '../auth/roles.constants';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('referrals')
@@ -40,7 +41,7 @@ export class ReferralsController {
   }
 
   @Post()
-  @Roles('CLINICIAN', 'FIELD_OFFICER', 'EXECUTIVE', 'ADMIN')
+  @Roles(...CLINICAL_WRITE_ROLES)
   @UseGuards(ParticipantAccessGuard)
   async create(
     @Body() body: { participantId: string; referredTo: string; reason: string },
@@ -50,7 +51,7 @@ export class ReferralsController {
   }
 
   @Put(':id/status')
-  @Roles('CLINICIAN', 'FIELD_OFFICER', 'EXECUTIVE', 'ADMIN')
+  @Roles(...CLINICAL_WRITE_ROLES)
   async updateStatus(
     @Param('id') id: string,
     @Body() body: { status: string },

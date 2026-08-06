@@ -1,16 +1,26 @@
 /**
  * The single source of truth for role names the API will accept and enforce.
  *
- * Note: the web client also references 'SUPER_ADMIN', 'DOCTOR' and 'NURSE' in its
- * client-side page gates. No API guard honours those, so they are deliberately not
- * listed here — issuing one would produce an account the frontend shows admin
- * screens to while every backend endpoint rejects it.
+ * DOCTOR and NURSE are distinct because the spec names both and because the
+ * distinction is a clinical one, not cosmetic. See CLINICAL_* below for where
+ * they diverge.
+ *
+ * CLINICIAN predates the split and is retained: existing accounts hold it, and
+ * silently narrowing a working account's permissions is worse than a slightly
+ * redundant role. It is treated as doctor-equivalent, which is what it granted
+ * before, so nothing an account could do yesterday stops working today.
+ *
+ * Note: the web client also references 'SUPER_ADMIN' in its page gates. No API
+ * guard honours it, so it stays out — issuing one would produce an account the
+ * UI shows admin screens to while every endpoint rejects it.
  */
 export const ROLES = [
   'ADMIN',
   'BOARD',
   'CLINICIAN',
   'COMMUNITY_HEALTH_WORKER',
+  'DOCTOR',
+  'NURSE',
   'DATA_OFFICER',
   'DOCUMENT_OFFICER',
   'EXECUTIVE',
@@ -76,6 +86,8 @@ export const PHI_UNSCOPED_ROLES: Role[] = [
  */
 export const PHI_SCOPED_ROLES: Role[] = [
   'CLINICIAN',
+  'DOCTOR',
+  'NURSE',
   'FIELD_OFFICER',
   'COMMUNITY_HEALTH_WORKER',
   'VOLUNTEER',
@@ -323,3 +335,38 @@ export const APPROVAL_VIEW_ROLES: Role[] = [
   'SYSTEM_ADMIN',
 ];
 export const APPROVER_ROLES: Role[] = ['EXECUTIVE', 'BOARD'];
+
+/*
+ * Clinical roles.
+ *
+ * The dividing line is medical judgement, not seniority. A nurse in a screening
+ * programme does the bulk of the work — triage, vitals, screening, referral,
+ * follow-up — and recording those is not a doctor-only act. What is reserved is
+ * the interpretive step: a prognosis, and the recommendation drawn from an
+ * investigation result. Those are diagnostic conclusions.
+ *
+ * Getting this wrong in the permissive direction lets unqualified staff record
+ * a diagnosis; wrong in the restrictive direction stops a nurse doing their job
+ * and gets worked around. The split below errs toward letting nurses work.
+ */
+
+/** Anyone who delivers care: triage, vitals, screening, referral, follow-up. */
+export const CLINICAL_ROLES: Role[] = ['DOCTOR', 'NURSE', 'CLINICIAN'];
+
+/** Medical judgement: prognosis, investigation recommendations, encounter edits. */
+export const DIAGNOSING_ROLES: Role[] = ['DOCTOR', 'CLINICIAN'];
+
+/** Clinical work plus the oversight roles that supervise it. */
+export const CLINICAL_WRITE_ROLES: Role[] = [
+  ...CLINICAL_ROLES,
+  'FIELD_OFFICER',
+  'EXECUTIVE',
+  'ADMIN',
+];
+
+/** Diagnostic acts plus oversight. */
+export const DIAGNOSING_WRITE_ROLES: Role[] = [
+  ...DIAGNOSING_ROLES,
+  'EXECUTIVE',
+  'ADMIN',
+];

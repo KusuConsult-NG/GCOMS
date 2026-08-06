@@ -26,7 +26,7 @@ export function AdminWorkspace({ user }: { user: any }) {
     sessionTimeout: '8 hours', maxLoginAttempts: '5', passwordPolicy: 'STRONG', dataBackupFrequency: 'DAILY'
   });
 
-  const rolesList = ['EXECUTIVE', 'BOARD', 'ADMIN', 'SYSTEM_ADMIN', 'FINANCE', 'PROCUREMENT', 'HR', 'GRANT_MANAGER', 'PROJECT_MANAGER', 'CLINICIAN', 'FIELD_OFFICER', 'VOLUNTEER', 'COMMUNITY_HEALTH_WORKER'];
+  const rolesList = ['EXECUTIVE', 'BOARD', 'ADMIN', 'SYSTEM_ADMIN', 'FINANCE', 'PROCUREMENT', 'HR', 'GRANT_MANAGER', 'PROJECT_MANAGER', 'CLINICIAN', 'DOCTOR', 'NURSE', 'FIELD_OFFICER', 'VOLUNTEER', 'COMMUNITY_HEALTH_WORKER'];
 
   useEffect(() => {
     fetchUsers();

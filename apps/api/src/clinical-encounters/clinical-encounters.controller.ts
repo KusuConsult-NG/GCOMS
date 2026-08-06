@@ -17,6 +17,11 @@ import { PHI_READ_ROLES } from '../auth/roles.constants';
 import { ParticipantAccessGuard } from '../phi/participant-access.guard';
 import { PhiAccessService } from '../phi/phi-access.service';
 import {
+  CLINICAL_WRITE_ROLES,
+  DIAGNOSING_ROLES,
+  DIAGNOSING_WRITE_ROLES,
+} from '../auth/roles.constants';
+import {
   CreateInvestigationDto,
   UpdateInvestigationDto,
 } from './dto/investigation.dto';
@@ -32,7 +37,7 @@ export class ClinicalEncountersController {
   // Previously had no role check at all — any authenticated account could write
   // a clinical encounter.
   @Post()
-  @Roles('CLINICIAN', 'EXECUTIVE', 'ADMIN')
+  @Roles(...CLINICAL_WRITE_ROLES)
   @UseGuards(ParticipantAccessGuard)
   createEncounter(@Body() data: any, @Request() req: any) {
     return this.encountersService.createEncounter(data, req.user.id);
@@ -47,8 +52,10 @@ export class ClinicalEncountersController {
 
   // Was an inline `req.user.role !== 'CLINICIAN'` check; RolesGuard additionally
   // admits EXECUTIVE and SYSTEM_ADMIN, which it does for every route.
+  // Editing a clinical note is a diagnostic act, so nurses are excluded here
+  // while remaining able to create the encounter above.
   @Patch(':id')
-  @Roles('CLINICIAN')
+  @Roles(...DIAGNOSING_ROLES)
   editEncounter(
     @Param('id') id: string,
     @Body() data: any,
@@ -63,7 +70,7 @@ export class ClinicalEncountersController {
   }
 
   @Post('assignments')
-  @Roles('CLINICIAN', 'EXECUTIVE', 'ADMIN')
+  @Roles(...CLINICAL_WRITE_ROLES)
   @UseGuards(ParticipantAccessGuard)
   assignPatient(@Body() data: any, @Request() req: any) {
     return this.encountersService.assignPatient(data, req.user.id);
@@ -94,8 +101,9 @@ export class ClinicalEncountersController {
     return this.encountersService.listInvestigations(encounterId, req.user);
   }
 
+  // Recommendations drawn from investigation results are diagnostic conclusions.
   @Post('investigations')
-  @Roles('CLINICIAN', 'EXECUTIVE', 'ADMIN')
+  @Roles(...DIAGNOSING_WRITE_ROLES)
   createInvestigation(
     @Body() dto: CreateInvestigationDto,
     @Request() req: any,
@@ -104,7 +112,7 @@ export class ClinicalEncountersController {
   }
 
   @Patch('investigations/:id')
-  @Roles('CLINICIAN', 'EXECUTIVE', 'ADMIN')
+  @Roles(...DIAGNOSING_WRITE_ROLES)
   updateInvestigation(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateInvestigationDto,

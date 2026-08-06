@@ -5,6 +5,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { PHI_READ_ROLES } from '../auth/roles.constants';
 import { ParticipantAccessGuard } from '../phi/participant-access.guard';
+import { CLINICAL_WRITE_ROLES } from '../auth/roles.constants';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('vitals')
@@ -12,7 +13,7 @@ export class VitalsController {
   constructor(private readonly vitalsService: VitalsService) {}
 
   @Post()
-  @Roles('CLINICIAN', 'FIELD_OFFICER', 'EXECUTIVE', 'ADMIN')
+  @Roles(...CLINICAL_WRITE_ROLES)
   @UseGuards(ParticipantAccessGuard)
   async create(
     @Body()

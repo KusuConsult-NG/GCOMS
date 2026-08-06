@@ -1,4 +1,6 @@
 import {
+  CLINICAL_ROLES,
+  DIAGNOSING_ROLES,
   DEFAULT_ROLE,
   DOCUMENT_ROLES,
   GRANTOR_ROLES,
@@ -106,13 +108,48 @@ describe('role constants', () => {
     });
   });
 
-  // These appear in the web client's page gates but no API guard honours them.
-  // Issuing one would create an account the UI shows admin screens to while
-  // every endpoint rejects it.
-  it.each(['SUPER_ADMIN', 'DOCTOR', 'NURSE'])(
-    'does not accept the frontend-only role %s',
-    (role) => {
-      expect(ROLES).not.toContain(role as Role);
-    },
-  );
+  // SUPER_ADMIN still appears in the web client's page gates while no API guard
+  // honours it. Issuing one would create an account the UI shows admin screens
+  // to while every endpoint rejects it. DOCTOR and NURSE used to be in this list
+  // and are now real roles — see the clinical split below.
+  it('does not accept the frontend-only role SUPER_ADMIN', () => {
+    expect(ROLES).not.toContain('SUPER_ADMIN' as Role);
+  });
+
+  describe('the clinical split', () => {
+    it.each(['DOCTOR', 'NURSE', 'CLINICIAN'])('%s can deliver care', (role) => {
+      expect(CLINICAL_ROLES).toContain(role as Role);
+    });
+
+    // The dividing line is medical judgement. A nurse screens, refers and
+    // follows up; a prognosis and an investigation recommendation are
+    // diagnostic conclusions.
+    it('excludes NURSE from diagnostic acts', () => {
+      expect(CLINICAL_ROLES).toContain('NURSE' as Role);
+      expect(DIAGNOSING_ROLES).not.toContain('NURSE' as Role);
+    });
+
+    it('keeps DOCTOR able to do both', () => {
+      expect(CLINICAL_ROLES).toContain('DOCTOR' as Role);
+      expect(DIAGNOSING_ROLES).toContain('DOCTOR' as Role);
+    });
+
+    // CLINICIAN predates the split. Narrowing it would silently strip
+    // permissions from every existing clinical account.
+    it('leaves the legacy CLINICIAN role doctor-equivalent', () => {
+      expect(DIAGNOSING_ROLES).toContain('CLINICIAN' as Role);
+    });
+
+    it('scopes every clinical role to its own caseload', () => {
+      for (const role of CLINICAL_ROLES) {
+        expect(PHI_SCOPED_ROLES).toContain(role);
+      }
+    });
+
+    it('never lets a diagnosing role sit outside the clinical set', () => {
+      for (const role of DIAGNOSING_ROLES) {
+        expect(CLINICAL_ROLES).toContain(role);
+      }
+    });
+  });
 });

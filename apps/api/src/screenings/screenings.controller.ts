@@ -13,6 +13,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { PHI_READ_ROLES } from '../auth/roles.constants';
 import { ParticipantAccessGuard } from '../phi/participant-access.guard';
+import { CLINICAL_WRITE_ROLES } from '../auth/roles.constants';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('screenings')
@@ -20,13 +21,7 @@ export class ScreeningsController {
   constructor(private readonly screeningsService: ScreeningsService) {}
 
   @Post()
-  @Roles(
-    'CLINICIAN',
-    'FIELD_OFFICER',
-    'COMMUNITY_HEALTH_WORKER',
-    'EXECUTIVE',
-    'ADMIN',
-  )
+  @Roles(...CLINICAL_WRITE_ROLES)
   @UseGuards(ParticipantAccessGuard)
   createScreening(@Body() data: any, @Request() req: any) {
     return this.screeningsService.createScreening(data, req.user.id);

@@ -60,7 +60,12 @@ export class ScreeningsService {
       },
       include: {
         participant: {
-          select: { firstName: true, lastName: true, registrationId: true, nationalId: true },
+          select: {
+            firstName: true,
+            lastName: true,
+            registrationId: true,
+            nationalId: true,
+          },
         },
       },
     });

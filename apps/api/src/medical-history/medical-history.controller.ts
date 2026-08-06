@@ -5,6 +5,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { PHI_READ_ROLES } from '../auth/roles.constants';
 import { ParticipantAccessGuard } from '../phi/participant-access.guard';
+import { CLINICAL_WRITE_ROLES } from '../auth/roles.constants';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('medical-history')
@@ -12,7 +13,7 @@ export class MedicalHistoryController {
   constructor(private readonly historyService: MedicalHistoryService) {}
 
   @Post()
-  @Roles('CLINICIAN', 'EXECUTIVE', 'ADMIN')
+  @Roles(...CLINICAL_WRITE_ROLES)
   @UseGuards(ParticipantAccessGuard)
   async create(
     @Body()

@@ -16,6 +16,7 @@ import { Roles } from '../auth/roles.decorator';
 import { PHI_READ_ROLES } from '../auth/roles.constants';
 import { ParticipantAccessGuard } from '../phi/participant-access.guard';
 import { PhiAccessService } from '../phi/phi-access.service';
+import { CLINICAL_WRITE_ROLES } from '../auth/roles.constants';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('appointments')
@@ -35,7 +36,7 @@ export class AppointmentsController {
   }
 
   @Post()
-  @Roles('CLINICIAN', 'FIELD_OFFICER', 'EXECUTIVE', 'ADMIN')
+  @Roles(...CLINICAL_WRITE_ROLES)
   @UseGuards(ParticipantAccessGuard)
   async create(
     @Body()
@@ -55,7 +56,7 @@ export class AppointmentsController {
   }
 
   @Patch(':id/status')
-  @Roles('CLINICIAN', 'FIELD_OFFICER', 'EXECUTIVE', 'ADMIN')
+  @Roles(...CLINICAL_WRITE_ROLES)
   async updateStatus(
     @Param('id') id: string,
     @Body() body: { status: string; notes?: string },

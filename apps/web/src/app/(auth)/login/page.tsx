@@ -1,11 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
-export default function Login() {
+function LoginForm() {
+  const searchParams = useSearchParams();
+  // Set by the api client when a request comes back 401, so an expired session
+  // explains itself instead of looking like a random logout.
+  const sessionExpired = searchParams.get('expired') === '1';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -68,6 +72,12 @@ export default function Login() {
           <h1 className="text-xl font-bold text-[#002045] tracking-tight">GCOMS</h1>
           <p className="text-[#13696a] font-semibold text-xs mt-0.5">Clinical Trust Management System — GCOMS</p>
         </div>
+
+        {sessionExpired && !error && (
+          <div className="bg-[#fff4e5] border border-[#b45309]/20 text-[#7c2d12] p-3 rounded text-xs text-center font-medium mb-5">
+            Your session has expired. Please sign in again.
+          </div>
+        )}
 
         {/* Error Alert */}
         {error && (
@@ -203,5 +213,13 @@ export default function Login() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

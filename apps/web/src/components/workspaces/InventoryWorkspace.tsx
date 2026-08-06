@@ -1,12 +1,12 @@
 'use client';
 
-import type { InventoryItem, StockMovement } from '@/types/api';
+import type { InventoryItem, ServiceLog, SessionUser, StockMovement } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 
-export function InventoryWorkspace({ user }: { user: any }) {
+export function InventoryWorkspace({ user }: { user: SessionUser }) {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'consumables' | 'assets' | 'movements' | 'reorder' | 'maintenance'>('consumables');
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -27,16 +27,19 @@ export function InventoryWorkspace({ user }: { user: any }) {
     type: 'STOCK_RECEIPT', itemId: '', qty: '', from: '', to: '', ref: '', remarks: '', date: new Date().toISOString().split('T')[0], authorized: ''
   });
 
-  const [maintenanceSchedule, setMaintenanceSchedule] = useState<any[]>([]);
+  // Equipment service logs; the API returns them under /inventory/service-logs.
+  const [maintenanceSchedule, setMaintenanceSchedule] = useState<
+    ServiceLog[]
+  >([]);
 
   const [maintenanceForm, setMaintenanceForm] = useState({
     asset: '', type: 'PREVENTIVE', scheduledDate: '', technician: '', cost: '', description: ''
   });
 
-  const [reorderItem, setReorderItem] = useState<any>(null);
+  const [reorderItem, setReorderItem] = useState<InventoryItem | null>(null);
   const [reorderForm, setReorderForm] = useState({ reorderQty: 0, vendor: '', urgency: 'STANDARD' });
 
-  const [maintenanceCompleteData, setMaintenanceCompleteData] = useState({ id: null, actualDate: '', partsReplaced: '', findings: '', nextServiceDue: '' });
+  const [maintenanceCompleteData, setMaintenanceCompleteData] = useState({ id: '', actualDate: '', partsReplaced: '', findings: '', nextServiceDue: '' });
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -62,7 +65,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
     const actionParam = searchParams.get('action');
 
     if (tabParam && ['consumables', 'assets', 'movements', 'reorder', 'maintenance'].includes(tabParam)) {
-      setActiveTab(tabParam as any);
+      setActiveTab(tabParam as Parameters<typeof setActiveTab>[0]);
     }
     if (actionParam) {
       if (actionParam === 'issue-stock') { setActiveTab('movements'); setActiveModal('issue'); }
@@ -167,12 +170,16 @@ export function InventoryWorkspace({ user }: { user: any }) {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.post('/inventory', {
-        itemName: `[REORDER] ${reorderItem.itemName}`,
-        category: reorderItem.category,
+      if (!reorderItem) return;
+      // This used to create a second InventoryItem named "[REORDER] <item>",
+      // which then appeared in stock counts as though the goods had arrived.
+      // A reorder is a purchase requisition.
+      await api.post('/procurement', {
+        itemName: reorderItem.itemName,
         quantity: reorderForm.reorderQty,
-        unit: reorderItem.unit,
-        minThreshold: reorderItem.minThreshold
+        estimatedCost:
+          Number(reorderItem.unitPrice ?? 0) * Number(reorderForm.reorderQty),
+        vendor: reorderForm.vendor || 'To be determined',
       });
       setActiveModal(null);
       setReorderItem(null);
@@ -184,19 +191,12 @@ export function InventoryWorkspace({ user }: { user: any }) {
     }
   };
 
+  /** Service logs carry the item id; the schedule table shows its name. */
+  const itemName = (inventoryItemId: string) =>
+    items.find((i) => i.id === inventoryItemId)?.itemName ?? 'Unknown item';
+
   const handleMaintenanceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setMaintenanceSchedule([...maintenanceSchedule, {
-      id: Date.now(),
-      asset: maintenanceForm.asset,
-      type: maintenanceForm.type,
-      scheduledDate: maintenanceForm.scheduledDate,
-      technician: maintenanceForm.technician,
-      cost: Number(maintenanceForm.cost),
-      description: maintenanceForm.description,
-      status: 'SCHEDULED'
-    }]);
-
     // Was POSTing a fake InventoryItem named "[MAINT_SCHED] ..." into the stock
     // table and swallowing the 400, so the schedule looked saved and was gone on
     // refresh. EquipmentServiceLog is the table for this.
@@ -221,7 +221,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
     e.preventDefault();
     setMaintenanceSchedule(maintenanceSchedule.map(m => m.id === maintenanceCompleteData.id ? { ...m, status: 'COMPLETED' } : m));
     
-    const completedAsset = maintenanceSchedule.find(m => m.id === maintenanceCompleteData.id)?.asset;
+    const completedLog = maintenanceSchedule.find((m) => m.id === maintenanceCompleteData.id);
     api.patch(`/inventory/service-logs/${maintenanceCompleteData.id}`, { status: 'COMPLETED' })
       .then(() => fetchServiceLogs())
       .catch(err => console.error('Failed to complete maintenance', err));
@@ -283,7 +283,7 @@ export function InventoryWorkspace({ user }: { user: any }) {
         ].map(t => (
           <button
             key={t.id}
-            onClick={() => setActiveTab(t.id as any)}
+            onClick={() => setActiveTab(t.id as Parameters<typeof setActiveTab>[0])}
             className={`py-2.5 px-4 rounded-t border-b-2 transition-all whitespace-nowrap ${
               activeTab === t.id ? 'border-[var(--secondary)] text-[var(--secondary)] bg-white font-bold' : 'border-transparent text-[var(--muted)]'
             }`}
@@ -531,13 +531,13 @@ export function InventoryWorkspace({ user }: { user: any }) {
               </thead>
               <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
                 {maintenanceSchedule.map((m) => {
-                  const isOverdue = new Date(m.scheduledDate) < new Date() && m.status === 'SCHEDULED';
+                  const isOverdue = new Date(m.serviceDate) < new Date() && m.status === 'SCHEDULED';
                   return (
                     <tr key={m.id} className={`hover:bg-[var(--primary-surface)] ${isOverdue ? 'bg-red-50' : ''}`}>
-                      <td className="p-3 font-bold text-[var(--primary)]">{m.asset}</td>
-                      <td className="p-3 font-semibold">{m.type}</td>
-                      <td className={`p-3 ${isOverdue ? 'text-red-700 font-bold' : ''}`}>{m.scheduledDate}</td>
-                      <td className="p-3">{m.technician}</td>
+                      <td className="p-3 font-bold text-[var(--primary)]">{itemName(m.inventoryItemId)}</td>
+                      <td className="p-3 font-semibold">{m.serviceType}</td>
+                      <td className={`p-3 ${isOverdue ? 'text-red-700 font-bold' : ''}`}>{m.serviceDate}</td>
+                      <td className="p-3">{m.performedBy}</td>
                       <td className="p-3 font-mono">₦{m.cost.toLocaleString()}</td>
                       <td className="p-3">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${m.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : isOverdue ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>

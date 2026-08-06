@@ -30,6 +30,12 @@ export default function VolunteersPage() {
   // all — every name on it was invented.
   const [volunteers, setVolunteers] = useState<VolunteerProfile[]>([]);
 
+
+  const [showModal, setShowModal] = useState(false);
+  const [formData, setFormData] = useState({ userId: '', lga: 'Barkin Ladi LGA', ward: '', address: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const [candidates, setCandidates] = useState<UserRecord[]>([]);
+
   // Flattened into a different shape on the way in, which is what made
   // `v.firstName` look right. Kept as the API sends it instead.
   const fetchVolunteers = async () => {
@@ -59,11 +65,6 @@ export default function VolunteersPage() {
     fetchVolunteers();
     fetchCandidates();
   }, []);
-
-  const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({ userId: '', lga: 'Barkin Ladi LGA', ward: '', address: '' });
-  const [submitting, setSubmitting] = useState(false);
-  const [candidates, setCandidates] = useState<UserRecord[]>([]);
 
   // A volunteer profile attaches to an existing user account, which is why the
   // form now picks one rather than collecting a name and an email: this used to

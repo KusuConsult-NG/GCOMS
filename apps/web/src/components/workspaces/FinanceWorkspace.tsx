@@ -1,11 +1,11 @@
 'use client';
 
-import type { FinanceTransaction } from '@/types/api';
+import type { FinanceTransaction, SessionUser } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
-export function FinanceWorkspace({ user }: { user: any }) {
+export function FinanceWorkspace({ user }: { user: SessionUser }) {
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);

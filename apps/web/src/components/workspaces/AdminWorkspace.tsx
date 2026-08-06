@@ -1,12 +1,12 @@
 'use client';
 
-import type { AuditLogEntry, UserRecord } from '@/types/api';
+import type { AuditLogEntry, SessionUser, UserRecord } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
-export function AdminWorkspace({ user }: { user: any }) {
+export function AdminWorkspace({ user }: { user: SessionUser }) {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'audit' | 'config'>('users');
@@ -77,7 +77,7 @@ export function AdminWorkspace({ user }: { user: any }) {
     }
   };
 
-  const handleToggleStatus = async (user: any) => {
+  const handleToggleStatus = async (user: UserRecord) => {
     // The API models this as `isActive: boolean` — the old `status: 'ACTIVE'`
     // string targeted a field that does not exist, so this could only ever
     // deactivate and never reactivate.
@@ -124,10 +124,10 @@ export function AdminWorkspace({ user }: { user: any }) {
   const handleRefreshAudit = () => fetchAuditLogs();
 
   // The trail records action + old/new payloads; derive display fields from those.
-  const auditModule = (log: any) => String(log.action ?? '').split('_')[0] || 'SYSTEM';
-  const auditActor = (log: any) =>
+  const auditModule = (log: AuditLogEntry) => String(log.action ?? '').split('_')[0] || 'SYSTEM';
+  const auditActor = (log: AuditLogEntry) =>
     log.user ? `${log.user.firstName} ${log.user.lastName}` : 'Unknown';
-  const auditDetails = (log: any) => {
+  const auditDetails = (log: AuditLogEntry) => {
     const before = log.oldData ? JSON.parse(log.oldData) : null;
     const after = log.newData ? JSON.parse(log.newData) : null;
     if (before && after) {
@@ -138,7 +138,7 @@ export function AdminWorkspace({ user }: { user: any }) {
     }
     return after ? JSON.stringify(after) : (log.oldData ?? '');
   };
-  const auditTime = (log: any) =>
+  const auditTime = (log: AuditLogEntry) =>
     String(log.createdAt ?? '').replace('T', ' ').slice(0, 16);
 
   const filteredUsers = users.filter(u => {
@@ -174,7 +174,7 @@ export function AdminWorkspace({ user }: { user: any }) {
         ].map(t => (
           <button
             key={t.id}
-            onClick={() => setActiveTab(t.id as any)}
+            onClick={() => setActiveTab(t.id as Parameters<typeof setActiveTab>[0])}
             className={`py-2.5 px-4 rounded-t border-b-2 transition-all whitespace-nowrap ${
               activeTab === t.id ? 'border-[var(--secondary)] text-[var(--secondary)] bg-white font-bold' : 'border-transparent text-[var(--muted)] hover:bg-gray-50'
             }`}

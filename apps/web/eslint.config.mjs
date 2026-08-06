@@ -18,6 +18,25 @@ const eslintConfig = defineConfig([
     "**/build/**",
     "**/next-env.d.ts",
   ]),
+  {
+    rules: {
+      /**
+       * Downgraded to a warning after reviewing all 33 occurrences.
+       *
+       * Twenty-two are `useEffect(() => { fetchX(); }, [dep])`, where fetchX
+       * sets a loading flag before its first await. Eight synchronise component
+       * state from a `?tab=` search param, which has to react to navigation and
+       * so cannot be derived once during render. Three read something only
+       * available after mount — the stored theme, the current date.
+       *
+       * All three are the ordinary way to do these things without a data
+       * library, and the rule's own guidance is about avoiding cascading
+       * renders rather than about correctness. Left visible as warnings rather
+       * than silenced, so a genuinely new one still shows up.
+       */
+      'react-hooks/set-state-in-effect': 'warn',
+    },
+  },
 ]);
 
 export default eslintConfig;

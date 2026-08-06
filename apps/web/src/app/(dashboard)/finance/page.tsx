@@ -63,10 +63,10 @@ function FinancePageContent() {
     const actionParam = searchParams.get('action');
 
     if (tabParam && ['ledger', 'vouchers', 'advances', 'budgets', 'accounts', 'statements'].includes(tabParam)) {
-      setActiveSubTab(tabParam as any);
+      setActiveSubTab(tabParam as Parameters<typeof setActiveSubTab>[0]);
     }
     if (actionParam && ['journal', 'requisition', 'advance', 'retirement', 'budget', 'inflow'].includes(actionParam)) {
-      setActiveModal(actionParam as any);
+      setActiveModal(actionParam as Parameters<typeof setActiveModal>[0]);
     }
   }, [searchParams]);
 
@@ -211,7 +211,7 @@ function FinancePageContent() {
     }
   };
 
-  const handleApprovalAction = async (tx: any, action: 'APPROVE' | 'REJECT') => {
+  const handleApprovalAction = async (tx: FinanceTransaction, action: 'APPROVE' | 'REJECT') => {
     try {
       await api.post('/finance', {
         type: 'APPROVAL_ACTION',
@@ -225,7 +225,7 @@ function FinancePageContent() {
     }
   };
 
-  const handleBudgetApproval = async (tx: any) => {
+  const handleBudgetApproval = async (tx: FinanceTransaction) => {
     try {
       await api.post('/finance', {
         type: 'BUDGET_APPROVAL',
@@ -312,7 +312,7 @@ function FinancePageContent() {
         ].map(t => (
           <button
             key={t.id}
-            onClick={() => setActiveSubTab(t.id as any)}
+            onClick={() => setActiveSubTab(t.id as Parameters<typeof setActiveSubTab>[0])}
             className={`py-2.5 px-4 rounded-t border-b-2 transition-all whitespace-nowrap ${
               activeSubTab === t.id ? 'border-[var(--secondary)] text-[var(--secondary)] bg-white font-bold' : 'border-transparent text-[var(--muted)]'
             }`}

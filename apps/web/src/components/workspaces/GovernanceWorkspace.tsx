@@ -1,18 +1,18 @@
 'use client';
 
-import type { BoardAction, BoardMember, BoardResolution, GovernanceMeeting } from '@/types/api';
+import type { BoardAction, BoardMember, BoardResolution, GovernanceMeeting, SessionUser } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 
-export function GovernanceWorkspace({ user }: { user: any }) {
+export function GovernanceWorkspace({ user }: { user: SessionUser }) {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'meetings' | 'members' | 'resolutions' | 'actions'>('meetings');
   const [meetings, setMeetings] = useState<GovernanceMeeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState<null | 'meeting' | 'minutes' | 'member' | 'resolution' | 'action'>(null);
-  const [activeVoteModal, setActiveVoteModal] = useState<any | null>(null);
+  const [activeVoteModal, setActiveVoteModal] = useState<BoardResolution | null>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -63,7 +63,7 @@ export function GovernanceWorkspace({ user }: { user: any }) {
     const actionParam = searchParams.get('action');
 
     if (tabParam && ['meetings', 'members', 'resolutions', 'actions'].includes(tabParam)) {
-      setActiveTab(tabParam as any);
+      setActiveTab(tabParam as Parameters<typeof setActiveTab>[0]);
     }
     if (actionParam) {
       if (actionParam === 'new-meeting') setActiveModal('meeting');
@@ -232,7 +232,7 @@ export function GovernanceWorkspace({ user }: { user: any }) {
         ].map(t => (
           <button
             key={t.id}
-            onClick={() => setActiveTab(t.id as any)}
+            onClick={() => setActiveTab(t.id as Parameters<typeof setActiveTab>[0])}
             className={`py-2.5 px-4 rounded-t border-b-2 transition-all whitespace-nowrap ${
               activeTab === t.id ? 'border-[var(--secondary)] text-[var(--secondary)] bg-white font-bold' : 'border-transparent text-[var(--muted)]'
             }`}
@@ -447,7 +447,7 @@ export function GovernanceWorkspace({ user }: { user: any }) {
         <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
-              <h2 className="text-base font-bold text-[var(--primary)]">Open Voting: {activeVoteModal.resNum}</h2>
+              <h2 className="text-base font-bold text-[var(--primary)]">Open Voting: {activeVoteModal.resolutionNo}</h2>
               <button onClick={() => setActiveVoteModal(null)} className="text-[var(--muted)] font-bold">✕</button>
             </div>
             <div className="text-xs space-y-4">

@@ -33,10 +33,11 @@ jobs:
       - run: npx prisma generate
       - run: npx prisma migrate deploy
       - name: Lint
-        run: npx eslint "src/**/*.ts"
-        # The repo has a large pre-existing lint backlog; failing the build on it
-        # would block every PR. Remove this once the backlog is cleared.
-        continue-on-error: true
+        # A hard gate now. The backlog it used to allow through — 308 errors —
+        # is cleared, and clearing it turned up a privilege escalation, four
+        # unguarded routes and a dozen defects that no test could have caught,
+        # because there was nothing typed for a test to disagree with.
+        run: npx eslint "src/**/*.ts" --max-warnings 0
       - name: Typecheck
         # `npm run build` uses tsconfig.build.json, which excludes the specs.
         # This covers the whole project. It is a hard gate: ts-jest runs with
@@ -76,6 +77,13 @@ jobs:
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
       - run: npm ci
+      - name: Lint
+        # The web job had no lint step, so its 193 errors were not merely
+        # tolerated — they were unmeasured. Warnings are allowed through: see
+        # the note on set-state-in-effect in eslint.config.mjs.
+        run: npm run lint
+      - name: Typecheck
+        run: npx tsc --noEmit
       - name: Build
         run: npm run build
       - name: Assert no demo credentials in the production bundle

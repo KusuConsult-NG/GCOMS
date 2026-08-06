@@ -1,15 +1,15 @@
 'use client';
 
 import type { PurchaseRequest } from '@/types/procurement';
-import type { ApprovalRequest, FinanceTransaction, Grant, InventoryItem, Project } from '@/types/api';
+import type { AnalyticsSummary, ApprovalRequest, FinanceTransaction, Grant, InventoryItem, Project, SessionUser } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import Link from 'next/link';
 
-export function ExecutiveWorkspace({ user }: { user: any }) {
-  const [analytics, setAnalytics] = useState<any>({});
+export function ExecutiveWorkspace({ user }: { user: SessionUser }) {
+  const [analytics, setAnalytics] = useState<Partial<AnalyticsSummary>>({});
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   const [grants, setGrants] = useState<Grant[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -48,7 +48,7 @@ export function ExecutiveWorkspace({ user }: { user: any }) {
     }).catch(console.error).finally(() => setLoading(false));
   }, []);
 
-  const handleApprove = async (item: any) => {
+  const handleApprove = async (item: ApprovalRequest) => {
     try {
       try {
         await api.patch(`/approvals/${item.id}`, { status: 'APPROVED', comment: 'Approved by Executive' });
@@ -61,7 +61,7 @@ export function ExecutiveWorkspace({ user }: { user: any }) {
     }
   };
 
-  const handleReject = async (item: any) => {
+  const handleReject = async (item: ApprovalRequest) => {
     try {
       try {
         await api.patch(`/approvals/${item.id}`, { status: 'REJECTED', comment: 'Rejected by Executive' });
@@ -149,7 +149,7 @@ export function ExecutiveWorkspace({ user }: { user: any }) {
               <h3 className="font-bold text-[var(--primary)] text-sm">Executive Approval Queue</h3>
               <div className="flex gap-1 text-xs">
                 {['ALL', 'PENDING', 'APPROVED', 'REJECTED'].map(f => (
-                  <button key={f} onClick={() => setApprovalFilter(f as any)} className={`px-2 py-1 rounded ${approvalFilter === f ? 'bg-[var(--secondary)] text-white' : 'bg-gray-100 text-gray-600'}`}>{f}</button>
+                  <button key={f} onClick={() => setApprovalFilter(f as Parameters<typeof setApprovalFilter>[0])} className={`px-2 py-1 rounded ${approvalFilter === f ? 'bg-[var(--secondary)] text-white' : 'bg-gray-100 text-gray-600'}`}>{f}</button>
                 ))}
               </div>
             </div>

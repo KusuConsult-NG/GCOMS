@@ -107,7 +107,7 @@ export default function ClinicalDashboard() {
             </tr>
           </thead>
           <tbody>
-            {assignments.map((a: any) => (
+            {assignments.map((a) => (
               <tr key={a.id} className="border-b last:border-0 text-sm">
                 <td className="py-3">{a.participantId}</td>
                 <td className="py-3">{a.clinician?.firstName} {a.clinician?.lastName}</td>

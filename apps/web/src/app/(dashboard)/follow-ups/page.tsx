@@ -202,7 +202,7 @@ export default function FollowUpPage() {
           {['all', 'upcoming', 'missed'].map(tab => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab as any)}
+              onClick={() => setActiveTab(tab as Parameters<typeof setActiveTab>[0])}
               className={`px-4 py-1.5 rounded-full text-xs font-bold capitalize transition-all ${
                 activeTab === tab ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
               }`}

@@ -1,11 +1,12 @@
 'use client';
 
+import type { SessionUser } from '@/types/api';
 import type { PurchaseRequest } from '@/types/procurement';
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
-export function ProcurementWorkspace({ user }: { user: any }) {
+export function ProcurementWorkspace({ user }: { user: SessionUser }) {
   const [orders, setOrders] = useState<PurchaseRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);

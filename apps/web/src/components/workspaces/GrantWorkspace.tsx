@@ -1,11 +1,11 @@
 'use client';
 
-import type { Grant } from '@/types/api';
+import type { Grant, SessionUser } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
-export function GrantWorkspace({ user }: { user: any }) {
+export function GrantWorkspace({ user }: { user: SessionUser }) {
   const [grants, setGrants] = useState<Grant[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);

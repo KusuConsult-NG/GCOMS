@@ -1,10 +1,11 @@
 'use client';
 
+import type { AnalyticsSummary } from '@/types/api';
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
 export default function ReportsPage() {
-  const [summary, setSummary] = useState<any>(null);
+  const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
 

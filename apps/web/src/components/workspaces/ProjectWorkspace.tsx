@@ -1,12 +1,12 @@
 'use client';
 
-import type { Project, ProjectTask, Risk } from '@/types/api';
+import type { Project, ProjectTask, Risk, SessionUser } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 
-export function ProjectWorkspace({ user }: { user: any }) {
+export function ProjectWorkspace({ user }: { user: SessionUser }) {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'projects' | 'tasks' | 'risks' | 'budget' | 'changes'>('projects');
   const [projects, setProjects] = useState<Project[]>([]);
@@ -28,7 +28,24 @@ export function ProjectWorkspace({ user }: { user: any }) {
 
   const [risks, setRisks] = useState<Risk[]>([]);
 
-  const [changeRequests, setChangeRequests] = useState<any[]>([]);
+  /**
+   * Change requests have no table yet, so these live in the tab and are lost on
+   * reload — flagged in the UI rather than presented as saved.
+   */
+  const [changeRequests, setChangeRequests] = useState<
+    Array<{
+      id: string;
+      project: string;
+      title: string;
+      type: string;
+      currentState: string;
+      proposedChange: string;
+      justification: string;
+      impact: string;
+      requestedBy: string;
+      status: string;
+    }>
+  >([]);
 
   // Form States
   const [taskForm, setTaskForm] = useState({ title: '', projectId: '', assignee: '', dueDate: '', priority: 'MEDIUM', status: 'PENDING', description: '' });
@@ -41,7 +58,7 @@ export function ProjectWorkspace({ user }: { user: any }) {
     const actionParam = searchParams.get('action');
 
     if (tabParam && ['projects', 'tasks', 'risks', 'budget', 'changes'].includes(tabParam)) {
-      setActiveTab(tabParam as any);
+      setActiveTab(tabParam as Parameters<typeof setActiveTab>[0]);
     }
     if (actionParam) {
       if (actionParam === 'new-project') setActiveModal('project');
@@ -180,7 +197,10 @@ export function ProjectWorkspace({ user }: { user: any }) {
 
   const handleChangeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setChangeRequests([...changeRequests, { ...changeForm, status: 'PENDING_APPROVAL', id: Date.now() }]);
+    setChangeRequests([
+      ...changeRequests,
+      { ...changeForm, status: 'PENDING_APPROVAL', id: `${changeForm.project}-${changeForm.title}` },
+    ]);
     setActiveModal(null);
     setChangeForm({ project: '', title: '', type: 'SCOPE_CHANGE', currentState: '', proposedChange: '', justification: '', impact: '', requestedBy: '' });
   };
@@ -219,7 +239,7 @@ export function ProjectWorkspace({ user }: { user: any }) {
         ].map(t => (
           <button
             key={t.id}
-            onClick={() => setActiveTab(t.id as any)}
+            onClick={() => setActiveTab(t.id as Parameters<typeof setActiveTab>[0])}
             className={`py-2.5 px-4 rounded-t border-b-2 transition-all whitespace-nowrap ${
               activeTab === t.id ? 'border-[var(--secondary)] text-[var(--secondary)] bg-white font-bold' : 'border-transparent text-[var(--muted)]'
             }`}
@@ -281,7 +301,7 @@ export function ProjectWorkspace({ user }: { user: any }) {
                 <label className="block font-semibold text-[var(--on-background)] mb-1">Assigned Project *</label>
                 <select required value={taskForm.projectId} onChange={e => setTaskForm({ ...taskForm, projectId: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                   <option value="">Select Project</option>
-                  {projects.map((p: any) => <option key={p.id} value={p.id}>{p.projectName}</option>)}
+                  {projects.map((p) => <option key={p.id} value={p.id}>{p.projectName}</option>)}
                 </select>
               </div>
               <div>
@@ -571,8 +591,8 @@ export function ProjectWorkspace({ user }: { user: any }) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             {['PENDING', 'IN_PROGRESS', 'COMPLETED'].map(status => {
               const colTasks = tasks.filter(t => t.status === status);
-              const headers: any = { PENDING: '📋 TO DO', IN_PROGRESS: '🔄 IN PROGRESS', COMPLETED: '✅ COMPLETED' };
-              const headerColors: any = { PENDING: 'text-[var(--primary)]', IN_PROGRESS: 'text-[var(--secondary)]', COMPLETED: 'text-[var(--risk-low-text)]' };
+              const headers: Record<string, string> = { PENDING: '📋 TO DO', IN_PROGRESS: '🔄 IN PROGRESS', COMPLETED: '✅ COMPLETED' };
+              const headerColors: Record<string, string> = { PENDING: 'text-[var(--primary)]', IN_PROGRESS: 'text-[var(--secondary)]', COMPLETED: 'text-[var(--risk-low-text)]' };
               return (
                 <div key={status} className="bg-white p-4 rounded-lg border border-[var(--outline)] space-y-3">
                   <h3 className={`font-bold ${headerColors[status]} border-b pb-2 flex justify-between`}>

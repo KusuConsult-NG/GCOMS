@@ -13,6 +13,17 @@ export default function ProjectsPage() {
     return <AccessDenied requiredRole="Project Manager / Executive" />;
   }
 
+  // Until the store has hydrated there is no user, and the workspace reads
+  // user.role. Passing null through type-checked only because the prop was
+  // `any`.
+  if (!user) {
+    return (
+      <div className="p-8 text-center text-xs text-[var(--muted)]">
+        Loading…
+      </div>
+    );
+  }
+
   return (
     <Suspense fallback={<div className="p-8 text-center text-xs text-[var(--muted)]">Loading Project Application...</div>}>
       <ProjectWorkspace user={user} />

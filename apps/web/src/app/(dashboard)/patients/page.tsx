@@ -1,5 +1,6 @@
 'use client';
 
+import type { FollowUp, Referral, Screening } from '@/types/api';
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -16,11 +17,10 @@ interface Patient {
   phoneNumber: string | null;
   address: string | null;
   createdAt: string;
-  screenings?: any[];
-  referrals?: any[];
-  navigationEvents?: any[];
-  clinicalEncounters?: any[];
-  followUps?: any[];
+  screenings?: Screening[];
+  referrals?: Referral[];
+  clinicalEncounters?: Array<{ id: string; notes: string; createdAt: string }>;
+  followUps?: FollowUp[];
 }
 
 export default function PatientsPage() {
@@ -199,7 +199,7 @@ export default function PatientsPage() {
                     <h3 className="font-semibold text-[var(--primary)] border-b border-[var(--outline)] pb-1 mb-2">🩺 Screenings ({selected.screenings?.length || 0})</h3>
                     {selected.screenings && selected.screenings.length > 0 ? (
                       <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                        {selected.screenings.map((s: any) => (
+                        {(selected.screenings ?? []).map((s) => (
                           <div key={s.id} className="flex justify-between items-center bg-[var(--background)] p-2 rounded border border-[var(--outline)]">
                             <span className="font-medium text-[var(--on-background)]">{s.cancerType}</span>
                             <span className={s.result?.toLowerCase().includes('positive') ? 'badge-high-risk' : 'badge-low-risk'}>
@@ -216,7 +216,7 @@ export default function PatientsPage() {
                     <h3 className="font-semibold text-[var(--primary)] border-b border-[var(--outline)] pb-1 mb-2">📋 Referrals ({selected.referrals?.length || 0})</h3>
                     {selected.referrals && selected.referrals.length > 0 ? (
                       <div className="space-y-1.5 max-h-24 overflow-y-auto">
-                        {selected.referrals.map((r: any) => (
+                        {(selected.referrals ?? []).map((r) => (
                           <div key={r.id} className="flex justify-between items-center bg-[var(--background)] p-2 rounded border border-[var(--outline)]">
                             <span className="text-[var(--on-background)]">{r.referredTo}</span>
                             <span className={r.status === 'PENDING' ? 'badge-mod-risk' : 'badge-low-risk'}>
@@ -233,7 +233,7 @@ export default function PatientsPage() {
                     <h3 className="font-semibold text-[var(--primary)] border-b border-[var(--outline)] pb-1 mb-2">📅 Follow-ups ({selected.followUps?.length || 0})</h3>
                     {selected.followUps && selected.followUps.length > 0 ? (
                       <div className="space-y-1.5 max-h-24 overflow-y-auto">
-                        {selected.followUps.map((f: any) => (
+                        {(selected.followUps ?? []).map((f) => (
                           <div key={f.id} className="flex justify-between items-center bg-[var(--background)] p-2 rounded border border-[var(--outline)]">
                             <span className="text-[var(--on-background)] tabular-nums">{new Date(f.scheduledDate).toLocaleDateString()}</span>
                             <span className={f.status === 'COMPLETED' ? 'badge-low-risk' : f.status === 'SCHEDULED' ? 'badge-mod-risk' : 'badge-high-risk'}>

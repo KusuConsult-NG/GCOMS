@@ -42,7 +42,7 @@ function GrantsPageContent() {
   useEffect(() => {
     const tabParam = searchParams.get('tab');
     if (tabParam && ['grants', 'pipeline', 'donors', 'milestones', 'reports'].includes(tabParam)) {
-      setActiveTab(tabParam as any);
+      setActiveTab(tabParam as Parameters<typeof setActiveTab>[0]);
     }
   }, [searchParams]);
 
@@ -51,11 +51,10 @@ function GrantsPageContent() {
     try {
       const res = await api.get('/grants');
       setGrants(res.data);
-      const allGrants = res.data || [];
-      const donorRecords = allGrants.filter((g: any) => g.type === 'DONOR_RECORD' || g.grantType === 'DONOR_RECORD');
-      if (donorRecords.length > 0) {
-        setDonors(prev => [...prev.filter(d => !donorRecords.find((dr: any) => dr.donorName === d.organisation)), ...donorRecords.map((dr: any) => ({ ...dr, id: dr.id || Date.now(), org: dr.donorName, country: dr.country || '', type: dr.type || 'BILATERAL', contact: dr.contact || '', title: dr.title || '', email: dr.email || '', phone: dr.phone || '', interests: dr.interests || [], lastComm: dr.lastComm || '', notes: dr.notes || '' }))]);
-      }
+      // Donors used to be recovered from the grants table by filtering for rows
+      // marked DONOR_RECORD — a leftover from when a donor was saved as a
+      // fabricated Grant. They come from /operations/donors now, so this merged
+      // ghost rows into a list that already had the real ones.
     } catch (err) {
       console.error('Failed to load grants', err);
     } finally {
@@ -288,7 +287,7 @@ function GrantsPageContent() {
         ].map(t => (
           <button
             key={t.id}
-            onClick={() => setActiveTab(t.id as any)}
+            onClick={() => setActiveTab(t.id as Parameters<typeof setActiveTab>[0])}
             className={`py-2.5 px-4 rounded-t border-b-2 transition-all whitespace-nowrap ${
               activeTab === t.id ? 'border-[var(--secondary)] text-[var(--secondary)] bg-white font-bold' : 'border-transparent text-[var(--muted)]'
             }`}
@@ -669,7 +668,7 @@ function GrantsPageContent() {
                 <label className="block font-semibold text-[var(--on-background)] mb-1">Grant *</label>
                 <select required value={milestoneForm.grantId} onChange={e => setMilestoneForm({ ...milestoneForm, grantId: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
                   <option value="">-- Select Grant --</option>
-                  {grants.map((g: any) => <option key={g.id} value={g.id}>{g.grantName} ({g.donorName})</option>)}
+                  {grants.map((g) => <option key={g.id} value={g.id}>{g.grantName} ({g.donorName})</option>)}
                 </select>
               </div>
               <div>

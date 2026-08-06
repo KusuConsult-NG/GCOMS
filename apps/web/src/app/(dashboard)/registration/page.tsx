@@ -43,7 +43,28 @@ export default function RegistrationPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [registeredPatient, setRegisteredPatient] = useState<any | null>(null);
+  /**
+ * The confirmation card shown after a successful registration. Not a
+ * Participant: it also carries the identity-pass id and the date of birth as
+ * typed, which the response does not echo back.
+ */
+type RegistrationConfirmation = {
+  id: string;
+  registrationId: string;
+  firstName: string;
+  lastName: string;
+  gender: string;
+  dob: string;
+  lga: string;
+  ward: string;
+  address: string;
+  gps: string;
+  qrPassId: string;
+  createdAt: string;
+};
+
+  const [registeredPatient, setRegisteredPatient] =
+    useState<RegistrationConfirmation | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {

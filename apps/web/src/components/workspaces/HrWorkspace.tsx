@@ -1,6 +1,6 @@
 'use client';
 
-import type { Appraisal, JobOpening, LeaveRequest, StaffRecord, TrainingRecord, VolunteerProfile } from '@/types/api';
+import type { Appraisal, JobOpening, LeaveRequest, SessionUser, StaffRecord, TrainingRecord, VolunteerProfile } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -12,7 +12,7 @@ const PLATEAU_LGAS = [
   'Mangu LGA', 'Mikang LGA', 'Pankshin LGA', 'Quan\'Pan LGA', 'Riyom LGA', 'Shendam LGA', 'Wase LGA',
 ];
 
-export function HrWorkspace({ user }: { user: any }) {
+export function HrWorkspace({ user }: { user: SessionUser }) {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'staff' | 'volunteers' | 'recruitment' | 'leave' | 'training'>('staff');
   const [staff, setStaff] = useState<StaffRecord[]>([]);
@@ -22,10 +22,21 @@ export function HrWorkspace({ user }: { user: any }) {
 
   // States for new features
   const [jobOpenings, setJobOpenings] = useState<JobOpening[]>([]);
-  const [selectedJob, setSelectedJob] = useState<any>(null);
+  const [selectedJob, setSelectedJob] = useState<JobOpening | null>(null);
 
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
-  const [attendanceLogs, setAttendanceLogs] = useState<any[]>([]);
+  // No attendance table yet; these stay local to the tab.
+  const [attendanceLogs, setAttendanceLogs] = useState<
+    Array<{
+      id: string;
+      staff: string;
+      date: string;
+      clockIn: string;
+      clockOut: string;
+      hours: number;
+      status: string;
+    }>
+  >([]);
   const [performanceReviews, setPerformanceReviews] = useState<Appraisal[]>([]);
   
   const [trainings, setTrainings] = useState<TrainingRecord[]>([]);
@@ -61,7 +72,7 @@ export function HrWorkspace({ user }: { user: any }) {
 
   const [submitting, setSubmitting] = useState(false);
   const [showPerformance, setShowPerformance] = useState(false);
-  const [viewReview, setViewReview] = useState<any>(null);
+  const [viewReview, setViewReview] = useState<Appraisal | null>(null);
 
   // Read URL action & tab params from Sidebar links
   useEffect(() => {
@@ -69,7 +80,7 @@ export function HrWorkspace({ user }: { user: any }) {
     const actionParam = searchParams.get('action');
 
     if (tabParam && ['staff', 'volunteers', 'recruitment', 'leave', 'training'].includes(tabParam)) {
-      setActiveTab(tabParam as any);
+      setActiveTab(tabParam as Parameters<typeof setActiveTab>[0]);
     }
     if (actionParam) {
       if (actionParam === 'new-staff') setActiveModal('staff');
@@ -207,14 +218,16 @@ export function HrWorkspace({ user }: { user: any }) {
       setActiveModal(null);
       const refreshed = await api.get('/operations/job-openings');
       setJobOpenings(refreshed.data);
-      setSelectedJob(refreshed.data.find((j: any) => j.id === selectedJob.id) ?? null);
+      setSelectedJob(
+        (refreshed.data as JobOpening[]).find((j) => j.id === selectedJob?.id) ?? null,
+      );
     } catch (err) {
       console.error('Failed to add applicant', err);
     }
   };
-  const changeApplicantStage = (applicantId: number, newStage: string) => {
+  const changeApplicantStage = (applicantId: string, newStage: string) => {
     if (selectedJob) {
-      const updatedApplicants = selectedJob.applicants.map((a: any) => a.id === applicantId ? { ...a, stage: newStage } : a);
+      const updatedApplicants = (selectedJob?.applicants ?? []).map((a) => a.id === applicantId ? { ...a, stage: newStage } : a);
       const updatedJob = { ...selectedJob, applicants: updatedApplicants };
       setJobOpenings(jobOpenings.map(j => j.id === selectedJob.id ? updatedJob : j));
       setSelectedJob(updatedJob);
@@ -276,8 +289,11 @@ export function HrWorkspace({ user }: { user: any }) {
       hours = Math.round((outDate.getTime() - inDate.getTime()) / (1000 * 60 * 60) * 10) / 10;
     }
     
+    // No attendance table exists yet, so this stays in the tab. The id is a
+    // local key only — nothing downstream treats it as a record id.
     setAttendanceLogs([...attendanceLogs, {
-      id: Date.now(), staff: staffName, date: attendanceForm.date, clockIn: attendanceForm.clockIn,
+      id: `${attendanceForm.staffId}-${attendanceForm.date}-${attendanceForm.clockIn}`,
+      staff: staffName, date: attendanceForm.date, clockIn: attendanceForm.clockIn,
       clockOut: attendanceForm.clockOut, hours, status: hours >= 8 ? 'PRESENT' : 'LATE'
     }]);
     setActiveModal(null);
@@ -374,7 +390,7 @@ export function HrWorkspace({ user }: { user: any }) {
         ].map(t => (
           <button
             key={t.id}
-            onClick={() => setActiveTab(t.id as any)}
+            onClick={() => setActiveTab(t.id as Parameters<typeof setActiveTab>[0])}
             className={`py-2.5 px-4 rounded-t border-b-2 transition-all whitespace-nowrap ${
               activeTab === t.id ? 'border-[var(--secondary)] text-[var(--secondary)] bg-white font-bold' : 'border-transparent text-[var(--muted)]'
             }`}
@@ -501,7 +517,7 @@ export function HrWorkspace({ user }: { user: any }) {
             <div className="clinical-card">
               <span className="text-xs font-semibold text-[var(--muted)] uppercase">Interviews Scheduled</span>
               <p className="text-3xl font-bold text-[var(--risk-low-text)] mt-1 tabular-nums">
-                {jobOpenings.reduce((acc, job) => acc + (job.applicants ?? []).filter((a: any) => a.stage === 'INTERVIEW').length, 0)}
+                {jobOpenings.reduce((acc, job) => acc + (job.applicants ?? []).filter((a) => a.stage === 'INTERVIEW').length, 0)}
               </p>
             </div>
           </div>
@@ -576,15 +592,15 @@ export function HrWorkspace({ user }: { user: any }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
-                  {selectedJob.applicants.length === 0 ? (
+                  {(selectedJob.applicants ?? []).length === 0 ? (
                     <tr><td colSpan={6} className="p-4 text-center text-[var(--muted)]">No applicants yet.</td></tr>
                   ) : (
-                    selectedJob.applicants.map((app: any) => (
+                    (selectedJob?.applicants ?? []).map((app) => (
                       <tr key={app.id} className="hover:bg-[var(--primary-surface)]">
                         <td className="p-3 font-bold text-[var(--primary)]">{app.name}</td>
                         <td className="p-3">{app.email}</td>
                         <td className="p-3">{app.phone}</td>
-                        <td className="p-3">{app.date}</td>
+                        <td className="p-3">{app.stage}</td>
                         <td className="p-3">
                           <select 
                             value={app.stage} 
@@ -1069,12 +1085,10 @@ export function HrWorkspace({ user }: { user: any }) {
       {viewReview && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg">
-            <h3 className="text-sm font-bold text-[var(--primary)] mb-4">Performance Review — {viewReview.staff || viewReview.staffName}</h3>
+            <h3 className="text-sm font-bold text-[var(--primary)] mb-4">Performance Review — {staffName(viewReview.employeeId)}</h3>
             <div className="space-y-2 text-xs">
               <div><span className="font-semibold">Review Period:</span> {viewReview.period}</div>
               <div><span className="font-semibold">Rating:</span> <span className={`px-2 py-0.5 rounded font-bold ${scoreToRating(viewReview.score) === 'EXCEPTIONAL' ? 'bg-green-100 text-green-800' : scoreToRating(viewReview.score) === 'NEEDS_IMPROVEMENT' ? 'bg-orange-100 text-orange-800' : scoreToRating(viewReview.score) === 'UNSATISFACTORY' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>{scoreToRating(viewReview.score)}</span></div>
-              <div><span className="font-semibold">Key Achievements:</span><p className="mt-1 text-gray-600 whitespace-pre-wrap">{viewReview.achievements}</p></div>
-              <div><span className="font-semibold">Areas for Development:</span><p className="mt-1 text-gray-600 whitespace-pre-wrap">{viewReview.development}</p></div>
               <div><span className="font-semibold">Reviewer Comments:</span><p className="mt-1 text-gray-600 whitespace-pre-wrap">{viewReview.comments}</p></div>
             </div>
             <button className="btn-secondary mt-4" onClick={() => setViewReview(null)}>Close</button>

@@ -1,13 +1,13 @@
 'use client';
 
 import { errorMessage } from '@/lib/errors';
-import type { FollowUp, PatientAssignment, Referral, Screening } from '@/types/api';
+import type { FollowUp, PatientAssignment, Referral, Screening, SessionUser, Vitals } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
-export function ClinicalWorkspace({ user }: { user: any }) {
+export function ClinicalWorkspace({ user }: { user: SessionUser }) {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'encounters' | 'vitals' | 'followups' | 'reports'>('dashboard');
   const [assignments, setAssignments] = useState<PatientAssignment[]>([]);
   const [upcomingFu, setUpcomingFu] = useState<FollowUp[]>([]);
@@ -36,7 +36,7 @@ export function ClinicalWorkspace({ user }: { user: any }) {
 
   // Vitals Tab State
   const [vitalsParticipantId, setVitalsParticipantId] = useState('');
-  const [patientVitals, setPatientVitals] = useState<any[]>([]);
+  const [patientVitals, setPatientVitals] = useState<Vitals[]>([]);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [vitalsForm, setVitalsForm] = useState({
     participantId: '',
@@ -257,7 +257,7 @@ export function ClinicalWorkspace({ user }: { user: any }) {
         ].map(tab => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id as Parameters<typeof setActiveTab>[0])}
             className={`py-2.5 px-4 rounded-t border-b-2 transition-all whitespace-nowrap ${
               activeTab === tab.id
                 ? 'border-[var(--secondary)] text-[var(--secondary)] bg-white font-bold'
@@ -287,7 +287,7 @@ export function ClinicalWorkspace({ user }: { user: any }) {
             </div>
             <div className="clinical-card">
               <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Urgent Referrals</span>
-              <p className="text-3xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">{referralTracking.filter((r: any) => r.status === 'PENDING').length}</p>
+              <p className="text-3xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">{referralTracking.filter((r) => r.status === 'PENDING').length}</p>
             </div>
           </div>
 
@@ -297,7 +297,7 @@ export function ClinicalWorkspace({ user }: { user: any }) {
                 ⚠ Missed Follow-up Clinical Alerts ({missedFu.length})
               </h3>
               <div className="divide-y divide-[var(--risk-high-text)]/10 text-xs">
-                {missedFu.map((fu: any) => (
+                {missedFu.map((fu) => (
                   <div key={fu.id} className="py-2 flex justify-between items-center">
                     <div>
                       <p className="font-bold text-[var(--on-background)]">{fu.participant?.firstName} {fu.participant?.lastName} ({fu.participant?.registrationId ?? fu.participant?.nationalId ?? '—'})</p>
@@ -465,14 +465,21 @@ export function ClinicalWorkspace({ user }: { user: any }) {
               <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Hypertensive Alerts</span>
               <p className="text-2xl font-bold text-[var(--risk-high-text)] mt-1 tabular-nums">
                 {patientVitals.length > 0 
-                  ? patientVitals.filter(v => parseInt(v.bpSystolic) > 140 || parseInt(v.bpDiastolic) > 90).length 
+                  ? patientVitals.filter(v => (v.bpSystolic ?? 0) > 140 || (v.bpDiastolic ?? 0) > 90).length 
                   : <span className="text-sm font-normal">0 <br/><span className="text-[10px]">Select a patient to see vitals alerts</span></span>}
               </p>
             </div>
             <div className="clinical-card bg-white p-4 rounded border border-[var(--outline)]">
               <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">BMI Alerts</span>
               <p className="text-2xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">
-                {patientVitals.filter(v => { const h = parseFloat(v.heightCm)/100; const bmi = parseFloat(v.weightKg)/(h*h); return bmi > 30 || bmi < 18.5; }).length}
+                {patientVitals.filter(v => {
+                  // The API stores bmi; recomputing it from height and weight
+                  // meant a row with either missing produced NaN, and NaN fails
+                  // both comparisons — so an incomplete record silently dropped
+                  // out of the count instead of being flagged.
+                  const bmi = v.bmi ?? undefined;
+                  return bmi !== undefined && (bmi > 30 || bmi < 18.5);
+                }).length}
               </p>
             </div>
           </div>
@@ -504,7 +511,7 @@ export function ClinicalWorkspace({ user }: { user: any }) {
                       <td className="p-3 tabular-nums">{new Date(v.createdAt).toLocaleDateString()}</td>
                       <td className="p-3 tabular-nums font-bold">
                         {v.bpSystolic}/{v.bpDiastolic}
-                        {v.bpSystolic > 140 && <span className="ml-2 px-1.5 py-0.5 bg-[var(--risk-high-bg)] text-[var(--risk-high-text)] rounded text-[10px]">⚠️ HIGH BP</span>}
+                        {(v.bpSystolic ?? 0) > 140 && <span className="ml-2 px-1.5 py-0.5 bg-[var(--risk-high-bg)] text-[var(--risk-high-text)] rounded text-[10px]">⚠️ HIGH BP</span>}
                       </td>
                       <td className="p-3 tabular-nums">{v.pulseRate}</td>
                       <td className="p-3 tabular-nums">{v.temperature}</td>

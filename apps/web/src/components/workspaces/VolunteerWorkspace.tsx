@@ -1,7 +1,7 @@
 'use client';
 
 import { errorMessage } from '@/lib/errors';
-import type { OutreachEvent } from '@/types/api';
+import type { OutreachEvent, Participant, SessionUser } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
@@ -26,11 +26,12 @@ const PLATEAU_LGAS = [
   'Wase LGA',
 ];
 
-export function VolunteerWorkspace({ user }: { user: any }) {
+export function VolunteerWorkspace({ user }: { user: SessionUser }) {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'register' | 'outreach' | 'queue'>('dashboard');
   const [outreaches, setOutreaches] = useState<OutreachEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [offlineQueue, setOfflineQueue] = useState<any[]>([]);
+  // Registrations captured while offline, replayed when the connection returns.
+  const [offlineQueue, setOfflineQueue] = useState<Array<Record<string, string>>>([]);
   const [gpsStatus, setGpsStatus] = useState<'CONNECTED' | 'SEARCHING'>('CONNECTED');
   const [lastSync, setLastSync] = useState(new Date().toLocaleTimeString());
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -49,7 +50,23 @@ export function VolunteerWorkspace({ user }: { user: any }) {
     consentGiven: false,
   });
 
-  const [regSuccess, setRegSuccess] = useState<any>(null);
+/**
+ * The confirmation card after a field registration. Not a Participant: it also
+ * holds the identity-pass id and the GPS fix taken at intake.
+ */
+type RegistrationConfirmation = {
+  id: string;
+  regId: string;
+  name: string;
+  lga: string;
+  ward: string;
+  address: string;
+  gps: string;
+  qrPassId: string;
+};
+
+  const [regSuccess, setRegSuccess] =
+    useState<RegistrationConfirmation | null>(null);
   const [regError, setRegError] = useState('');
   const [regSubmitting, setRegSubmitting] = useState(false);
 
@@ -187,7 +204,7 @@ export function VolunteerWorkspace({ user }: { user: any }) {
         ].map(tab => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id as Parameters<typeof setActiveTab>[0])}
             className={`py-2.5 px-4 rounded-t border-b-2 transition-all whitespace-nowrap ${
               activeTab === tab.id
                 ? 'border-[var(--secondary)] text-[var(--secondary)] bg-white font-bold'

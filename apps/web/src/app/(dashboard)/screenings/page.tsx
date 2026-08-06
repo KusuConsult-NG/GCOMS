@@ -185,20 +185,20 @@ export default function ScreeningsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
-                {screenings.map((s: any) => (
-                  <tr key={s.ID} className="hover:bg-[var(--primary-surface)]">
+                {screenings.map((s) => (
+                  <tr key={s.id} className="hover:bg-[var(--primary-surface)]">
                     <td className="p-3 font-bold text-[var(--primary)]">
-                      {s.Participant}
-                      <div className="text-[10px] text-[var(--muted)] font-mono tabular-nums">{s.NationalID}</div>
+                      {s.participant ? `${s.participant.firstName} ${s.participant.lastName}` : "Unknown"}
+                      <div className="text-[10px] text-[var(--muted)] font-mono tabular-nums">{s.participant?.registrationId ?? "—"}</div>
                     </td>
-                    <td className="p-3">{s.CancerType}</td>
+                    <td className="p-3">{s.cancerType}</td>
                     <td className="p-3">
-                      <span className={s.Result?.toLowerCase().includes('positive') ? 'badge-high-risk' : s.Result?.toLowerCase().includes('suspicious') ? 'badge-mod-risk' : 'badge-low-risk'}>
-                        {s.Result}
+                      <span className={s.result?.toLowerCase().includes('positive') ? 'badge-high-risk' : s.result?.toLowerCase().includes('suspicious') ? 'badge-mod-risk' : 'badge-low-risk'}>
+                        {s.result}
                       </span>
                     </td>
-                    <td className="p-3 font-bold tabular-nums text-[var(--primary)]">{s.RiskScore ?? 'N/A'}</td>
-                    <td className="p-3 text-[var(--muted)] tabular-nums">{new Date(s.Date).toLocaleDateString()}</td>
+                    <td className="p-3 font-bold tabular-nums text-[var(--primary)]">{s.riskScore ?? 'N/A'}</td>
+                    <td className="p-3 text-[var(--muted)] tabular-nums">{new Date(s.createdAt).toLocaleDateString()}</td>
                   </tr>
                 ))}
               </tbody>

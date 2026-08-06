@@ -24,6 +24,19 @@ export interface UserSummary {
   role?: string;
 }
 
+/**
+ * The signed-in user, as the auth store holds it. Twelve workspace components
+ * took this as `{ user: any }`, so `user.role` — which several of them use to
+ * decide what to show — was an unchecked read on every one.
+ */
+export interface SessionUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+}
+
 export interface UserRecord extends UserSummary {
   email: string;
   role: string;
@@ -414,6 +427,48 @@ export interface ReportSchedule {
   status: string;
   submittedAt?: Timestamp | null;
   reference?: string | null;
+}
+
+export interface ServiceLog {
+  id: string;
+  inventoryItemId: string;
+  serviceType: string;
+  performedBy: string;
+  serviceDate: Timestamp;
+  nextDueDate: Timestamp;
+  cost: number;
+  status: string;
+  notes?: string | null;
+}
+
+/** GET /analytics/summary — the executive dashboard's headline counts. */
+export interface AnalyticsSummary {
+  totalScreenings: number;
+  positiveScreenings: number;
+  activeProjects: number;
+  totalFunding: number;
+  pendingApprovals: number;
+  totalParticipants: number;
+  activeReferrals: number;
+  communitiesCovered: number;
+  totalOutreaches: number;
+  researchProjects: number;
+  totalStaff: number;
+  patientsUnderNavigation: number;
+}
+
+export interface Vitals {
+  id: string;
+  participantId: string;
+  bpSystolic?: number | null;
+  bpDiastolic?: number | null;
+  pulseRate?: number | null;
+  temperature?: number | null;
+  weightKg?: number | null;
+  heightCm?: number | null;
+  bmi?: number | null;
+  oxygenSat?: number | null;
+  createdAt: Timestamp;
 }
 
 export interface LocationRecord {

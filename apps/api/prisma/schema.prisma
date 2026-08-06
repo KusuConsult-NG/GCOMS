@@ -356,6 +356,9 @@ model Investigation {
   id                  String   @id @default(uuid())
   type                String
   results             String?
+  // "Make recommendations with regards to results from investigation" was a
+  // stated requirement with no field behind it.
+  recommendation      String?
   clinicalEncounterId String
   clinicalEncounter   ClinicalEncounter @relation(fields: [clinicalEncounterId], references: [id])
   createdAt           DateTime @default(now())
@@ -500,6 +503,8 @@ model LeaveRequest {
   endDate       DateTime
   type          String   @default("ANNUAL")
   status        String   @default("PENDING")
+  // The leave screen already collected a reason with nowhere to store it.
+  reason        String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }

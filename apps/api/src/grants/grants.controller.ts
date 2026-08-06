@@ -17,6 +17,11 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { GRANT_READ_ROLES, GRANT_WRITE_ROLES } from '../auth/roles.constants';
 import {
+  CreateGrantProposalDto,
+  UpdateGrantProposalDto,
+  ListProposalQueryDto,
+} from './dto/grant-proposal.dto';
+import {
   CreateGrantMilestoneDto,
   ListGrantMilestoneQueryDto,
   UpdateGrantMilestoneDto,
@@ -65,5 +70,32 @@ export class GrantsController {
   @Roles(...GRANT_READ_ROLES)
   getGrants() {
     return this.grantsService.getGrants();
+  }
+
+  @Get('proposals')
+  @Roles(...GRANT_READ_ROLES)
+  listProposals(@Query() query: ListProposalQueryDto) {
+    return this.grantsService.listProposals(query.status);
+  }
+
+  @Post('proposals')
+  @Roles(...GRANT_WRITE_ROLES)
+  createProposal(@Body() dto: CreateGrantProposalDto) {
+    return this.grantsService.createProposal(dto);
+  }
+
+  @Patch('proposals/:id')
+  @Roles(...GRANT_WRITE_ROLES)
+  updateProposal(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateGrantProposalDto,
+  ) {
+    return this.grantsService.updateProposal(id, dto);
+  }
+
+  @Delete('proposals/:id')
+  @Roles(...GRANT_WRITE_ROLES)
+  deleteProposal(@Param('id', ParseUUIDPipe) id: string) {
+    return this.grantsService.deleteProposal(id);
   }
 }

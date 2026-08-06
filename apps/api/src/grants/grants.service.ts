@@ -6,6 +6,10 @@ import {
   ListGrantMilestoneQueryDto,
   UpdateGrantMilestoneDto,
 } from './dto/grant-milestone.dto';
+import {
+  CreateGrantProposalDto,
+  UpdateGrantProposalDto,
+} from './dto/grant-proposal.dto';
 
 @Injectable()
 export class GrantsService {
@@ -124,5 +128,53 @@ export class GrantsService {
       select: { id: true },
     });
     if (!milestone) throw new NotFoundException('Milestone not found');
+  }
+
+  /* GrantProposal had no endpoint; the funding pipeline was a hardcoded array. */
+
+  async listProposals(status?: string) {
+    return this.prisma.grantProposal.findMany({
+      where: status ? { status } : {},
+      orderBy: { submissionDeadline: 'asc' },
+    });
+  }
+
+  async createProposal(dto: CreateGrantProposalDto) {
+    return this.prisma.grantProposal.create({
+      data: {
+        title: dto.title.trim(),
+        donorName: dto.donorName.trim(),
+        requestedAmount: dto.requestedAmount,
+        submissionDeadline: new Date(dto.submissionDeadline),
+        leadAuthor: dto.leadAuthor.trim(),
+        status: dto.status ?? 'DRAFT',
+      },
+    });
+  }
+
+  async updateProposal(id: string, dto: UpdateGrantProposalDto) {
+    const existing = await this.prisma.grantProposal.findUnique({
+      where: { id },
+    });
+    if (!existing) throw new NotFoundException('Proposal not found');
+    const data: Prisma.GrantProposalUpdateInput = {};
+    if (dto.title !== undefined) data.title = dto.title.trim();
+    if (dto.donorName !== undefined) data.donorName = dto.donorName.trim();
+    if (dto.requestedAmount !== undefined)
+      data.requestedAmount = dto.requestedAmount;
+    if (dto.submissionDeadline !== undefined)
+      data.submissionDeadline = new Date(dto.submissionDeadline);
+    if (dto.leadAuthor !== undefined) data.leadAuthor = dto.leadAuthor.trim();
+    if (dto.status !== undefined) data.status = dto.status;
+    return this.prisma.grantProposal.update({ where: { id }, data });
+  }
+
+  async deleteProposal(id: string) {
+    const existing = await this.prisma.grantProposal.findUnique({
+      where: { id },
+    });
+    if (!existing) throw new NotFoundException('Proposal not found');
+    await this.prisma.grantProposal.delete({ where: { id } });
+    return { id, deleted: true };
   }
 }

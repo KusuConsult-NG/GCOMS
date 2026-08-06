@@ -7,6 +7,7 @@ import {
   Param,
   UseGuards,
   Request,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ClinicalEncountersService } from './clinical-encounters.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -15,6 +16,10 @@ import { Roles } from '../auth/roles.decorator';
 import { PHI_READ_ROLES } from '../auth/roles.constants';
 import { ParticipantAccessGuard } from '../phi/participant-access.guard';
 import { PhiAccessService } from '../phi/phi-access.service';
+import {
+  CreateInvestigationDto,
+  UpdateInvestigationDto,
+} from './dto/investigation.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('clinical-encounters')
@@ -76,5 +81,35 @@ export class ClinicalEncountersController {
       ? undefined
       : req.user.id;
     return this.encountersService.getAssignments(clinicianId);
+  }
+
+  /* Investigations — PHI, gated in the service by the owning participant. */
+
+  @Get('investigations/:encounterId')
+  @Roles(...PHI_READ_ROLES)
+  listInvestigations(
+    @Param('encounterId', ParseUUIDPipe) encounterId: string,
+    @Request() req: any,
+  ) {
+    return this.encountersService.listInvestigations(encounterId, req.user);
+  }
+
+  @Post('investigations')
+  @Roles('CLINICIAN', 'EXECUTIVE', 'ADMIN')
+  createInvestigation(
+    @Body() dto: CreateInvestigationDto,
+    @Request() req: any,
+  ) {
+    return this.encountersService.createInvestigation(dto, req.user);
+  }
+
+  @Patch('investigations/:id')
+  @Roles('CLINICIAN', 'EXECUTIVE', 'ADMIN')
+  updateInvestigation(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateInvestigationDto,
+    @Request() req: any,
+  ) {
+    return this.encountersService.updateInvestigation(id, dto, req.user);
   }
 }

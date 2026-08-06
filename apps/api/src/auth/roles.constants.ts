@@ -151,3 +151,90 @@ export const MILESTONE_STATUSES = [
   'IN_PROGRESS',
   'COMPLETED',
 ] as const;
+
+/** HR records: leave, appraisals, onboarding. */
+export const HR_READ_ROLES: Role[] = [
+  'HR',
+  'ADMIN',
+  'EXECUTIVE',
+  'SYSTEM_ADMIN',
+];
+export const HR_WRITE_ROLES: Role[] = [
+  'HR',
+  'ADMIN',
+  'EXECUTIVE',
+  'SYSTEM_ADMIN',
+];
+
+/** Board and governance records. */
+export const GOVERNANCE_ROLES: Role[] = [
+  'BOARD',
+  'EXECUTIVE',
+  'ADMIN',
+  'SYSTEM_ADMIN',
+];
+
+/** Finance records beyond the transaction ledger. */
+export const FINANCE_READ_ROLES: Role[] = [
+  'FINANCE',
+  'ADMIN',
+  'EXECUTIVE',
+  'SYSTEM_ADMIN',
+  'BOARD',
+];
+export const FINANCE_WRITE_ROLES: Role[] = [
+  'FINANCE',
+  'ADMIN',
+  'EXECUTIVE',
+  'SYSTEM_ADMIN',
+];
+
+/** Inventory and equipment servicing. */
+export const INVENTORY_READ_ROLES: Role[] = [
+  'INVENTORY_MANAGER',
+  'PROCUREMENT',
+  'ADMIN',
+  'EXECUTIVE',
+  'SYSTEM_ADMIN',
+];
+export const INVENTORY_WRITE_ROLES: Role[] = [
+  'INVENTORY_MANAGER',
+  'ADMIN',
+  'EXECUTIVE',
+  'SYSTEM_ADMIN',
+];
+
+/** Status vocabularies shared with the UI. */
+export const LEAVE_TYPES = [
+  'ANNUAL',
+  'SICK',
+  'MATERNITY',
+  'PATERNITY',
+  'COMPASSIONATE',
+  'UNPAID',
+] as const;
+export const LEAVE_STATUSES = [
+  'PENDING',
+  'APPROVED',
+  'REJECTED',
+  'CANCELLED',
+] as const;
+export const RESOLUTION_STATUSES = ['PENDING', 'PASSED', 'REJECTED'] as const;
+export const RECONCILIATION_STATUSES = [
+  'PENDING',
+  'RECONCILED',
+  'DISCREPANCY',
+] as const;
+export const SERVICE_TYPES = [
+  'CALIBRATION',
+  'PREVENTIVE_MAINTENANCE',
+  'REPAIR',
+] as const;
+export const SERVICE_STATUSES = ['SCHEDULED', 'COMPLETED', 'OVERDUE'] as const;
+export const PROPOSAL_STATUSES = [
+  'DRAFT',
+  'UNDER_REVIEW',
+  'SUBMITTED',
+  'AWARDED',
+  'REJECTED',
+] as const;

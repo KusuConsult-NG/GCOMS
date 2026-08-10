@@ -60,8 +60,12 @@ export function buildCsp({
     // tree, so nonce-only style-src would drop styling rather than tighten it.
     // The XSS value here is small next to script-src: the injection has to run
     // before it can write a style attribute.
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' data: https://fonts.gstatic.com",
+    //
+    // What it no longer carries is fonts.googleapis.com. Inter is self-hosted
+    // by next/font now, so neither the stylesheet origin here nor
+    // fonts.gstatic.com below has to be trusted at all.
+    "style-src 'self' 'unsafe-inline'",
+    "font-src 'self' data:",
     "img-src 'self' data: blob:",
     `connect-src 'self' ${apiOrigin}${isDev ? ' ws: http://localhost:*' : ''}`,
     "worker-src 'self'",

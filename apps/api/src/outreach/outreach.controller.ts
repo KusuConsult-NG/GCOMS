@@ -12,6 +12,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CreateVolunteerTaskDto, LogHoursDto } from './dto/outreach-task.dto';
+import { CreateOutreachDto } from './dto/create-outreach.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('outreach')
@@ -31,15 +32,7 @@ export class OutreachController {
   // Strictly enforce: Only Admin / System Admin / Executive can schedule an outreach campaign
   @Post()
   @Roles('ADMIN', 'SYSTEM_ADMIN', 'EXECUTIVE')
-  async createOutreach(
-    @Body()
-    body: {
-      title: string;
-      locationId?: string;
-      date: string;
-      description?: string;
-    },
-  ) {
+  async createOutreach(@Body() body: CreateOutreachDto) {
     return this.outreachService.createOutreach(body);
   }
 

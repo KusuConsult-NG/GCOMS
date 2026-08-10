@@ -6,6 +6,7 @@ import { Roles } from '../auth/roles.decorator';
 import { PHI_READ_ROLES } from '../auth/roles.constants';
 import { ParticipantAccessGuard } from '../phi/participant-access.guard';
 import { CLINICAL_WRITE_ROLES } from '../auth/roles.constants';
+import { CreateVitalsDto } from './dto/create-vitals.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('vitals')
@@ -15,19 +16,7 @@ export class VitalsController {
   @Post()
   @Roles(...CLINICAL_WRITE_ROLES)
   @UseGuards(ParticipantAccessGuard)
-  async create(
-    @Body()
-    body: {
-      participantId: string;
-      bpSystolic?: number;
-      bpDiastolic?: number;
-      pulseRate?: number;
-      temperature?: number;
-      weightKg?: number;
-      heightCm?: number;
-      oxygenSat?: number;
-    },
-  ) {
+  async create(@Body() body: CreateVitalsDto) {
     return this.vitalsService.create(body);
   }
 

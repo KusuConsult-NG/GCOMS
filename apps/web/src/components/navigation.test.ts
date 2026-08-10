@@ -189,6 +189,46 @@ describe('visibleSections', () => {
     });
   });
 
+  describe('items narrower than their section', () => {
+    /*
+     * Command is a management section, but three of its entries are not open to
+     * all of management. Two of those gate by redirecting rather than by
+     * rendering a refusal, so offering them to the wrong role bounced someone
+     * back to the dashboard with no message — the least legible failure of the
+     * three, and the one no check could see.
+     */
+    it('offers system configuration only to the two roles the API allows', () => {
+      const named = (role: string) =>
+        visibleSections(role).flatMap((s) => s.items.map((i) => i.href));
+      expect(named('SYSTEM_ADMIN')).toContain('/system-admin');
+      expect(named('EXECUTIVE')).toContain('/system-admin');
+      expect(named('BOARD')).not.toContain('/system-admin');
+      expect(named('ADMIN')).not.toContain('/system-admin');
+    });
+
+    it('offers admin operations to ADMIN as well, and not to the board', () => {
+      const named = (role: string) =>
+        visibleSections(role).flatMap((s) => s.items.map((i) => i.href));
+      expect(named('ADMIN')).toContain('/admin-mgmt');
+      expect(named('BOARD')).not.toContain('/admin-mgmt');
+    });
+
+    it('offers strategy to the board, which sets it, and not to ADMIN', () => {
+      const named = (role: string) =>
+        visibleSections(role).flatMap((s) => s.items.map((i) => i.href));
+      expect(named('BOARD')).toContain('/strategy');
+      expect(named('ADMIN')).not.toContain('/strategy');
+    });
+
+    it('renders no section left empty by item filtering', () => {
+      for (const role of ROLES) {
+        for (const section of visibleSections(role)) {
+          expect(section.items.length).toBeGreaterThan(0);
+        }
+      }
+    });
+  });
+
   describe('the sections themselves', () => {
     it('gives every item a destination and a kind', () => {
       for (const section of NAV_SECTIONS) {

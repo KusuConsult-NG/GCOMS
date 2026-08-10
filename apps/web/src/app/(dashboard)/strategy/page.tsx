@@ -6,6 +6,7 @@ import type { StrategicGoal } from '@/types/api';
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
+import { STRATEGY_WRITE_ROLES } from '@/components/pageAccess';
 
 export default function StrategyDashboard() {
   const { user } = useAuthStore();
@@ -82,7 +83,7 @@ export default function StrategyDashboard() {
       )}
 
       {/* Goal Creation Card */}
-      {(user?.role === 'EXECUTIVE' || user?.role === 'SYSTEM_ADMIN' || user?.role === 'BOARD') && (
+      {STRATEGY_WRITE_ROLES.includes(user?.role ?? '') && (
         <div className="clinical-card space-y-4">
           <h2 className="text-base font-bold text-[var(--primary)] border-b border-[var(--outline)] pb-2">Set New Strategic OKR Goal</h2>
           <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs items-end">
@@ -157,7 +158,7 @@ export default function StrategyDashboard() {
                 </div>
                 <div className="flex justify-between items-center text-xs border-t border-[var(--outline)] pt-3 text-[var(--muted)]">
                   <span>Due: <span className="tabular-nums font-semibold">{new Date(goal.deadline).toLocaleDateString()}</span></span>
-                  {(user?.role === 'EXECUTIVE' || user?.role === 'BOARD' || user?.role === 'SYSTEM_ADMIN') && (
+                  {STRATEGY_WRITE_ROLES.includes(user?.role ?? '') && (
                     <button
                       onClick={() => handleUpdate(goal.id, goal.currentMetric || 0)}
                       className="text-[var(--secondary)] hover:underline font-bold text-xs"

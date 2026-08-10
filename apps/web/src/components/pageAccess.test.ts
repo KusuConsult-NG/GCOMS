@@ -47,6 +47,25 @@ describe('page access', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('gates no page by comparing the role inline', () => {
+    /*
+     * The other shape, and the one that got past the check above.
+     *
+     * /admin-mgmt and /system-admin did not declare an `allowedRoles` array —
+     * they wrote `if (user.role !== 'ADMIN' && user.role !== 'EXECUTIVE')` and
+     * redirected. So they were gated, they disagreed with the sidebar, and no
+     * assertion here could see them, because the scan was looking for the one
+     * shape it already knew about. A bounce to the dashboard with no message is
+     * a worse outcome than an Access Denied screen, and it was invisible.
+     */
+    const inlineComparison = /user\??\.role\s*(===|!==)\s*'[A-Z_]+'/;
+    const offenders = routes.filter((route) => {
+      const source = readFileSync(join(DASHBOARD, route, 'page.tsx'), 'utf8');
+      return inlineComparison.test(source);
+    });
+    expect(offenders).toEqual([]);
+  });
+
   it('every route it gates actually exists', () => {
     for (const route of Object.keys(PAGE_ACCESS)) {
       expect(routes).toContain(route.replace(/^\//, ''));

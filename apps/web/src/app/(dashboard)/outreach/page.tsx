@@ -5,6 +5,7 @@ import type { LocationRecord, OutreachEvent } from '@/types/api';
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
+import { OUTREACH_WRITE_ROLES } from '@/components/pageAccess';
 
 export default function OutreachPage() {
   const { user } = useAuthStore();
@@ -17,7 +18,7 @@ export default function OutreachPage() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [submitting, setSubmitting] = useState(false);
 
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SYSTEM_ADMIN' || user?.role === 'EXECUTIVE';
+  const isAdmin = OUTREACH_WRITE_ROLES.includes(user?.role ?? '');
 
   const fetchData = async () => {
     setLoading(true);

@@ -55,6 +55,17 @@ export type NavItem = {
   href: string;
   icon: LucideIcon;
   kind: 'nav' | 'action';
+  /**
+   * Narrower than the section, when the destination is.
+   *
+   * Command is a management section, but three of its entries are not open to
+   * all of management: /system-admin is EXECUTIVE and SYSTEM_ADMIN on the API,
+   * /admin-mgmt adds ADMIN, /strategy is EXECUTIVE and BOARD. Without this the
+   * section offered all three to every management role, and the two that gate
+   * by redirecting — rather than by rendering a refusal — bounced the others
+   * back to the dashboard with no explanation at all.
+   */
+  audience?: NavSection['audience'];
 };
 
 export type NavSection = {
@@ -73,15 +84,24 @@ export type NavSection = {
     | 'volunteer'
     | 'research'
     | 'documents'
-    | 'data';
+    | 'data'
+    | 'systemConfig'
+    | 'adminOps'
+    | 'strategy';
   items: NavItem[];
 };
 
-const nav = (label: string, href: string, icon: LucideIcon): NavItem => ({
+const nav = (
+  label: string,
+  href: string,
+  icon: LucideIcon,
+  audience?: NavSection['audience'],
+): NavItem => ({
   label,
   href,
   icon,
   kind: 'nav',
+  ...(audience ? { audience } : {}),
 });
 
 const action = (label: string, href: string, icon: LucideIcon): NavItem => ({
@@ -97,9 +117,9 @@ export const NAV_SECTIONS: NavSection[] = [
     audience: 'management',
     items: [
       nav('Executive decision support', '/', LayoutDashboard),
-      nav('Strategic goals', '/strategy', Target),
-      nav('Admin system management', '/admin-mgmt', Settings),
-      nav('System configuration', '/system-admin', Settings),
+      nav('Strategic goals', '/strategy', Target, 'strategy'),
+      nav('Admin system management', '/admin-mgmt', Settings, 'adminOps'),
+      nav('System configuration', '/system-admin', Settings, 'systemConfig'),
     ],
   },
   {
@@ -271,7 +291,22 @@ export function visibleSections(role: string | undefined): NavSection[] {
         'PROJECT_MANAGER', 'CLINICIAN', 'BOARD'].includes(normalized) ||
       isManagement,
     data: ['DATA_OFFICER', 'PROGRAMME_MANAGER'].includes(normalized) || isManagement,
+    // Narrower than management, and each mirrors the @Roles on its own module.
+    // BOARD is management here but holds neither of the admin surfaces; ADMIN
+    // holds one of them and not the other.
+    systemConfig: ['EXECUTIVE', 'SYSTEM_ADMIN', 'SUPER_ADMIN'].includes(normalized),
+    adminOps: ['EXECUTIVE', 'SYSTEM_ADMIN', 'SUPER_ADMIN', 'ADMIN'].includes(normalized),
+    strategy: ['EXECUTIVE', 'BOARD', 'SYSTEM_ADMIN', 'SUPER_ADMIN'].includes(normalized),
   };
 
-  return NAV_SECTIONS.filter((section) => audiences[section.audience]);
+  // An item may be narrower than its section; a section whose every item is
+  // filtered out is not rendered as an empty heading.
+  return NAV_SECTIONS.filter((section) => audiences[section.audience])
+    .map((section) => ({
+      ...section,
+      items: section.items.filter(
+        (item) => item.audience === undefined || audiences[item.audience],
+      ),
+    }))
+    .filter((section) => section.items.length > 0);
 }

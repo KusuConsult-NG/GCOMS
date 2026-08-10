@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
+import { ADMIN_OPS_PAGE_ROLES } from '@/components/pageAccess';
 
 interface FacilityRequest {
   id: string;
@@ -36,7 +37,7 @@ export default function AdminDashboard() {
       router.push('/login');
       return;
     }
-    if (user.role !== 'ADMIN' && user.role !== 'EXECUTIVE') {
+    if (!ADMIN_OPS_PAGE_ROLES.includes(user.role)) {
       router.push('/');
       return;
     }

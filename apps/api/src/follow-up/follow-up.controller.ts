@@ -18,6 +18,7 @@ import { PHI_READ_ROLES } from '../auth/roles.constants';
 import { ParticipantAccessGuard } from '../phi/participant-access.guard';
 import { PhiAccessService } from '../phi/phi-access.service';
 import { CLINICAL_WRITE_ROLES } from '../auth/roles.constants';
+import { UpdateFollowUpStatusDto } from './dto/update-follow-up-status.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('follow-ups')
@@ -94,7 +95,7 @@ export class FollowUpController {
   @Roles(...CLINICAL_WRITE_ROLES)
   async updateStatus(
     @Param('id') id: string,
-    @Body() body: { status: string; notes?: string },
+    @Body() body: UpdateFollowUpStatusDto,
     @Request() req: AuthenticatedRequest,
   ) {
     return this.followUpService.updateStatus(

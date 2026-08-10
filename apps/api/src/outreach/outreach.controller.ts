@@ -11,6 +11,7 @@ import { OutreachService } from './outreach.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { CreateVolunteerTaskDto, LogHoursDto } from './dto/outreach-task.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('outreach')
@@ -46,7 +47,7 @@ export class OutreachController {
   @Roles('ADMIN', 'SYSTEM_ADMIN', 'EXECUTIVE')
   async assignVolunteerTask(
     @Param('id') outreachId: string,
-    @Body() body: { volunteerId: string; title: string },
+    @Body() body: CreateVolunteerTaskDto,
   ) {
     return this.outreachService.assignVolunteerTask(
       outreachId,
@@ -59,7 +60,7 @@ export class OutreachController {
   @Roles('VOLUNTEER', 'FIELD_OFFICER', 'EXECUTIVE', 'ADMIN')
   async logVolunteerHours(
     @Param('taskId') taskId: string,
-    @Body() body: { hours: number },
+    @Body() body: LogHoursDto,
   ) {
     return this.outreachService.logVolunteerHours(taskId, body.hours);
   }

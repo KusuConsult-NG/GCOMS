@@ -346,6 +346,43 @@ export const APPROVER_ROLES: Role[] = ['EXECUTIVE', 'BOARD'];
 export const APPROVAL_DECISIONS = ['APPROVED', 'REJECTED'] as const;
 
 /*
+ * Clinical scheduling vocabularies.
+ *
+ * These endpoints took `@Body() body: { status: string }` — a bare type
+ * annotation, which TypeScript erases and which therefore constrains nothing at
+ * runtime. Nest's ValidationPipe validates against a DTO class; with no class
+ * there is no metatype, so it does not merely fail to check the value, it does
+ * not run at all — `whitelist: true` strips nothing either. Any string reached
+ * the database.
+ *
+ * That is worse than untidy for a status. Every list and count in these modules
+ * selects on it, so a follow-up written as anything outside this set is in no
+ * list: not scheduled, not completed, not missed, not cancelled. It does not
+ * error and it does not show up — it simply stops being counted.
+ */
+export const FOLLOW_UP_STATUSES = [
+  'SCHEDULED',
+  'COMPLETED',
+  'MISSED',
+  'CANCELLED',
+] as const;
+
+/** Matches the comment on Appointment.status in schema.prisma. */
+export const APPOINTMENT_STATUSES = [
+  'SCHEDULED',
+  'COMPLETED',
+  'MISSED',
+  'CANCELLED',
+] as const;
+
+export const REFERRAL_STATUSES = [
+  'PENDING',
+  'ACCEPTED',
+  'COMPLETED',
+  'CANCELLED',
+] as const;
+
+/*
  * Clinical roles.
  *
  * The dividing line is medical judgement, not seniority. A nurse in a screening

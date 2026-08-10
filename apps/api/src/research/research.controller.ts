@@ -12,6 +12,10 @@ import { ResearchService } from './research.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import {
+  CreateResearchProjectDto,
+  UpdateResearchProgressDto,
+} from './dto/research.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('research')
@@ -25,7 +29,7 @@ export class ResearchController {
 
   @Post('projects')
   @Roles('EXECUTIVE', 'RESEARCH_OFFICER', 'SYSTEM_ADMIN')
-  async createProject(@Body() body: { title: string }) {
+  async createProject(@Body() body: CreateResearchProjectDto) {
     return this.researchService.createProject(body.title);
   }
 
@@ -33,7 +37,7 @@ export class ResearchController {
   @Roles('EXECUTIVE', 'RESEARCH_OFFICER', 'SYSTEM_ADMIN')
   async updateProgress(
     @Param('id') id: string,
-    @Body() body: { progress: number },
+    @Body() body: UpdateResearchProgressDto,
   ) {
     return this.researchService.updateProgress(id, body.progress);
   }

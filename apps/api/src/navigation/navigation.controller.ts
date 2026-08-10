@@ -14,6 +14,7 @@ import { Roles } from '../auth/roles.decorator';
 import { PHI_READ_ROLES } from '../auth/roles.constants';
 import { ParticipantAccessGuard } from '../phi/participant-access.guard';
 import { CLINICAL_WRITE_ROLES } from '../auth/roles.constants';
+import { CreateNavigationEventDto } from './dto/create-navigation-event.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('navigation')
@@ -32,7 +33,7 @@ export class NavigationController {
   @UseGuards(ParticipantAccessGuard)
   async addEvent(
     @Param('id') participantId: string,
-    @Body() body: { eventType: string; notes?: string },
+    @Body() body: CreateNavigationEventDto,
   ) {
     return this.navigationService.addNavigationEvent(
       participantId,

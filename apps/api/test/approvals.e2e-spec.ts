@@ -263,6 +263,90 @@ describe('approvals (e2e)', () => {
     });
   });
 
+  describe('every accepted resource type is one the resolver acts on', () => {
+    /*
+     * APPROVAL_RESOURCE_TYPES constrains what `POST /approvals` will accept,
+     * and it exists for one reason, stated in the DTO: "an unrecognised value
+     * produces a request that can be approved but can never execute anything."
+     *
+     * It listed seven types of which the resolver handled two. HR, GRANT,
+     * PROJECT, FACILITY and USER were accepted and executed nothing; ADMIN and
+     * HR_LEAVE — the two the resolver does handle, and the two that
+     * admin.service and hr.service actually write — were rejected. The
+     * constraint that exists to prevent exactly this was producing exactly it.
+     */
+    it('accepts each type and moves the underlying record', async () => {
+      const finance = await raiseSpend(500_000);
+      await http
+        .patch(`/approvals/${finance.approval.id}`)
+        .set('Authorization', `Bearer ${token.executive}`)
+        .send({ status: 'APPROVED' })
+        .expect(200);
+      expect(
+        (
+          await prisma.financeTransaction.findUnique({
+            where: { id: finance.transaction.id },
+          })
+        )?.status,
+      ).toBe('APPROVED');
+
+      const order = await prisma.procurementOrder.create({
+        data: {
+          itemName: 'Acetic acid',
+          quantity: 20,
+          estimatedCost: 90_000,
+          vendor: 'JUTH Reagents',
+          requestedById: userId.finance,
+        },
+      });
+      const procurement = await prisma.approvalRequest.create({
+        data: {
+          title: 'Procurement: 20x Acetic acid',
+          resourceType: 'PROCUREMENT',
+          resourceId: order.id,
+          requestedById: userId.finance,
+        },
+      });
+      await http
+        .patch(`/approvals/${procurement.id}`)
+        .set('Authorization', `Bearer ${token.executive}`)
+        .send({ status: 'APPROVED' })
+        .expect(200);
+      expect(
+        (await prisma.procurementOrder.findUnique({ where: { id: order.id } }))
+          ?.status,
+      ).toBe('APPROVED');
+    });
+
+    it('refuses a type the resolver has no branch for', async () => {
+      // These were accepted before. An approval on one is a decision that
+      // records itself and changes nothing.
+      for (const resourceType of [
+        'GRANT',
+        'PROJECT',
+        'USER',
+        'FACILITY',
+        'HR',
+      ]) {
+        await http
+          .post('/approvals')
+          .set('Authorization', `Bearer ${token.finance}`)
+          .send({ title: 'Test', resourceType, resourceId: 'x' })
+          .expect(400);
+      }
+    });
+
+    it('accepts the two written by other services', async () => {
+      for (const resourceType of ['ADMIN', 'HR_LEAVE']) {
+        await http
+          .post('/approvals')
+          .set('Authorization', `Bearer ${token.finance}`)
+          .send({ title: `Test ${resourceType}`, resourceType })
+          .expect(201);
+      }
+    });
+  });
+
   describe('the decision itself', () => {
     it('refuses a status outside the permitted set with a 400, not a 500', async () => {
       const { approval } = await raiseSpend(160_000);

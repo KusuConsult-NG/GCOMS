@@ -1,4 +1,12 @@
 import {
+  Activity,
+  BookOpen,
+  CalendarCheck,
+  Compass,
+  FileArchive,
+  Map,
+  Send,
+  Target,
   Banknote,
   BarChart3,
   Boxes,
@@ -62,7 +70,10 @@ export type NavSection = {
     | 'inventory'
     | 'governance'
     | 'clinician'
-    | 'volunteer';
+    | 'volunteer'
+    | 'research'
+    | 'documents'
+    | 'data';
   items: NavItem[];
 };
 
@@ -86,7 +97,9 @@ export const NAV_SECTIONS: NavSection[] = [
     audience: 'management',
     items: [
       nav('Executive decision support', '/', LayoutDashboard),
+      nav('Strategic goals', '/strategy', Target),
       nav('Admin system management', '/admin-mgmt', Settings),
+      nav('System configuration', '/system-admin', Settings),
     ],
   },
   {
@@ -172,6 +185,10 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       nav('Screening & staging', '/clinical', Stethoscope),
       nav('Patient directory', '/patients', HeartPulse),
+      nav('Screening results', '/screenings', Activity),
+      nav('Referrals', '/referrals', Send),
+      nav('Follow-up schedule', '/follow-ups', CalendarCheck),
+      nav('Patient navigation', '/navigation', Compass),
     ],
   },
   {
@@ -180,7 +197,24 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       nav('Field intake & consent', '/registration', ScrollText),
       nav('Volunteer roster', '/volunteers', Boxes),
+      nav('Outreach campaigns', '/outreach', Map),
+      nav('Community register', '/communities', Building2),
     ],
+  },
+  {
+    title: 'Research',
+    audience: 'research',
+    items: [nav('Research projects', '/research', BookOpen)],
+  },
+  {
+    title: 'Documents',
+    audience: 'documents',
+    items: [nav('Document library', '/documents', FileArchive)],
+  },
+  {
+    title: 'Reporting',
+    audience: 'data',
+    items: [nav('Reports & exports', '/reports', BarChart3)],
   },
 ];
 
@@ -199,17 +233,44 @@ export function visibleSections(role: string | undefined): NavSection[] {
   const normalized = (role || '').toUpperCase().trim();
   const isManagement = ['EXECUTIVE', 'BOARD', 'SUPER_ADMIN', 'ADMIN', 'SYSTEM_ADMIN'].includes(normalized);
 
+  /*
+   * Each predicate mirrors the *_READ_ROLES list guarding the module it opens,
+   * in the API's auth/roles.constants.ts. They were narrower than those lists:
+   * PROGRAMME_MANAGER holds project, grant and report reads and saw none of
+   * them, FINANCE holds grant and procurement reads and saw neither, and
+   * BOARD — already management here — is in most of them anyway.
+   *
+   * A sidebar narrower than the API is not a safety margin. It is a screen the
+   * user is entitled to and cannot find.
+   */
   const audiences: Record<NavSection['audience'], boolean> = {
     management: isManagement,
     finance: normalized === 'FINANCE' || isManagement,
-    procurement: normalized === 'PROCUREMENT' || isManagement,
+    procurement: ['PROCUREMENT', 'FINANCE'].includes(normalized) || isManagement,
     hr: normalized === 'HR' || isManagement,
-    grant: normalized === 'GRANT_MANAGER' || isManagement,
-    project: normalized === 'PROJECT_MANAGER' || isManagement,
-    inventory: normalized === 'INVENTORY_MANAGER' || isManagement,
-    governance: normalized === 'GOVERNANCE' || isManagement,
+    grant:
+      ['GRANT_MANAGER', 'PROGRAMME_MANAGER', 'FINANCE'].includes(normalized) ||
+      isManagement,
+    project:
+      ['PROJECT_MANAGER', 'PROGRAMME_MANAGER'].includes(normalized) ||
+      isManagement,
+    inventory:
+      ['INVENTORY_MANAGER', 'PROCUREMENT'].includes(normalized) || isManagement,
+    // There is no GOVERNANCE role in the API's vocabulary — this compared
+    // against a value no account can hold, so the section was management-only
+    // in practice. BOARD is the role that belongs here, and it is management.
+    governance: isManagement,
     clinician: ['CLINICIAN', 'DOCTOR', 'NURSE'].includes(normalized) || isManagement,
     volunteer: ['VOLUNTEER', 'FIELD_OFFICER', 'COMMUNITY_HEALTH_WORKER'].includes(normalized) || isManagement,
+    // These three mirror the @Roles on the modules they open. Without them the
+    // roles below had no sidebar at all — not a reduced one, an empty one —
+    // while the API served them perfectly well.
+    research: normalized === 'RESEARCH_OFFICER' || isManagement,
+    documents:
+      ['DOCUMENT_OFFICER', 'HR', 'FINANCE', 'PROCUREMENT', 'GRANT_MANAGER',
+        'PROJECT_MANAGER', 'CLINICIAN', 'BOARD'].includes(normalized) ||
+      isManagement,
+    data: ['DATA_OFFICER', 'PROGRAMME_MANAGER'].includes(normalized) || isManagement,
   };
 
   return NAV_SECTIONS.filter((section) => audiences[section.audience]);

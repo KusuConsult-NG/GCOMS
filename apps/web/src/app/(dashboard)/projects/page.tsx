@@ -4,10 +4,11 @@ import React, { Suspense } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { ProjectWorkspace } from '@/components/workspaces/ProjectWorkspace';
 import { AccessDenied } from '@/components/AccessDenied';
+import { PROJECT_PAGE_ROLES } from '@/components/pageAccess';
 
 export default function ProjectsPage() {
   const { user } = useAuthStore();
-  const allowedRoles = ['EXECUTIVE', 'BOARD', 'SUPER_ADMIN', 'SYSTEM_ADMIN', 'ADMIN', 'PROJECT_MANAGER'];
+  const allowedRoles = PROJECT_PAGE_ROLES;
 
   if (user && !allowedRoles.includes(user.role)) {
     return <AccessDenied requiredRole="Project Manager / Executive" />;

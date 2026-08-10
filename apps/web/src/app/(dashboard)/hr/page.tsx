@@ -4,10 +4,11 @@ import React, { Suspense } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { HrWorkspace } from '@/components/workspaces/HrWorkspace';
 import { AccessDenied } from '@/components/AccessDenied';
+import { HR_PAGE_ROLES } from '@/components/pageAccess';
 
 export default function HrPage() {
   const { user } = useAuthStore();
-  const allowedRoles = ['EXECUTIVE', 'BOARD', 'SUPER_ADMIN', 'SYSTEM_ADMIN', 'ADMIN', 'HR'];
+  const allowedRoles = HR_PAGE_ROLES;
 
   if (user && !allowedRoles.includes(user.role)) {
     return <AccessDenied requiredRole="HR Manager / Executive" />;

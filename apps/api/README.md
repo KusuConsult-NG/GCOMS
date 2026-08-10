@@ -1,98 +1,81 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# GCOMS — API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+NestJS 11 + Prisma + PostgreSQL 16. Thirty-seven controllers over fifty-seven
+tables, covering clinical, field, finance, HR, procurement, grants, governance
+and administration.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+See the [repository README](../../README.md) for the stack as a whole, and
+`.env.example` for configuration — every variable is documented there.
 
 ```bash
-$ npm install
+npm ci
+cp .env.example .env      # set JWT_SECRET and DATABASE_URL
+npx prisma generate
+npm run db:migrate
+npm run db:seed           # optional
+npm run start:dev         # :3001
 ```
 
-## Compile and run the project
+The app validates its environment at boot (`src/config/env.validation.ts`) and
+refuses to start with a missing, short, or placeholder `JWT_SECRET`, or — in
+production — with an empty `ALLOWED_ORIGINS`.
+
+## Access control
+
+- `JwtAuthGuard` on every controller except `/` and `/health`.
+- `RolesGuard` + `@Roles(...)` for per-route roles. `EXECUTIVE` and
+  `SYSTEM_ADMIN` are granted every route unconditionally; only `GRANTOR_ROLES`
+  may hand those out, so HR creating staff accounts cannot mint itself an
+  executive. `src/auth/roles.constants.ts` is the single source of truth.
+- `/dashboard/stats` is deliberately open to every authenticated role — it is
+  the landing page for finance and HR too — and filters PHI inside the service
+  rather than by denying the endpoint.
+- `/exports/:dataset` is one route rather than a download button per module, and
+  each dataset carries its own role requirement checked in the service: a bulk
+  read must not become a way around per-module permissions.
+
+## Database
+
+One Postgres baseline migration, not a ported SQLite history. SQLite is not
+supported: `contains` searches rely on `mode: 'insensitive'`, and patient search
+would silently stop matching without it.
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm run db:migrate    # prisma migrate deploy
+npm run db:seed
+npm run db:reset      # destructive
 ```
 
-## Run tests
+Migrations are deliberately not run at boot — run them as a release step so a
+rolling deploy does not have several instances migrating at once.
+
+## Tests
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npx jest                                       # 190 unit
+npx jest --config ./test/jest-e2e.json         # 41 end-to-end, needs TEST_DATABASE_URL
+npx eslint "src/**/*.ts" --max-warnings 0
+npm run typecheck                              # covers specs; the build config excludes them
 ```
 
-## Deployment
+`TEST_DATABASE_URL` is required and must differ from `DATABASE_URL`. Each e2e
+spec creates a Postgres schema of its own and drops it afterwards; the specs
+truncate what they touch, so pointing them at a database you care about would
+be destructive — hence no default.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+`npm run typecheck` is separate from `npm run build` on purpose: ts-jest runs
+with `isolatedModules`, so it transpiles without type-checking and a tree that
+does not compile can still show passing tests.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Operational notes
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- `/health` (liveness) and `/health/ready` (readiness, checks the database).
+- Notifications go through `NotificationsService`. Without `SMTP_*` set there is
+  no transport: messages are recorded in the outbox as `PENDING` and logged, and
+  never reported as delivered.
+- `BackgroundSchedulerService` sweeps for missed follow-ups and appointments
+  every five minutes. Its interval is unref'd and cleared on shutdown.
+- Rate limiting buckets anonymous traffic by client address, so set
+  `TRUST_PROXY` if the API sits behind a proxy — otherwise every client resolves
+  to the proxy and shares one bucket. Avoid `true`: it trusts any
+  `X-Forwarded-For`, which a caller can forge to evade limiting entirely.

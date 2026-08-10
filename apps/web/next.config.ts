@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 // @ts-expect-error: next-pwa doesn't have proper typescript definitions
 import withPWAInit from "next-pwa";
 
+const staticExport = process.env.NEXT_PUBLIC_STATIC_EXPORT === "true";
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 const withPWA = withPWAInit({
   dest: "public",
   disable: process.env.NODE_ENV === "development",
@@ -37,10 +40,39 @@ const securityHeaders = [
   },
 ];
 
-const nextConfig: NextConfig = {
-  async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
-  },
-};
+/**
+ * Two builds out of one tree.
+ *
+ * The default is the Next server the app was written for: middleware sets a
+ * nonced CSP, `headers()` sets the five fixed security headers, and every route
+ * renders per request.
+ *
+ * `NEXT_PUBLIC_STATIC_EXPORT=true` produces a directory of files for a host
+ * that runs nothing — GitHub Pages. `headers()` is not merely ignored there,
+ * it is unimplementable: the host decides the response headers and it does not
+ * offer a way to add any. So that build loses X-Frame-Options, nosniff,
+ * Referrer-Policy, Permissions-Policy and HSTS outright, and its CSP moves into
+ * a meta tag without a nonce. This is written down here, in the README and in
+ * lib/csp.ts because it is the sort of thing that is invisible once it works.
+ *
+ * `trailingSlash` is not cosmetic: without it the export writes `login.html`,
+ * which a file host serves at `/login.html` and 404s at `/login`. With it the
+ * output is `login/index.html` and the app's own hrefs resolve.
+ */
+const nextConfig: NextConfig = staticExport
+  ? {
+      output: "export",
+      trailingSlash: true,
+      // A GitHub Pages project site is served from /<repo>, not the domain root.
+      ...(basePath ? { basePath, assetPrefix: basePath } : {}),
+      // The optimiser is a server route. Without one, next/image has to emit
+      // the source file unchanged or the four <Image> usages render nothing.
+      images: { unoptimized: true },
+    }
+  : {
+      async headers() {
+        return [{ source: "/:path*", headers: securityHeaders }];
+      },
+    };
 
 export default withPWA(nextConfig);

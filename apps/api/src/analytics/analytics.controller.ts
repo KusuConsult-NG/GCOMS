@@ -14,4 +14,16 @@ export class AnalyticsController {
   getSummary() {
     return this.analyticsService.getSummary();
   }
+
+  /**
+   * Programme reach per Local Government Area. Aggregate counts only — no
+   * patient is identifiable in the response — but it is still a map of where
+   * the programme's patients are, so it carries the same roles as the summary
+   * rather than being open to every authenticated account.
+   */
+  @Get('lga')
+  @Roles('EXECUTIVE', 'SYSTEM_ADMIN', 'BOARD')
+  getLgaCoverage() {
+    return this.analyticsService.getLgaCoverage();
+  }
 }

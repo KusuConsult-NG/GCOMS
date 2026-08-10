@@ -1,0 +1,154 @@
+name: Deploy web to GitHub Pages
+
+# Only the web app. The NestJS API and its Postgres database cannot run on
+# Pages — it serves files and runs nothing — so this deploys the interface and
+# points it at an API hosted elsewhere. Without NEXT_PUBLIC_API_URL the site is
+# a sign-in page that cannot sign anyone in, which is why the build refuses to
+# start without it rather than shipping something that looks fine and is not.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and let a newer commit win. Not cancel-in-progress
+# on the deploy itself: a half-uploaded artifact is worse than a stale page.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build the static export
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Resolve the deployment settings
+        env:
+          # Set this as a repository *variable* (Settings → Secrets and
+          # variables → Actions → Variables). It is not a secret: it is baked
+          # into the JavaScript bundle and visible to anyone who loads the page,
+          # which is true of every NEXT_PUBLIC_* value.
+          API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+          # Optional. A project site is served from /<repo>, which is the
+          # default below. Set this to "/" for a custom domain or a
+          # <user>.github.io repository, where the site is at the root.
+          BASE_PATH_OVERRIDE: ${{ vars.PAGES_BASE_PATH }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          if [ -z "$API_URL" ]; then
+            echo "::error::NEXT_PUBLIC_API_URL is not set."
+            echo "The web app has no API to talk to, so every screen would load empty and"
+            echo "sign-in would fail. Set the repository variable NEXT_PUBLIC_API_URL to the"
+            echo "public HTTPS URL of the GCOMS API, then re-run this workflow."
+            exit 1
+          fi
+          case "$API_URL" in
+            https://*) ;;
+            *)
+              echo "::error::NEXT_PUBLIC_API_URL must be https."
+              echo "Pages is served over HTTPS, so a http:// API is blocked as mixed content"
+              echo "and every request fails in the browser. Got: $API_URL"
+              exit 1
+              ;;
+          esac
+
+          if [ "$BASE_PATH_OVERRIDE" = "/" ]; then
+            base=""
+          elif [ -n "$BASE_PATH_OVERRIDE" ]; then
+            base="${BASE_PATH_OVERRIDE%/}"
+          else
+            base="/$REPO_NAME"
+          fi
+
+          {
+            echo "NEXT_PUBLIC_API_URL=$API_URL"
+            echo "NEXT_PUBLIC_BASE_PATH=$base"
+            echo "NEXT_PUBLIC_STATIC_EXPORT=true"
+          } >> "$GITHUB_ENV"
+          echo "Building for base path '${base:-/}' against $API_URL"
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+
+      - name: Assert no demo credentials in the published bundle
+        # The same check the CI workflow runs, repeated here because this is the
+        # build that becomes a public URL. `out` is the whole shipped site.
+        run: |
+          fail=0
+          if grep -rq "Select a Demo Account" out; then
+            echo "The demo shortcut block reached the published bundle:"
+            grep -rl "Select a Demo Account" out
+            fail=1
+          fi
+          # Exact set, not an allowlist — see the note in ci.yml. The only
+          # address that may appear is the login field's placeholder.
+          expected="you@gcoms.org"
+          found=$(grep -rhoE "[a-z_]+@gcoms\.org" out | sort -u || true)
+          if [ "$found" != "$expected" ]; then
+            echo "Addresses in the published bundle do not match what is expected."
+            echo "  expected exactly: $expected   (the login field's placeholder)"
+            echo "  found:            ${found:-(none)}"
+            fail=1
+          fi
+          exit $fail
+
+      - name: Check the export is actually complete
+        # Three things that fail silently rather than loudly: Jekyll eating
+        # _next, the service worker not being emitted, and the icons the
+        # manifest names going missing again.
+        run: |
+          # GitHub Pages runs Jekyll over the artifact unless told not to, and
+          # Jekyll skips every path beginning with an underscore — which is all
+          # of _next, i.e. every script and stylesheet the app has.
+          touch out/.nojekyll
+
+          missing=0
+          for f in sw.js manifest.json icon-192x192.png icon-512x512.png icon-maskable-512x512.png; do
+            if [ ! -f "out/$f" ]; then
+              echo "::error::out/$f is missing from the export"
+              missing=1
+            fi
+          done
+          test -d out/_next || { echo "::error::out/_next is missing"; missing=1; }
+          exit $missing
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: apps/web/out
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

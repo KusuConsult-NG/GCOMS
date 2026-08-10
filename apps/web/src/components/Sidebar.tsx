@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { LogOut, Plus } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { AUDIT_EXPORT_ICON, visibleSections, type NavItem } from './navigation';
+import { MARK_SRC } from '@/lib/deployment';
 
 /**
  * Whether a nav entry is the page currently open.
@@ -57,7 +58,7 @@ export function Sidebar() {
       <div className="flex items-center gap-3 px-4 py-4">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white p-1.5">
           <Image
-            src="/georgel-logo.png"
+            src={MARK_SRC}
             alt=""
             width={32}
             height={32}
@@ -75,7 +76,7 @@ export function Sidebar() {
       <nav className="flex-1 space-y-6 px-3 pb-4">
         {sections.map((section) => (
           <div key={section.title}>
-            <h2 className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+            <h2 className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">
               {section.title}
             </h2>
             <ul className="space-y-0.5">
@@ -109,7 +110,7 @@ export function Sidebar() {
                       }`}
                     >
                       <Icon
-                        className={`h-4 w-4 shrink-0 ${current ? 'text-[var(--secondary)]' : 'text-white/45'}`}
+                        className={`h-4 w-4 shrink-0 ${current ? 'text-[var(--secondary)]' : 'text-white/50'}`}
                         aria-hidden
                       />
                       <span className="truncate">{item.label}</span>
@@ -144,7 +145,7 @@ export function Sidebar() {
             <span className="block truncate text-[13px] font-medium text-white">
               {user.firstName} {user.lastName}
             </span>
-            <span className="block truncate text-[11px] capitalize text-white/45">
+            <span className="block truncate text-[11px] capitalize text-white/50">
               {user.role.replace(/_/g, ' ').toLowerCase()}
             </span>
           </span>

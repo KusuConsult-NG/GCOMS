@@ -4,10 +4,11 @@ import React, { Suspense } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { GovernanceWorkspace } from '@/components/workspaces/GovernanceWorkspace';
 import { AccessDenied } from '@/components/AccessDenied';
+import { GOVERNANCE_PAGE_ROLES } from '@/components/pageAccess';
 
 export default function GovernancePage() {
   const { user } = useAuthStore();
-  const allowedRoles = ['EXECUTIVE', 'BOARD', 'SUPER_ADMIN', 'SYSTEM_ADMIN', 'ADMIN', 'GOVERNANCE'];
+  const allowedRoles = GOVERNANCE_PAGE_ROLES;
 
   if (user && !allowedRoles.includes(user.role)) {
     return <AccessDenied requiredRole="Board / Governance / Executive" />;

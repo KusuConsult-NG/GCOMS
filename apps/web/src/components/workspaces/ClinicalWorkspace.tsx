@@ -422,7 +422,7 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
-              <button type="submit" disabled={savingEncounter || assignments.length === 0} className="btn-primary text-xs bg-[var(--secondary)] text-white px-4 py-2 rounded font-bold disabled:opacity-50">
+              <button type="submit" disabled={savingEncounter || assignments.length === 0} className="btn-primary text-xs bg-[var(--secondary)] text-[var(--on-secondary)] px-4 py-2 rounded font-bold disabled:opacity-50">
                 {savingEncounter ? 'Saving Record...' : 'Submit Clinical Record'}
               </button>
             </div>
@@ -449,7 +449,7 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
                 ))}
               </select>
             </div>
-            <button onClick={() => setShowVitalsModal(true)} className="btn-primary bg-[var(--secondary)] text-white px-4 py-2 rounded text-xs font-bold whitespace-nowrap ml-4">
+            <button onClick={() => setShowVitalsModal(true)} className="btn-primary bg-[var(--secondary)] text-[var(--on-secondary)] px-4 py-2 rounded text-xs font-bold whitespace-nowrap ml-4">
               + Record Vitals
             </button>
           </div>
@@ -552,7 +552,7 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
           <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
             <div className="p-4 border-b border-[var(--outline)] flex justify-between items-center bg-[var(--background)]">
               <h3 className="font-bold text-[var(--primary)] text-sm">Follow-Up Schedule</h3>
-              <button onClick={() => setShowFuModal(true)} className="btn-primary bg-[var(--secondary)] text-white px-3 py-1.5 rounded text-xs font-bold">
+              <button onClick={() => setShowFuModal(true)} className="btn-primary bg-[var(--secondary)] text-[var(--on-secondary)] px-3 py-1.5 rounded text-xs font-bold">
                 + Schedule Follow-Up
               </button>
             </div>
@@ -757,7 +757,7 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
                 <textarea rows={2} value={vitalsForm.notes} onChange={e => setVitalsForm({...vitalsForm, notes: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs"></textarea>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="bg-[var(--secondary)] text-white px-4 py-2 rounded font-bold">Submit Vitals</button>
+                <button type="submit" className="bg-[var(--secondary)] text-[var(--on-secondary)] px-4 py-2 rounded font-bold">Submit Vitals</button>
               </div>
             </form>
           </div>
@@ -802,7 +802,7 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
                 <textarea rows={2} value={fuForm.notes} onChange={e => setFuForm({...fuForm, notes: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs"></textarea>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="bg-[var(--secondary)] text-white px-4 py-2 rounded font-bold">Schedule</button>
+                <button type="submit" className="bg-[var(--secondary)] text-[var(--on-secondary)] px-4 py-2 rounded font-bold">Schedule</button>
               </div>
             </form>
           </div>

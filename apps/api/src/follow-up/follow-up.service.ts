@@ -125,12 +125,28 @@ export class FollowUpService {
     });
   }
 
+  /**
+   * Follow-ups the patient did not attend.
+   *
+   * Two conditions, not one, because two things write this state and they
+   * disagreed. BackgroundSchedulerService sweeps every five minutes and rewrites
+   * an overdue SCHEDULED follow-up to status MISSED; this query looked only for
+   * SCHEDULED rows with a past date — the exact rows the sweep had just moved
+   * out of that set. So the list emptied itself within five minutes of anything
+   * appearing on it, and on a cancer screening programme that list is the
+   * patients who did not come back.
+   *
+   * The SCHEDULED arm is still needed: it covers the window before the next
+   * sweep, and a deployment where the scheduler is not running at all.
+   */
   async getMissed(scope?: Prisma.ParticipantWhereInput) {
     const now = new Date();
     return this.prisma.followUp.findMany({
       where: {
-        status: 'SCHEDULED',
-        scheduledDate: { lt: now },
+        OR: [
+          { status: 'MISSED' },
+          { status: 'SCHEDULED', scheduledDate: { lt: now } },
+        ],
         ...(scope ? { participant: scope } : {}),
       },
       orderBy: { scheduledDate: 'desc' },
@@ -164,10 +180,15 @@ export class FollowUpService {
         this.prisma.followUp.count({
           where: { status: 'COMPLETED', ...inScope },
         }),
+        // Same two conditions as getMissed, and for the same reason: the
+        // scheduler moves an overdue follow-up to MISSED, so counting only
+        // overdue-and-still-SCHEDULED reported zero on a running system.
         this.prisma.followUp.count({
           where: {
-            status: 'SCHEDULED',
-            scheduledDate: { lt: now },
+            OR: [
+              { status: 'MISSED' },
+              { status: 'SCHEDULED', scheduledDate: { lt: now } },
+            ],
             ...inScope,
           },
         }),

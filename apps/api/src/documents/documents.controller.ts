@@ -21,6 +21,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { DOCUMENT_ROLES } from '../auth/roles.constants';
 import { CreateDocumentDto } from './dto/create-document.dto';
+import { DocumentMetadataDto } from './dto/document-metadata.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('documents')
@@ -55,7 +56,7 @@ export class DocumentsController {
   )
   upload(
     @UploadedFile() file: Express.Multer.File,
-    @Body() meta: { title?: string; documentType?: string; version?: string },
+    @Body() meta: DocumentMetadataDto,
     @Request() req: AuthenticatedRequest,
   ) {
     return this.documentsService.upload(file, meta ?? {}, req.user.id);

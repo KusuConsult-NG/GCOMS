@@ -7,8 +7,9 @@ import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { AccessDenied } from '@/components/AccessDenied';
+import { GRANT_PAGE_ROLES } from '@/components/pageAccess';
 
-const allowedRoles = ['EXECUTIVE', 'BOARD', 'SUPER_ADMIN', 'SYSTEM_ADMIN', 'ADMIN', 'GRANT_MANAGER'];
+const allowedRoles = GRANT_PAGE_ROLES;
 
 function GrantsPageContent() {
   const { user } = useAuthStore();

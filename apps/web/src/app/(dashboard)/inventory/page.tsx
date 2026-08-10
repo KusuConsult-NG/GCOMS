@@ -4,10 +4,11 @@ import React, { Suspense } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { InventoryWorkspace } from '@/components/workspaces/InventoryWorkspace';
 import { AccessDenied } from '@/components/AccessDenied';
+import { INVENTORY_PAGE_ROLES } from '@/components/pageAccess';
 
 export default function InventoryPage() {
   const { user } = useAuthStore();
-  const allowedRoles = ['EXECUTIVE', 'BOARD', 'SUPER_ADMIN', 'SYSTEM_ADMIN', 'ADMIN', 'INVENTORY_MANAGER'];
+  const allowedRoles = INVENTORY_PAGE_ROLES;
 
   if (user && !allowedRoles.includes(user.role)) {
     return <AccessDenied requiredRole="Inventory Manager / Executive" />;

@@ -1,16 +1,87 @@
-version: '3.8'
+# Brings the whole stack up: Postgres, the API, and the web app.
+#
+# Previously this declared only the database, so `docker compose up` produced a
+# Postgres server and nothing to connect to it — both apps had Dockerfiles that
+# only CI ever built. Migrations are a separate one-shot service rather than
+# something the API does at boot, matching the note in apps/api/Dockerfile: a
+# rolling deploy must not have several instances migrating at once.
+#
+# For development, `npm run start:dev` in each app against the `db` service
+# below is faster — this is for running the real images.
+#
+# Secrets: JWT_SECRET has no default on purpose. Generate one with
+#   openssl rand -base64 48
+# and put it in a .env file beside this one, or export it before composing.
 
 services:
   db:
     image: postgres:16
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       POSTGRES_DB: gcoms_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # The API waits on this rather than on the container merely existing:
+    # Postgres accepts connections some seconds after the process starts, and
+    # without the probe the API loses its first connection attempt and exits.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d gcoms_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build:
+      context: ./apps/api
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@db:5432/gcoms_db?schema=public
+      # env validation runs before the command does, and refuses to boot
+      # without these even though a migration uses neither.
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET, e.g. `openssl rand -base64 48`}
+      ALLOWED_ORIGINS: http://localhost:3000
+    command: ["npm", "run", "db:migrate"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: ./apps/api
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@db:5432/gcoms_db?schema=public
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET, e.g. `openssl rand -base64 48`}
+      # The browser calls the API from the web app's origin, so that origin —
+      # not the container name — is what has to be allowed here.
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+      NODE_ENV: production
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./apps/web
+      args:
+        # Build-time, not runtime: NEXT_PUBLIC_* values are inlined into the
+        # bundle. Changing this needs `docker compose build web`, not a restart.
+        # It is also the URL the *browser* uses, so it cannot be `http://api`,
+        # which resolves only inside the compose network.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    restart: unless-stopped
 
 volumes:
   postgres_data:

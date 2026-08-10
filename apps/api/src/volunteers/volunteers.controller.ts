@@ -12,6 +12,7 @@ import { VolunteersService } from './volunteers.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { AssignVolunteerTaskDto } from './dto/volunteer-task.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('volunteers')
@@ -25,9 +26,7 @@ export class VolunteersController {
 
   @Post('tasks')
   @Roles('EXECUTIVE', 'FIELD_OFFICER', 'ADMIN')
-  async assignTask(
-    @Body() body: { outreachId: string; volunteerId: string; title: string },
-  ) {
+  async assignTask(@Body() body: AssignVolunteerTaskDto) {
     return this.volunteersService.assignTask(body);
   }
 

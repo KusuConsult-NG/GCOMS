@@ -489,7 +489,7 @@ export function HrWorkspace() {
                   <span className="badge-low-risk">{v.status}</span>
                 </div>
                 <div className="space-y-1 text-slate-700">
-                  <p><strong className="text-[var(--primary)]">LGA (Mandatory):</strong> <span className="px-2 py-0.5 rounded bg-[var(--secondary)] text-white text-[10px] font-bold">{v.lga}</span></p>
+                  <p><strong className="text-[var(--primary)]">LGA (Mandatory):</strong> <span className="px-2 py-0.5 rounded bg-[var(--secondary)] text-[var(--on-secondary)] text-[10px] font-bold">{v.lga}</span></p>
                   <p><strong className="text-[var(--primary)]">Ward:</strong> {v.ward}</p>
                   <p><strong className="text-[var(--primary)]">Address:</strong> {v.address}</p>
                   <p><strong className="text-[var(--primary)]">Stipend:</strong> <span className="text-[var(--risk-low-text)] font-bold font-mono">{`₦${Number(v.stipend || 0).toLocaleString()} / mo`}</span></p>

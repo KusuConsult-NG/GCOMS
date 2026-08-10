@@ -18,6 +18,7 @@ import { PHI_READ_ROLES } from '../auth/roles.constants';
 import { ParticipantAccessGuard } from '../phi/participant-access.guard';
 import { PhiAccessService } from '../phi/phi-access.service';
 import { CLINICAL_WRITE_ROLES } from '../auth/roles.constants';
+import { UpdateAppointmentStatusDto } from './dto/update-appointment-status.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('appointments')
@@ -63,7 +64,7 @@ export class AppointmentsController {
   @Roles(...CLINICAL_WRITE_ROLES)
   async updateStatus(
     @Param('id') id: string,
-    @Body() body: { status: string; notes?: string },
+    @Body() body: UpdateAppointmentStatusDto,
     @Request() req: AuthenticatedRequest,
   ) {
     return this.apptService.updateStatus(id, body.status, body.notes, req.user);

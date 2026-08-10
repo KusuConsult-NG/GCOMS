@@ -116,6 +116,14 @@ jobs:
         run: npx eslint src --max-warnings 31
       - name: Typecheck
         run: npx tsc --noEmit
+      - name: Unit tests
+        # The browser sweeps in the `ui` job render pages; these cover the rules
+        # underneath them. The offline registration queue is the reason the web
+        # app has a test runner at all: it holds patient data on a shared field
+        # phone, and its guarantees — encrypted at rest, one idempotency key per
+        # capture, never replayed under another account — are invisible to
+        # anything that only looks at a screen.
+        run: npm test
       - name: Build
         run: npm run build
       - name: Assert the service worker was emitted

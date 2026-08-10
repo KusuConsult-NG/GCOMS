@@ -162,15 +162,28 @@ jobs:
           fi
 
           # And the addresses themselves, since a refactor could drop the heading
-          # while keeping the buttons. One is allowed through: the login field's
-          # `placeholder="e.g. executive@gcoms.org"`, which renders as visible
-          # example text rather than as a way in.
-          leaked=$(grep -rhoE "[a-z_]+@gcoms\.org" $shipped \
-            | sort -u \
-            | grep -vxE "executive@gcoms\.org" || true)
-          if [ -n "$leaked" ]; then
-            echo "Demo account addresses reached the production bundle:"
-            echo "$leaked"
+          # while keeping the buttons.
+          #
+          # Asserted as an exact set rather than an allowlist, because the
+          # allowlist drifted and nothing said so. It named
+          # `executive@gcoms.org` — the login placeholder at the time it was
+          # written — and the sign-in rebuild changed that placeholder to
+          # `you@gcoms.org` without touching this. The check then failed on a
+          # perfectly harmless string, and it had been failing since that merge,
+          # unnoticed because the merge itself never ran CI.
+          #
+          # An exact set fails in both directions. A new address appearing is a
+          # leak. The expected one *disappearing* means this check has quietly
+          # stopped guarding anything, which is worth one deliberate line change
+          # to find out about.
+          expected="you@gcoms.org"
+          found=$(grep -rhoE "[a-z_]+@gcoms\.org" $shipped | sort -u || true)
+          if [ "$found" != "$expected" ]; then
+            echo "Addresses in the production bundle do not match what is expected."
+            echo "  expected exactly: $expected   (the login field's placeholder)"
+            echo "  found:            ${found:-(none)}"
+            echo "If the placeholder changed, update \$expected here. Any other"
+            echo "address is a demo account that must not ship."
             fail=1
           fi
 

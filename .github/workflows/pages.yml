@@ -106,11 +106,14 @@ jobs:
             grep -rl "Select a Demo Account" out
             fail=1
           fi
-          leaked=$(grep -rhoE "[a-z_]+@gcoms\.org" out | sort -u \
-            | grep -vxE "executive@gcoms\.org" || true)
-          if [ -n "$leaked" ]; then
-            echo "Demo account addresses reached the published bundle:"
-            echo "$leaked"
+          # Exact set, not an allowlist — see the note in ci.yml. The only
+          # address that may appear is the login field's placeholder.
+          expected="you@gcoms.org"
+          found=$(grep -rhoE "[a-z_]+@gcoms\.org" out | sort -u || true)
+          if [ "$found" != "$expected" ]; then
+            echo "Addresses in the published bundle do not match what is expected."
+            echo "  expected exactly: $expected   (the login field's placeholder)"
+            echo "  found:            ${found:-(none)}"
             fail=1
           fi
           exit $fail

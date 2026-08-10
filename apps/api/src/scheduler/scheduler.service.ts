@@ -18,7 +18,7 @@ export class BackgroundSchedulerService
   constructor(private prisma: PrismaService) {}
 
   onModuleInit() {
-    this.logger.log('⏰ GCOMS Background Scheduler Engine initialized');
+    this.logger.log('Background scheduler started');
     // Run once at boot, then on an interval.
     void this.runSchedulerChecks();
 
@@ -54,7 +54,7 @@ export class BackgroundSchedulerService
 
       if (missedFollowUps.length > 0) {
         this.logger.warn(
-          `⚠️ Scheduler detected ${missedFollowUps.length} missed follow-up(s). Marking as MISSED.`,
+          `Scheduler detected ${missedFollowUps.length} missed follow-up(s). Marking as MISSED.`,
         );
         for (const fu of missedFollowUps) {
           await this.prisma.followUp.update({
@@ -86,7 +86,7 @@ export class BackgroundSchedulerService
 
       if (missedAppointments.length > 0) {
         this.logger.warn(
-          `⚠️ Scheduler detected ${missedAppointments.length} missed appointment(s). Marking as MISSED.`,
+          `Scheduler detected ${missedAppointments.length} missed appointment(s). Marking as MISSED.`,
         );
         for (const appt of missedAppointments) {
           await this.prisma.appointment.update({

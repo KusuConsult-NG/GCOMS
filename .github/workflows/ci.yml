@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Lets a green tick be obtained for a commit that never had one. Merges that
+  # land as merge commits do trigger the push above, but a run can also be
+  # cancelled by the concurrency group below, or skipped while the workflow file
+  # itself is being changed — and then main sits untested with nothing to say so.
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -103,11 +108,28 @@ jobs:
         # The web job had no lint step, so its 193 errors were not merely
         # tolerated — they were unmeasured. Warnings are allowed through: see
         # the note on set-state-in-effect in eslint.config.mjs.
-        run: npm run lint
+        #
+        # The count is pinned rather than uncapped. Every one of the 31 has been
+        # read and explained; a 32nd has not, and without a ceiling nothing
+        # distinguishes the two. Lower this when one is removed — it only ever
+        # goes down.
+        run: npx eslint src --max-warnings 31
       - name: Typecheck
         run: npx tsc --noEmit
       - name: Build
         run: npm run build
+      - name: Assert the service worker was emitted
+        # The app calls itself offline-first and queues patient registrations
+        # against a dropped connection, all of which depends on a worker that
+        # next-pwa only writes during a production build. It went missing in a
+        # way nothing detected for as long as this file has existed: next-pwa's
+        # `register: true` injects into a Pages Router `_app`, which this
+        # application does not have, so the worker was built, shipped, and never
+        # registered. It is registered explicitly now — this checks the other
+        # half, that there is something there to register.
+        run: |
+          test -f public/sw.js || { echo "public/sw.js was not generated"; exit 1; }
+          ls public/workbox-*.js >/dev/null 2>&1 || { echo "workbox runtime missing"; exit 1; }
       - name: Assert no demo credentials in the production bundle
         # Scoped to what is actually served. The previous version grepped all of
         # `.next`, which includes `.next/cache/webpack/*.pack` — webpack's build

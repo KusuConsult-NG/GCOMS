@@ -1,7 +1,7 @@
 'use client';
 
 import type { PurchaseRequest } from '@/types/procurement';
-import type { ApprovalRequest, FinanceTransaction, Grant, InventoryItem, Project } from '@/types/api';
+import type { ApprovalRequest, FinanceTransaction, Grant, InventoryItem, LgaCoverage, Project } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -28,15 +28,7 @@ export function ExecutiveWorkspace() {
   const [financeTransactions, setFinanceTransactions] = useState<FinanceTransaction[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [approvalFilter, setApprovalFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
-  const lgaData = [
-    // TODO: replace with live LGA analytics endpoint when available
-    { lga: 'Barkin Ladi', status: 'Active Campaign', referrals: 45, score: '88%' },
-    { lga: 'Mangu', status: 'Expanding', referrals: 30, score: '72%' },
-    { lga: 'Bassa', status: 'Optimal Capacity', referrals: 120, score: '95%' },
-    { lga: 'Riyom', status: 'Scheduled', referrals: 12, score: '65%' },
-    { lga: 'Kanke', status: 'Active Campaign', referrals: 55, score: '81%' },
-    { lga: 'Pankshin', status: 'Needs Attention', referrals: 8, score: '45%' },
-  ];
+  const [lgaCoverage, setLgaCoverage] = useState<LgaCoverage[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -46,13 +38,15 @@ export function ExecutiveWorkspace() {
       api.get('/procurement').catch(() => ({ data: [] })),
       api.get('/finance').catch(() => ({ data: [] })),
       api.get('/inventory').catch(() => ({ data: [] })),
-    ]).then(([approvalsRes, grantsRes, projectsRes, procurementRes, financeRes, inventoryRes]) => {
+      api.get('/analytics/lga').catch(() => ({ data: [] })),
+    ]).then(([approvalsRes, grantsRes, projectsRes, procurementRes, financeRes, inventoryRes, lgaRes]) => {
       setApprovals(approvalsRes.data || []);
       setGrants(grantsRes.data || []);
       setProjects(projectsRes.data || []);
       setProcurementOrders(procurementRes.data || []);
       setFinanceTransactions(financeRes.data || []);
       setInventoryItems(inventoryRes.data || []);
+      setLgaCoverage(lgaRes.data || []);
     }).catch(console.error);
   }, []);
 
@@ -210,33 +204,56 @@ export function ExecutiveWorkspace() {
             </div>
           </div>
 
-          {/* Section 5: Programme Heat Map */}
+          {/* Section 5: Coverage by LGA */}
           <div className="bg-white rounded-lg border border-[var(--outline)] p-5 space-y-4 shadow-sm">
             <div className="border-b border-[var(--outline)] pb-2">
-              <h3 className="font-bold text-[var(--primary)] text-sm">Programme Heat Map (Regional Performance)</h3>
+              <h3 className="font-bold text-[var(--primary)] text-sm">Coverage by Local Government Area</h3>
+              <p className="text-[11px] text-[var(--muted)] mt-0.5">
+                Registered participants and what has happened to them since. Counts only.
+              </p>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
-                  <tr>
-                    <th className="p-2">LGA</th>
-                    <th className="p-2">Outreach Status</th>
-                    <th className="p-2">Clinical Referrals</th>
-                    <th className="p-2">Programme Score</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--outline)]">
-                  {lgaData.map((r, i) => (
-                    <tr key={i} className="hover:bg-[var(--primary-surface)]">
-                      <td className="p-2 font-bold text-[var(--primary)]">{r.lga}</td>
-                      <td className="p-2"><span className="badge-low-risk">{r.status}</span></td>
-                      <td className="p-2">{r.referrals}</td>
-                      <td className="p-2 font-mono">{r.score}</td>
+            {lgaCoverage.length === 0 ? (
+              /* An empty table with headers reads as "every LGA has zero". This
+                 says which of the two it is. */
+              <p className="text-xs text-[var(--muted)] py-4">
+                No registrations carry an LGA yet, so there is nothing to break down.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
+                    <tr>
+                      <th className="p-2">LGA</th>
+                      <th className="p-2 text-right">Participants</th>
+                      <th className="p-2 text-right">Screened</th>
+                      <th className="p-2 text-right">Positive</th>
+                      <th className="p-2 text-right">Referrals</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--outline)]">
+                    {lgaCoverage.map(r => (
+                      <tr key={r.lga} className="hover:bg-[var(--primary-surface)]">
+                        <td className="p-2 font-bold text-[var(--primary)]">{r.lga}</td>
+                        <td className="p-2 text-right tabular-nums">{r.participants.toLocaleString()}</td>
+                        <td className="p-2 text-right tabular-nums">{r.screenings.toLocaleString()}</td>
+                        {/* The one figure that is a clinical signal rather than a
+                            volume, so it is the one that carries colour — and only
+                            when there is something to carry. */}
+                        <td className={`p-2 text-right tabular-nums ${r.positiveScreenings > 0 ? 'font-bold text-[var(--risk-high-text)]' : ''}`}>
+                          {r.positiveScreenings.toLocaleString()}
+                        </td>
+                        <td className="p-2 text-right tabular-nums">
+                          {r.referrals.toLocaleString()}
+                          {r.pendingReferrals > 0 && (
+                            <span className="text-[var(--muted)]"> ({r.pendingReferrals} pending)</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
 

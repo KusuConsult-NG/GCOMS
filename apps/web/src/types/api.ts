@@ -477,3 +477,22 @@ export interface LocationRecord {
   lga?: string | null;
   state?: string | null;
 }
+
+/**
+ * Programme reach in one LGA, from GET /analytics/lga.
+ *
+ * Mirrors LgaCoverage in the API's analytics.service.ts. Counts only — the
+ * table this feeds used to be six hardcoded rows carrying an "Outreach Status"
+ * and a "Programme Score", neither of which the system records.
+ */
+export interface LgaCoverage {
+  lga: string;
+  participants: number;
+  screenings: number;
+  positiveScreenings: number;
+  referrals: number;
+  pendingReferrals: number;
+  communities: number;
+  /** Null where the LGA has communities mapped but no registrations yet. */
+  lastRegistration: Timestamp | null;
+}

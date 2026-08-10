@@ -100,10 +100,21 @@ async function contentSize(page) {
 async function main() {
   await mkdir(OUT, { recursive: true });
   let browser;
-  try {
-    browser = await chromium.launch({ channel: 'chrome' });
-  } catch {
-    browser = await chromium.launch();
+  // PLAYWRIGHT_CHROMIUM_EXECUTABLE first, because neither fallback below can
+  // rescue the case it exists for: a prepared image carrying a Chromium build
+  // whose revision does not match the pinned Playwright. There, the bundled
+  // launch looks for a revision that was never downloaded and `channel: 'chrome'`
+  // finds no system Chrome, so the sweep cannot run at all without an explicit
+  // path.
+  const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
+  if (executablePath) {
+    browser = await chromium.launch({ executablePath });
+  } else {
+    try {
+      browser = await chromium.launch({ channel: 'chrome' });
+    } catch {
+      browser = await chromium.launch();
+    }
   }
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();

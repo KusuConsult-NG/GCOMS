@@ -32,6 +32,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...except the documented template, which is the only record of what the app
+# reads. apps/api/.gitignore ignores `.env` alone and keeps its own example
+# tracked; this pattern is wider and silently swallowed the equivalent here.
+!.env.example
 
 # vercel
 .vercel

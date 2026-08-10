@@ -6,6 +6,10 @@ import React, { useState, useRef } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import { LOGO_SRC } from '@/lib/deployment';
+import { isRetryable } from '@/lib/offlineQueue';
+import { useOfflineRegistrations } from '@/lib/useOfflineRegistrations';
+import { useAuthStore } from '@/store/authStore';
 
 const PLATEAU_LGAS = [
   'Barkin Ladi LGA',
@@ -27,20 +31,23 @@ const PLATEAU_LGAS = [
   'Wase LGA',
 ];
 
+/** The blank intake form, so a completed or queued capture can be cleared. */
+const emptyForm = {
+  firstName: '',
+  lastName: '',
+  dateOfBirth: '',
+  gender: 'Female',
+  phoneNumber: '',
+  lga: 'Barkin Ladi LGA',
+  ward: '',
+  address: '',
+  gpsCoordinates: '',
+  consentGiven: false,
+};
+
 export default function RegistrationPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    dateOfBirth: '',
-    gender: 'Female',
-    phoneNumber: '',
-    lga: 'Barkin Ladi LGA',
-    ward: '',
-    address: '',
-    gpsCoordinates: '',
-    consentGiven: false,
-  });
+  const [formData, setFormData] = useState(emptyForm);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -68,6 +75,25 @@ type RegistrationConfirmation = {
     useState<RegistrationConfirmation | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState('');
+  const [queuedNotice, setQueuedNotice] = useState('');
+
+  /**
+   * The same offline queue the volunteer workspace uses, and the same replay.
+   *
+   * This form is "Field intake & consent" in the volunteer section of the
+   * sidebar — the same patients, on the same phones, in the same LGAs. It had
+   * no queue: a registration that could not be sent was refused with "check
+   * your connection and try again", which on a device with no signal means the
+   * volunteer stands still or loses the capture.
+   */
+  const user = useAuthStore((state) => state.user);
+  const {
+    hold,
+    sync: syncQueue,
+    syncing,
+    hasPending,
+    queue,
+  } = useOfflineRegistrations({ id: user?.id ?? '' , firstName: user?.firstName, lastName: user?.lastName, email: user?.email });
 
   /**
    * Identifies one capture across every attempt to send it, so that retrying a
@@ -142,25 +168,28 @@ type RegistrationConfirmation = {
     }
 
     setLoading(true);
+    setQueuedNotice('');
 
     if (!captureKey.current) captureKey.current = crypto.randomUUID();
 
+    // The registration ID comes back from the server. LGA, ward and GPS are
+    // sent as their own fields rather than concatenated into `address`.
+    const payload = {
+      idempotencyKey: captureKey.current,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      dateOfBirth: formData.dateOfBirth,
+      gender: formData.gender,
+      phoneNumber: formData.phoneNumber,
+      address: formData.address,
+      lga: formData.lga,
+      ward: formData.ward,
+      gpsCoordinates: formData.gpsCoordinates,
+      consentGiven: formData.consentGiven,
+    };
+
     try {
-      // The registration ID comes back from the server. LGA, ward and GPS are
-      // sent as their own fields rather than concatenated into `address`.
-      const res = await api.post('/participants', {
-        idempotencyKey: captureKey.current,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        dateOfBirth: formData.dateOfBirth,
-        gender: formData.gender,
-        phoneNumber: formData.phoneNumber,
-        address: formData.address,
-        lga: formData.lga,
-        ward: formData.ward,
-        gpsCoordinates: formData.gpsCoordinates,
-        consentGiven: formData.consentGiven,
-      });
+      const res = await api.post('/participants', payload);
 
       setRegisteredPatient({
         id: res.data.id,
@@ -182,10 +211,31 @@ type RegistrationConfirmation = {
       // This previously rendered the success screen and a QR identity pass when
       // the request failed, so a field worker got a confirmation for a patient
       // that was never saved.
-      const message = errorMessage(err, 'Registration failed.');
-      setError(
-        `${message} — the patient was NOT registered. Your entries have been kept; check your connection and try again.`,
-      );
+      if (isRetryable(err)) {
+        // Held on the device rather than refused, so the next patient can be
+        // seen. No identity pass: the pass carries a registration id and only
+        // the server issues one, so until this syncs the patient is not
+        // registered and the notice says exactly that.
+        const held = await hold(payload);
+        setFormData(emptyForm);
+        // The queued payload carries the key, so the replay is the same capture
+        // rather than a new one.
+        captureKey.current = null;
+        setQueuedNotice(
+          `No connection, so this registration is held on this device — ${held.count} now waiting. ` +
+            'The patient is not registered until it syncs, and no identity pass can be issued before then.' +
+            (held.persistent
+              ? ''
+              : ' This device cannot store it safely, so it will be lost if you reload — sync before closing.'),
+        );
+      } else {
+        // The server understood the request and refused it. Holding onto it
+        // would only mean failing again later.
+        const message = errorMessage(err, 'Registration failed.');
+        setError(
+          `${message} — the patient was NOT registered. Your entries have been kept; correct them and try again.`,
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -221,7 +271,7 @@ type RegistrationConfirmation = {
               <div className="flex justify-between items-start border-b border-[var(--nav-surface-raised)] pb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white rounded flex items-center justify-center p-1">
-                    <Image src="/georgel-logo.png" alt="Logo" width={32} height={32} className="h-8 object-contain" />
+                    <Image src={LOGO_SRC} alt="Logo" width={32} height={32} className="h-8 object-contain" />
                   </div>
                   <div>
                     <h3 className="font-bold text-base tracking-wide text-white">GCOMS PATIENT IDENTITY PASS</h3>
@@ -302,6 +352,43 @@ type RegistrationConfirmation = {
         {error && (
           <div className="bg-[var(--risk-high-bg)] border border-[var(--risk-high-text)]/20 text-[var(--risk-high-text)] p-3.5 rounded text-xs font-semibold">
             {error}
+          </div>
+        )}
+
+        {/*
+          * A warning, not a confirmation. The record is on the phone and the
+          * patient is not registered, which is the opposite of what a green
+          * "saved" notice would say.
+          */}
+        {queuedNotice && (
+          <div
+            role="status"
+            className="bg-[var(--risk-mod-bg)] border border-[var(--risk-mod-text)]/20 text-[var(--risk-mod-text)] p-3.5 rounded text-xs font-semibold"
+          >
+            {queuedNotice}
+          </div>
+        )}
+
+        {/*
+          * Held captures replay by themselves when the connection returns, so
+          * this is for the case the browser never fires an `online` event —
+          * signal that comes back without a transition the page can see.
+          */}
+        {hasPending && (
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--surface-subtle)] border border-[var(--outline)] p-3 rounded text-xs">
+            <span className="text-[var(--on-surface-variant)]">
+              {queue.length === 1
+                ? '1 registration is waiting on this device.'
+                : `${queue.length} registrations are waiting on this device.`}
+            </span>
+            <button
+              type="button"
+              onClick={() => { void syncQueue(); }}
+              disabled={syncing}
+              className="btn-primary text-xs disabled:opacity-50"
+            >
+              {syncing ? 'Syncing…' : 'Sync now'}
+            </button>
           </div>
         )}
 

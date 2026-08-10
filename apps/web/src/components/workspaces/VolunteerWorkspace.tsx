@@ -1,21 +1,15 @@
 'use client';
 
 import { errorMessage } from '@/lib/errors';
-import {
-  enqueue,
-  isRetryable,
-  isStale,
-  markRejected,
-  readQueue,
-  removeFromQueue,
-  type QueuedRegistration,
-} from '@/lib/offlineQueue';
+import { isRetryable, isStale } from '@/lib/offlineQueue';
+import { useOfflineRegistrations } from '@/lib/useOfflineRegistrations';
 import type { OutreachEvent, SessionUser } from '@/types/api';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { useToday } from '@/lib/useToday';
+import { LOGO_SRC } from '@/lib/deployment';
 
 const PLATEAU_LGAS = [
   'Barkin Ladi LGA',
@@ -40,14 +34,24 @@ const PLATEAU_LGAS = [
 export function VolunteerWorkspace({ user }: { user: SessionUser }) {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'register' | 'outreach' | 'queue'>('dashboard');
   const [outreaches, setOutreaches] = useState<OutreachEvent[]>([]);
-  // Registrations captured while offline, replayed when the connection returns.
-  const [offlineQueue, setOfflineQueue] = useState<QueuedRegistration[]>([]);
-  // False when the device cannot encrypt, in which case the queue lives only as
-  // long as the tab does. The volunteer is told rather than finding out.
-  const [queuePersistent, setQueuePersistent] = useState(true);
-  const [syncing, setSyncing] = useState(false);
-  const [syncNote, setSyncNote] = useState('');
-  const [lastSync, setLastSync] = useState('');
+  /**
+   * Registrations captured while offline, replayed when the connection returns.
+   * Shared with `/registration`, the other field intake form — see
+   * useOfflineRegistrations. `persistent` is false when the device cannot
+   * encrypt, in which case the queue lives only as long as the tab does, and
+   * the volunteer is told rather than finding out.
+   */
+  const {
+    queue: offlineQueue,
+    persistent: queuePersistent,
+    syncing,
+    syncNote,
+    lastSync,
+    hasPending,
+    hold,
+    sync: syncQueue,
+    discard: discardQueued,
+  } = useOfflineRegistrations(user);
   const today = useToday();
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState('');
@@ -138,11 +142,6 @@ type RegistrationConfirmation = {
     );
   };
 
-  // Re-entrancy is tracked in a ref rather than the state flag so that
-  // syncQueue keeps a stable identity; the effects below depend on it, and a
-  // function that changed every time `syncing` did would re-run them mid-sync.
-  const syncingRef = useRef(false);
-
   /**
    * Identifies one capture across every attempt to send it.
    *
@@ -152,88 +151,6 @@ type RegistrationConfirmation = {
    * for that key instead of registering the patient twice.
    */
   const captureKey = useRef<string | null>(null);
-
-  /**
-   * Replays the queue oldest first.
-   *
-   * Stops at the first record that fails for a reason that would fail again —
-   * no connection means the next one has no better chance, and continuing would
-   * only spend the battery. A record the server rejects outright is kept and
-   * flagged instead, so the volunteer can correct or discard it rather than
-   * having it disappear.
-   */
-  const syncQueue = useCallback(async () => {
-    if (syncingRef.current) return;
-    let state = await readQueue();
-    // Records captured by someone else on this shared device are left alone.
-    // The server files a registration against whoever is signed in, so syncing
-    // them here would put this account's name on another volunteer's work.
-    const pending = state.items.filter(
-      (item) => !item.rejectedReason && item.capturedById === user.id,
-    );
-    if (!pending.length) return;
-
-    syncingRef.current = true;
-    setSyncing(true);
-    setSyncNote('');
-    let sent = 0;
-
-    for (const item of pending) {
-      try {
-        await api.post('/participants', item.payload);
-        state = await removeFromQueue(item.localId);
-        sent += 1;
-      } catch (err) {
-        if (isRetryable(err)) {
-          setSyncNote(
-            sent > 0
-              ? `${sent} sent. The rest are still waiting for a connection.`
-              : 'Still no connection to the server. The queue is untouched.',
-          );
-          break;
-        }
-        state = await markRejected(
-          item.localId,
-          errorMessage(err, 'The server rejected this record.'),
-        );
-      }
-    }
-
-    setOfflineQueue(state.items);
-    setQueuePersistent(state.persistent);
-    if (sent > 0) setLastSync(new Date().toLocaleTimeString());
-    syncingRef.current = false;
-    setSyncing(false);
-  }, [user.id]);
-
-  /**
-   * Load what the device is holding, and send it if there is a connection.
-   *
-   * The `online` event alone is not enough: it only fires on a transition. A
-   * volunteer who captures records with no signal, closes the app, and opens it
-   * again somewhere with one gets no such transition, and the queue would sit
-   * there until someone thought to press Sync.
-   */
-  useEffect(() => {
-    void readQueue().then(({ items, persistent }) => {
-      setOfflineQueue(items);
-      setQueuePersistent(persistent);
-      if (
-        navigator.onLine &&
-        items.some((item) => !item.rejectedReason && item.capturedById === user.id)
-      ) {
-        void syncQueue();
-      }
-    });
-  }, [syncQueue, user.id]);
-
-  // The browser tells us when the connection comes back; that is the moment to
-  // try, rather than making the volunteer notice and press something.
-  useEffect(() => {
-    const onOnline = () => { void syncQueue(); };
-    window.addEventListener('online', onOnline);
-    return () => window.removeEventListener('online', onOnline);
-  }, [syncQueue]);
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -311,20 +228,15 @@ type RegistrationConfirmation = {
       // server issues one. Until this syncs, the patient is not registered, and
       // the notice says so rather than implying a save.
       if (isRetryable(err)) {
-        const state = await enqueue(payload, new Date().toISOString(), {
-          id: user.id,
-          name: `${user.firstName} ${user.lastName}`.trim() || user.email,
-        });
-        setOfflineQueue(state.items);
-        setQueuePersistent(state.persistent);
+        const held = await hold(payload);
         setRegForm(emptyForm);
         // The queued payload carries the key, so the replay is the same capture
         // rather than a new one.
         captureKey.current = null;
         setQueuedNotice(
-          `No connection, so this registration is held on this device — ${state.items.length} now waiting. ` +
+          `No connection, so this registration is held on this device — ${held.count} now waiting. ` +
           'The patient is not registered until it syncs, and no identity pass can be issued before then.' +
-          (state.persistent
+          (held.persistent
             ? ''
             : ' This device cannot store it safely, so it will be lost if you reload — sync before closing.'),
         );
@@ -356,11 +268,20 @@ type RegistrationConfirmation = {
             <p className="text-[10px] text-[var(--secondary-container)]">Last Synchronization</p>
             <p className="font-mono font-semibold text-[var(--on-background)]">{lastSync || 'Never'}</p>
           </div>
+          {/*
+            * This used to set the "Last Synchronization" clock and nothing else
+            * — no request, no queue replay — so pressing it told a volunteer
+            * their held registrations had just gone to the server when nothing
+            * had left the device. It runs the same replay as the button on the
+            * queue tab now, and is disabled when there is nothing of this
+            * account's to send, so the label cannot promise work it will not do.
+            */}
           <button
-            onClick={() => setLastSync(new Date().toLocaleTimeString())}
-            className="px-3 py-2 bg-[var(--secondary)] hover:bg-[var(--secondary-hover)] text-[var(--on-background)] font-semibold rounded text-xs transition-colors"
+            onClick={() => { void syncQueue(); }}
+            disabled={syncing || !hasPending}
+            className="px-3 py-2 bg-[var(--secondary)] hover:bg-[var(--secondary-hover)] text-[var(--on-secondary)] font-semibold rounded text-xs transition-colors disabled:opacity-50"
           >
-            Sync Data Now
+            {syncing ? 'Syncing…' : 'Sync Data Now'}
           </button>
         </div>
       </div>
@@ -456,7 +377,7 @@ type RegistrationConfirmation = {
               <div className="flex justify-between items-start border-b border-[var(--nav-surface-raised)] pb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white rounded flex items-center justify-center p-1">
-                    <Image src="/georgel-logo.png" alt="Logo" width={32} height={32} className="h-8 object-contain" />
+                    <Image src={LOGO_SRC} alt="Logo" width={32} height={32} className="h-8 object-contain" />
                   </div>
                   <div>
                     <h3 className="font-bold text-base tracking-wide text-white">GCOMS PATIENT IDENTITY PASS</h3>
@@ -696,12 +617,7 @@ type RegistrationConfirmation = {
             <button
               type="button"
               onClick={() => { void syncQueue(); }}
-              disabled={
-                syncing ||
-                !offlineQueue.some(
-                  (item) => !item.rejectedReason && item.capturedById === user.id,
-                )
-              }
+              disabled={syncing || !hasPending}
               className="btn-primary text-xs bg-[var(--secondary)] hover:bg-[var(--secondary-hover)] disabled:opacity-50"
             >
               {syncing ? 'Syncing…' : 'Sync now'}
@@ -756,7 +672,7 @@ type RegistrationConfirmation = {
                 {item.capturedById === user.id && (
                   <button
                     type="button"
-                    onClick={() => { void removeFromQueue(item.localId).then((s) => setOfflineQueue(s.items)); }}
+                    onClick={() => { void discardQueued(item.localId); }}
                     className="btn-secondary text-[11px]"
                   >
                     Discard

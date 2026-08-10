@@ -7,6 +7,7 @@ import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
+import { LOGO_SRC } from '@/lib/deployment';
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -85,7 +86,7 @@ function LoginForm() {
         <div className="relative flex items-center gap-3">
           <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/95 p-1.5 shadow-sm">
             <Image
-              src="/georgel-logo.png"
+              src={LOGO_SRC}
               alt=""
               width={40}
               height={40}
@@ -128,7 +129,7 @@ function LoginForm() {
           <div className="mb-10 flex items-center gap-3 lg:hidden">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--primary-surface)] p-1.5">
               <Image
-                src="/georgel-logo.png"
+                src={LOGO_SRC}
                 alt=""
                 width={36}
                 height={36}

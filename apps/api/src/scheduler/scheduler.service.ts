@@ -5,6 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -15,7 +16,10 @@ export class BackgroundSchedulerService
   private readonly logger = new Logger(BackgroundSchedulerService.name);
   private timer?: NodeJS.Timeout;
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   onModuleInit() {
     this.logger.log('Background scheduler started');
@@ -62,16 +66,25 @@ export class BackgroundSchedulerService
             data: { status: 'MISSED' },
           });
 
-          // Log notification queue item
-          await this.prisma.notificationItem.create({
-            data: {
-              recipient: fu.participant.phoneNumber || fu.participant.firstName,
-              channel: 'SMS',
-              subject: 'Missed Follow-up Alert',
-              body: `Hello ${fu.participant.firstName}, you missed your scheduled follow-up. Please contact GCOMS clinic.`,
-              status: 'SENT',
-            },
-          });
+          // Through NotificationsService rather than writing the row here.
+          //
+          // This used to create the NotificationItem directly with status
+          // 'SENT' — on the SMS channel, for which this deployment has no
+          // gateway at all. Nothing was sent, nothing was attempted, and the
+          // record said the patient had been contacted. On a follow-up trail
+          // that is the difference between "we chased her" and "we did not",
+          // and it is the sort of claim the record exists to settle.
+          //
+          // sendSms records PENDING and says so in the log, which is what a
+          // queued message with no transport actually is. When a gateway is
+          // configured, the same call starts delivering with no change here.
+          if (fu.participant.phoneNumber) {
+            await this.notifications.sendSms(
+              fu.participant.phoneNumber,
+              `Hello ${fu.participant.firstName}, you missed your scheduled ` +
+                'follow-up. Please contact GCOMS clinic.',
+            );
+          }
         }
       }
 

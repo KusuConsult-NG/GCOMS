@@ -6,7 +6,7 @@ import React, { useState, useRef } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
-import { LOGO_SRC } from '@/lib/deployment';
+import { MARK_SRC } from '@/lib/deployment';
 import { isRetryable } from '@/lib/offlineQueue';
 import { useOfflineRegistrations } from '@/lib/useOfflineRegistrations';
 import { useAuthStore } from '@/store/authStore';
@@ -271,7 +271,7 @@ type RegistrationConfirmation = {
               <div className="flex justify-between items-start border-b border-[var(--nav-surface-raised)] pb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white rounded flex items-center justify-center p-1">
-                    <Image src={LOGO_SRC} alt="Logo" width={32} height={32} className="h-8 object-contain" />
+                    <Image src={MARK_SRC} alt="Logo" width={32} height={32} className="h-8 object-contain" />
                   </div>
                   <div>
                     <h3 className="font-bold text-base tracking-wide text-white">GCOMS PATIENT IDENTITY PASS</h3>

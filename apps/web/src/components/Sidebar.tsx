@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { LogOut, Plus } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { AUDIT_EXPORT_ICON, visibleSections, type NavItem } from './navigation';
-import { LOGO_SRC } from '@/lib/deployment';
+import { MARK_SRC } from '@/lib/deployment';
 
 /**
  * Whether a nav entry is the page currently open.
@@ -58,7 +58,7 @@ export function Sidebar() {
       <div className="flex items-center gap-3 px-4 py-4">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white p-1.5">
           <Image
-            src={LOGO_SRC}
+            src={MARK_SRC}
             alt=""
             width={32}
             height={32}

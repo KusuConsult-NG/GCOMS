@@ -53,5 +53,18 @@ export function assetPath(path: string): string {
   return `${basePath}${path}`;
 }
 
-/** The foundation logo, resolved. Five components render it. */
-export const LOGO_SRC = assetPath('/georgel-logo.png');
+/**
+ * The foundation's mark, resolved.
+ *
+ * The ribbon rather than the full logo, because every placement in this app is
+ * a small square — 32 to 40 pixels, in the sidebar, the topbar and two field
+ * headers. georgel-logo.png is a wide horizontal lockup on a white field:
+ * `object-contain` inside a 40px square renders it about ten pixels tall, which
+ * is a white chip with a grey smudge in it. It read as a missing image because
+ * it may as well have been one.
+ *
+ * This is the same file the manifest uses for the app icon, so the mark in the
+ * sidebar and the icon on the home screen are the one image. The full lockup
+ * stays in `public/` — `npm run icons` derives this from it.
+ */
+export const MARK_SRC = assetPath('/icon-192x192.png');

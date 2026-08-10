@@ -17,6 +17,7 @@
  * These are grouped in one spec rather than spread across nine because they are
  * one defect with nine instances, and the thing worth defending is the rule.
  */
+import { readFileSync, readdirSync } from 'node:fs';
 import { execSync } from 'child_process';
 import { useThrowawaySchema, dropSchema } from './throwaway-schema';
 import { join } from 'path';
@@ -34,12 +35,49 @@ import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { AllExceptionsFilter } from '../src/common/all-exceptions.filter';
+import type { Server } from 'node:http';
 
 const PASSWORD = 'e2e-test-password';
 
 function body<T>(response: { body: unknown }): T {
   return response.body as T;
 }
+
+/**
+ * That no controller declares its body shape inline.
+ *
+ * The first sweep of this found twelve and called it done. It found twelve
+ * because the grep behind it was single-line — `@Body() body: {` — and six more
+ * wrote the brace on the next line, including `vitals`, where the columns are
+ * clinical observations a clinician reads and acts on.
+ *
+ * A pattern that has already missed a third of its subject once should not be
+ * trusted to have found the rest. So this walks the sources instead of a
+ * developer's memory, and it fails the day someone adds the nineteenth.
+ */
+describe('no controller validates by type annotation alone', () => {
+  it('has no inline @Body() shape anywhere', () => {
+    const root = 'src';
+    const controllers: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) walk(full);
+        else if (entry.name.endsWith('.controller.ts')) controllers.push(full);
+      }
+    };
+    walk(root);
+    expect(controllers.length).toBeGreaterThan(30);
+
+    // Newline permitted between the decorator and the parameter, which is the
+    // whole reason the single-line version missed six.
+    const inlineBody = /@Body\(\)\s*\n?\s*\w+\s*:\s*\{/;
+    const offenders = controllers.filter((f) =>
+      inlineBody.test(readFileSync(f, 'utf8')),
+    );
+    expect(offenders).toEqual([]);
+  });
+});
 
 describe('request body validation (e2e)', () => {
   let app: INestApplication;
@@ -50,6 +88,7 @@ describe('request body validation (e2e)', () => {
   let followUpId: string;
   let referralId: string;
   let researchId: string;
+  let participantId: string;
 
   beforeAll(async () => {
     execSync('npx prisma migrate deploy', {
@@ -78,7 +117,7 @@ describe('request body validation (e2e)', () => {
       where: { email: 'exec@val.test' },
     });
 
-    const participant = await prisma.participant.create({
+    const participant: { id: string } = await prisma.participant.create({
       data: {
         registrationId: 'GC-VAL-1',
         firstName: 'Val',
@@ -89,6 +128,7 @@ describe('request body validation (e2e)', () => {
         registeredById: exec.id,
       },
     });
+    participantId = participant.id;
     followUpId = (
       await prisma.followUp.create({
         data: {
@@ -122,7 +162,7 @@ describe('request body validation (e2e)', () => {
     );
     app.useGlobalFilters(new AllExceptionsFilter());
     await app.init();
-    http = request(app.getHttpServer());
+    http = request(app.getHttpServer() as Server);
 
     for (const [key, email] of [
       ['executive', 'exec@val.test'],
@@ -255,6 +295,60 @@ describe('request body validation (e2e)', () => {
         .set('Authorization', as('executive'))
         .send({ title: '   ' })
         .expect(400);
+    });
+  });
+
+  describe('clinical observations are bounded to what a patient produces', () => {
+    /*
+     * Vitals were entirely unvalidated — any number, or a string, reached the
+     * column. That matters more here than elsewhere because nothing downstream
+     * questions a vital sign: it is displayed as recorded, and it is what a
+     * clinician reads when deciding what to do next. A systolic of 900 is not a
+     * dangerous patient, it is a typo, and the two must not look alike.
+     */
+    const post = (payload: Record<string, unknown>) =>
+      http
+        .post('/vitals')
+        .set('Authorization', as('clinician'))
+        .send({ participantId, ...payload });
+
+    it('refuses an impossible blood pressure', async () => {
+      await post({ bpSystolic: 900 }).expect(400);
+      await post({ bpSystolic: 5 }).expect(400);
+    });
+
+    it('refuses an impossible temperature', async () => {
+      await post({ temperature: 250 }).expect(400);
+      await post({ temperature: -40 }).expect(400);
+    });
+
+    it('refuses an oxygen saturation above 100 percent', async () => {
+      await post({ oxygenSat: 150 }).expect(400);
+    });
+
+    it('refuses a height entered in metres', async () => {
+      // 1.7 rather than 170. BMI divides by the square of this, so it lands as
+      // a number ten thousand times too large and is stored like any other.
+      await post({ heightCm: 1.7, weightKg: 70 }).expect(400);
+    });
+
+    it('accepts a genuine emergency, which is the point of the wide bounds', async () => {
+      // Rejecting a real reading would be the worse failure, so where the two
+      // trade off the bound is loose: this is a hypertensive crisis with a
+      // fever, and it must record.
+      await post({
+        bpSystolic: 220,
+        bpDiastolic: 130,
+        pulseRate: 165,
+        temperature: 41.2,
+        oxygenSat: 82,
+      }).expect(201);
+    });
+
+    it('computes BMI from a plausible height and weight', async () => {
+      const res = await post({ weightKg: 70, heightCm: 170 }).expect(201);
+      // 70 / 1.7^2 = 24.2
+      expect(body<{ bmi: number }>(res).bmi).toBeCloseTo(24.2, 1);
     });
   });
 

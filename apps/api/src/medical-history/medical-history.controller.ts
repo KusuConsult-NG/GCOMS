@@ -6,6 +6,7 @@ import { Roles } from '../auth/roles.decorator';
 import { PHI_READ_ROLES } from '../auth/roles.constants';
 import { ParticipantAccessGuard } from '../phi/participant-access.guard';
 import { CLINICAL_WRITE_ROLES } from '../auth/roles.constants';
+import { CreateMedicalHistoryDto } from './dto/create-medical-history.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('medical-history')
@@ -15,17 +16,7 @@ export class MedicalHistoryController {
   @Post()
   @Roles(...CLINICAL_WRITE_ROLES)
   @UseGuards(ParticipantAccessGuard)
-  async create(
-    @Body()
-    body: {
-      participantId: string;
-      conditionName: string;
-      diagnosisDate?: string;
-      familyHistory?: string;
-      lifestyleNotes?: string;
-      allergies?: string;
-    },
-  ) {
+  async create(@Body() body: CreateMedicalHistoryDto) {
     return this.historyService.create(body);
   }
 

@@ -64,7 +64,15 @@ jobs:
         # is cleared, and clearing it turned up a privilege escalation, four
         # unguarded routes and a dozen defects that no test could have caught,
         # because there was nothing typed for a test to disagree with.
-        run: npx eslint "src/**/*.ts" --max-warnings 0
+        #
+        # `test` is linted too, and at zero. It was excluded, and the exclusion
+        # was not a policy — it was the reason ten errors sat in
+        # security.e2e-spec.ts unnoticed while every spec written beside it was
+        # clean. Zero rather than a ceiling for the same reason src is at zero:
+        # a budget above zero is a budget someone spends.
+        run: |
+          npx eslint "src/**/*.ts" --max-warnings 0
+          npx eslint "test/**/*.ts" --max-warnings 0
       - name: Typecheck
         # `npm run build` uses tsconfig.build.json, which excludes the specs.
         # This covers the whole project. It is a hard gate: ts-jest runs with

@@ -6,6 +6,7 @@ import type { ApprovalRequest, FinanceTransaction, Grant, InventoryItem, LgaCove
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { errorMessage } from '@/lib/errors';
 import { StatCard } from '@/components/StatCard';
 import {
   ArrowRight,
@@ -29,6 +30,7 @@ export function ExecutiveWorkspace() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [approvalFilter, setApprovalFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
   const [lgaCoverage, setLgaCoverage] = useState<LgaCoverage[]>([]);
+  const [approvalError, setApprovalError] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -50,31 +52,32 @@ export function ExecutiveWorkspace() {
     }).catch(console.error);
   }, []);
 
-  const handleApprove = async (item: ApprovalRequest) => {
+  /**
+   * Resolve an approval, and say so only if it resolved.
+   *
+   * This used to fall back to `POST /approvals` when the PATCH failed, then
+   * mark the row approved locally either way. POST creates a *new* request, so
+   * a refused decision — a system admin pressing Approve, which the API
+   * deliberately refuses because administering the system is not authority to
+   * commit money — produced three wrong things at once: nothing approved, a
+   * duplicate pending request filed, and a screen saying it had gone through.
+   *
+   * There is no fallback now. A refusal is a refusal, and it is shown.
+   */
+  const resolve = async (item: ApprovalRequest, status: 'APPROVED' | 'REJECTED') => {
+    setApprovalError('');
     try {
-      try {
-        await api.patch(`/approvals/${item.id}`, { status: 'APPROVED', comment: 'Approved by Executive' });
-      } catch {
-        await api.post('/approvals', { ...item, action: 'APPROVE' });
-      }
-      setApprovals(prev => prev.map(a => a.id === item.id ? { ...a, status: 'APPROVED' } : a));
+      await api.patch(`/approvals/${item.id}`, { status });
+      setApprovals(prev => prev.map(a => (a.id === item.id ? { ...a, status } : a)));
     } catch (err) {
-      console.error(err);
+      setApprovalError(
+        `${errorMessage(err, 'The decision could not be recorded.')} — "${item.title}" is unchanged.`,
+      );
     }
   };
 
-  const handleReject = async (item: ApprovalRequest) => {
-    try {
-      try {
-        await api.patch(`/approvals/${item.id}`, { status: 'REJECTED', comment: 'Rejected by Executive' });
-      } catch {
-        await api.post('/approvals', { ...item, action: 'REJECT' });
-      }
-      setApprovals(prev => prev.map(a => a.id === item.id ? { ...a, status: 'REJECTED' } : a));
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const handleApprove = (item: ApprovalRequest) => resolve(item, 'APPROVED');
+  const handleReject = (item: ApprovalRequest) => resolve(item, 'REJECTED');
 
   const totalGrantValue = grants.reduce((sum, g) => sum + (Number(g.amount) || 0), 0);
   const pendingProcurement = procurementOrders.filter(o => o.status === 'PENDING').length;
@@ -154,6 +157,15 @@ export function ExecutiveWorkspace() {
               </div>
             </div>
             
+            {approvalError && (
+              <p
+                role="alert"
+                className="bg-[var(--risk-high-bg)] border border-[var(--risk-high-text)]/20 text-[var(--risk-high-text)] p-3 rounded text-xs font-semibold"
+              >
+                {approvalError}
+              </p>
+            )}
+
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">

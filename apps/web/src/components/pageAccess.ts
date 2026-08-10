@@ -100,6 +100,77 @@ export const INVENTORY_PAGE_ROLES = [
 ];
 
 /**
+ * These three gate by redirecting rather than by rendering a refusal, which is
+ * why `canOpen` did not know about them: the invariant test looked for an
+ * `allowedRoles` array and they had an `if (user.role !== …) router.push('/')`.
+ * A bounce back to the dashboard with no message is a worse outcome than an
+ * Access Denied screen, not a better one, and it was invisible to every check.
+ */
+/** system-admin.controller: EXECUTIVE, SYSTEM_ADMIN. */
+export const SYSTEM_CONFIG_PAGE_ROLES = [
+  'EXECUTIVE',
+  'SYSTEM_ADMIN',
+  'SUPER_ADMIN',
+];
+
+/** admin.controller: ADMIN, EXECUTIVE — plus SYSTEM_ADMIN, which RolesGuard
+ *  admits to every route and which the page was bouncing. */
+export const ADMIN_OPS_PAGE_ROLES = [
+  'EXECUTIVE',
+  'SYSTEM_ADMIN',
+  'SUPER_ADMIN',
+  'ADMIN',
+];
+
+/** strategy.controller: EXECUTIVE, BOARD, and SYSTEM_ADMIN on the read. */
+export const STRATEGY_PAGE_ROLES = [
+  'EXECUTIVE',
+  'BOARD',
+  'SYSTEM_ADMIN',
+  'SUPER_ADMIN',
+];
+
+/*
+ * Not every role list gates a page. These two decide whether an action is
+ * offered — the button that schedules an outreach campaign, the button that
+ * sets a strategic goal — and they were written inline in the pages as
+ * `user?.role === 'ADMIN' || …`. That is the same duplication with the same
+ * drift, one screen further in: a button offered to someone the API refuses is
+ * a click that fails, and a button withheld from someone it allows is a feature
+ * they cannot find.
+ */
+
+/** POST /outreach: ADMIN, SYSTEM_ADMIN, EXECUTIVE. */
+export const OUTREACH_WRITE_ROLES = ['ADMIN', 'SYSTEM_ADMIN', 'EXECUTIVE'];
+
+/** POST /strategy/goals: EXECUTIVE, BOARD — plus SYSTEM_ADMIN via RolesGuard. */
+export const STRATEGY_WRITE_ROLES = ['EXECUTIVE', 'BOARD', 'SYSTEM_ADMIN'];
+
+/**
+ * DOCUMENT_ROLES, which is what POST /documents and /documents/upload require.
+ *
+ * The page decided this with `user.role !== 'VOLUNTEER'` — an allowlist written
+ * as a single denial. Eight roles fell in the gap between the two: a doctor, a
+ * nurse, a community health worker, a field officer, a data officer, an
+ * inventory manager, a programme manager and a research officer were all shown
+ * the upload control and refused by the API when they used it.
+ */
+export const DOCUMENT_WRITE_ROLES = [
+  'DOCUMENT_OFFICER',
+  'ADMIN',
+  'EXECUTIVE',
+  'SYSTEM_ADMIN',
+  'SUPER_ADMIN',
+  'BOARD',
+  'HR',
+  'FINANCE',
+  'PROCUREMENT',
+  'GRANT_MANAGER',
+  'PROJECT_MANAGER',
+  'CLINICIAN',
+];
+
+/**
  * Route to gate, for the pages that carry one. A route absent from this map
  * renders for any signed-in role and relies on the API to refuse what it
  * should — which is the majority, and is fine: these gates are about not
@@ -113,6 +184,9 @@ export const PAGE_ACCESS: Record<string, string[]> = {
   '/finance': FINANCE_PAGE_ROLES,
   '/procurement': PROCUREMENT_PAGE_ROLES,
   '/inventory': INVENTORY_PAGE_ROLES,
+  '/system-admin': SYSTEM_CONFIG_PAGE_ROLES,
+  '/admin-mgmt': ADMIN_OPS_PAGE_ROLES,
+  '/strategy': STRATEGY_PAGE_ROLES,
 };
 
 /** Whether a role may open a route. Unlisted routes are open to any session. */

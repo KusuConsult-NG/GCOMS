@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
+import { SYSTEM_CONFIG_PAGE_ROLES } from '@/components/pageAccess';
 
 interface SystemConfig {
   key: string;
@@ -32,7 +33,7 @@ export default function SystemAdminDashboard() {
       return;
     }
     
-    if (user.role !== 'EXECUTIVE' && user.role !== 'SYSTEM_ADMIN') {
+    if (!SYSTEM_CONFIG_PAGE_ROLES.includes(user.role)) {
       router.push('/');
       return;
     }

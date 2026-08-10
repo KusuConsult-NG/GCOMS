@@ -440,14 +440,27 @@ export const FACILITY_REQUEST_TYPES = [
   'BOOKING',
   'REPAIR',
 ] as const;
+/**
+ * The resources an approval decision can actually be applied to.
+ *
+ * This is the set ApprovalsService.resolveRequest has a branch for, and it must
+ * stay that set. The previous list named seven types of which only two —
+ * FINANCE and PROCUREMENT — the resolver handled: HR, GRANT, PROJECT, FACILITY
+ * and USER were accepted by validation and executed nothing, while ADMIN and
+ * HR_LEAVE, the two the resolver does handle and the two other services
+ * actually write, were rejected.
+ *
+ * So the constraint that exists to stop exactly this was producing exactly
+ * this. The DTO's own comment says it: "an unrecognised value produces a
+ * request that can be approved but can never execute anything."
+ */
 export const APPROVAL_RESOURCE_TYPES = [
-  'PROCUREMENT',
   'FINANCE',
-  'HR',
-  'GRANT',
-  'PROJECT',
-  'FACILITY',
-  'USER',
+  'PROCUREMENT',
+  /** Facility requests — admin.service.ts. */
+  'ADMIN',
+  /** Staff leave — hr.service.ts. */
+  'HR_LEAVE',
 ] as const;
 export const TRANSACTION_TYPES = ['INCOME', 'EXPENSE'] as const;
 export const DOCUMENT_TYPES = [

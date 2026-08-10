@@ -19,6 +19,7 @@ import { ParticipantAccessGuard } from '../phi/participant-access.guard';
 import { PhiAccessService } from '../phi/phi-access.service';
 import { CLINICAL_WRITE_ROLES } from '../auth/roles.constants';
 import { UpdateAppointmentStatusDto } from './dto/update-appointment-status.dto';
+import { CreateAppointmentDto } from './dto/create-appointment.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('appointments')
@@ -44,14 +45,7 @@ export class AppointmentsController {
   @Roles(...CLINICAL_WRITE_ROLES)
   @UseGuards(ParticipantAccessGuard)
   async create(
-    @Body()
-    body: {
-      participantId: string;
-      clinicianId?: string;
-      scheduledAt: string;
-      type?: string;
-      notes?: string;
-    },
+    @Body() body: CreateAppointmentDto,
     @Request() req: AuthenticatedRequest,
   ) {
     return this.apptService.create({

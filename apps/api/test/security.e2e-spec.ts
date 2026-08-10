@@ -26,8 +26,19 @@ import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { AllExceptionsFilter } from '../src/common/all-exceptions.filter';
+import type { Server } from 'node:http';
 
 const PASSWORD = 'e2e-test-password';
+
+/**
+ * supertest types `res.body` as `any`, so every assertion through it is an
+ * unchecked one and the rules that would say so are drowned in the noise. The
+ * newer specs funnel it through one cast; this one predates them, and CI lints
+ * `src` only, so nothing ever asked.
+ */
+function body<T>(response: { body: unknown }): T {
+  return response.body as T;
+}
 
 const ACCOUNTS = [
   { key: 'exec', email: 'exec@e2e.test', role: 'EXECUTIVE' },
@@ -120,16 +131,16 @@ describe('access control (e2e)', () => {
     );
     app.useGlobalFilters(new AllExceptionsFilter());
     await app.init();
-    http = request(app.getHttpServer());
+    http = request(app.getHttpServer() as Server);
 
     // Acquire every token up front — /auth/login is rate limited, so the
     // throttling test at the end must be the only thing still hitting it.
     for (const account of ACCOUNTS) {
       if ((account as { isActive?: boolean }).isActive === false) continue;
-      const res = await request(app.getHttpServer())
+      const res = await request(app.getHttpServer() as Server)
         .post('/auth/login')
         .send({ email: account.email, password: PASSWORD });
-      token[account.key] = res.body.access_token;
+      token[account.key] = body<{ access_token: string }>(res).access_token;
     }
   }, 120_000);
 
@@ -173,7 +184,7 @@ describe('access control (e2e)', () => {
         .post('/auth/login')
         .send({ email: 'disabled@e2e.test', password: PASSWORD })
         .expect(403);
-      expect(res.body.message).toMatch(/deactivated/i);
+      expect(body<{ message: string }>(res).message).toMatch(/deactivated/i);
     });
   });
 
@@ -250,7 +261,7 @@ describe('access control (e2e)', () => {
 
     it('gives oversight roles every patient', async () => {
       const res = await http.get('/participants').set(auth('exec')).expect(200);
-      expect(res.body.length).toBeGreaterThanOrEqual(2);
+      expect(body<unknown[]>(res).length).toBeGreaterThanOrEqual(2);
     });
 
     it('limits a clinician to their own caseload', async () => {
@@ -258,7 +269,7 @@ describe('access control (e2e)', () => {
         .get('/participants')
         .set(auth('clinician'))
         .expect(200);
-      expect(res.body.map((p: { id: string }) => p.id)).toEqual([
+      expect(body<{ id: string }[]>(res).map((p) => p.id)).toEqual([
         assignedPatientId,
       ]);
     });
@@ -347,8 +358,12 @@ describe('access control (e2e)', () => {
           })
           .expect(201);
 
-        expect(res.body.registrationId).not.toBe('GC-CLIENT-SUPPLIED');
-        expect(res.body.registrationId).toMatch(/^GC-\d{4}-/);
+        expect(body<{ registrationId: string }>(res).registrationId).not.toBe(
+          'GC-CLIENT-SUPPLIED',
+        );
+        expect(body<{ registrationId: string }>(res).registrationId).toMatch(
+          /^GC-\d{4}-/,
+        );
         expect(res.body).toMatchObject({
           lga: 'Barkin Ladi LGA',
           ward: 'Gwol Ward',
@@ -384,8 +399,10 @@ describe('access control (e2e)', () => {
   describe('error envelope', () => {
     it('carries a reference id for correlation', async () => {
       const res = await http.get('/no-such-route').expect(404);
-      expect(res.body.reference).toEqual(expect.any(String));
-      expect(res.body.path).toBe('/no-such-route');
+      expect(body<{ reference: string }>(res).reference).toEqual(
+        expect.any(String),
+      );
+      expect(body<{ path: string }>(res).path).toBe('/no-such-route');
     });
   });
 });

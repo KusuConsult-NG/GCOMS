@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
+import { DOCUMENT_WRITE_ROLES } from '@/components/pageAccess';
 
 interface DocumentRecord {
   id: string;
@@ -86,7 +87,7 @@ export default function DocumentsDashboard() {
     doc.documentType.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const canUpload = user && user.role !== 'VOLUNTEER';
+  const canUpload = DOCUMENT_WRITE_ROLES.includes(user?.role ?? '');
 
   if (loading) {
     return <div className="p-8 text-center text-xs text-[var(--muted)]">Loading central document repository...</div>;

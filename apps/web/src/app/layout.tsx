@@ -1,10 +1,34 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { buildCsp } from "@/lib/csp";
 import { apiOrigin, basePath, isStaticExport } from "@/lib/deployment";
+
+/**
+ * Inter, self-hosted.
+ *
+ * globals.css opened with `@import url('https://fonts.googleapis.com/...')`,
+ * which is a request to a third party on every first load — in an application
+ * whose manifest calls it offline-first and which is used on field phones in
+ * LGAs where a connection is not a given. When that request fails the page
+ * renders in system sans, so it fails soft; it also blocks first paint while it
+ * tries, and it tells Google the address of every device that opens the app.
+ *
+ * next/font downloads the files at build time and serves them from this origin,
+ * so there is no third-party request at all — and no `fonts.googleapis.com` or
+ * `fonts.gstatic.com` in the CSP, which is two origins the policy no longer has
+ * to trust. See lib/csp.ts.
+ */
+const inter = Inter({
+  subsets: ["latin"],
+  // The four the design uses: body, medium, semibold and the bold figures.
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "GCOMS | GEORGEL Digital Platform",
@@ -69,7 +93,7 @@ export default async function RootLayout({
   const nonce = await requestNonce();
 
   return (
-    <html lang="en" className="h-full antialiased" suppressHydrationWarning>
+    <html lang="en" className={`h-full antialiased ${inter.variable}`} suppressHydrationWarning>
       <head>
         {/*
           * The static export's only way to carry a CSP: no server, so no

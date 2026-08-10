@@ -19,6 +19,7 @@ import { ParticipantAccessGuard } from '../phi/participant-access.guard';
 import { PhiAccessService } from '../phi/phi-access.service';
 import { CLINICAL_WRITE_ROLES } from '../auth/roles.constants';
 import { UpdateFollowUpStatusDto } from './dto/update-follow-up-status.dto';
+import { CreateFollowUpDto } from './dto/create-follow-up.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('follow-ups')
@@ -76,13 +77,7 @@ export class FollowUpController {
   @Roles(...CLINICAL_WRITE_ROLES)
   @UseGuards(ParticipantAccessGuard)
   async create(
-    @Body()
-    body: {
-      participantId: string;
-      clinicianId: string;
-      scheduledDate: string;
-      notes?: string;
-    },
+    @Body() body: CreateFollowUpDto,
     @Request() req: AuthenticatedRequest,
   ) {
     return this.followUpService.create({

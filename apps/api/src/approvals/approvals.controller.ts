@@ -1,4 +1,5 @@
 import { CreateApprovalRequestDto } from './dto/create-approval-request.dto';
+import { ResolveApprovalDto } from './dto/resolve-approval.dto';
 import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import {
   Controller,
@@ -7,6 +8,7 @@ import {
   Patch,
   Body,
   Param,
+  ParseUUIDPipe,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -41,11 +43,16 @@ export class ApprovalsController {
     return this.getRequests();
   }
 
+  /**
+   * @Roles admits EXECUTIVE and BOARD — but RolesGuard grants EXECUTIVE and
+   * SYSTEM_ADMIN every route unconditionally, so it cannot exclude a system
+   * admin. The service re-checks the role for that reason; see resolveRequest.
+   */
   @Patch(':id')
   @Roles(...APPROVER_ROLES)
   resolveRequest(
-    @Param('id') id: string,
-    @Body() data: { status: string },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() data: ResolveApprovalDto,
     @Request() req: AuthenticatedRequest,
   ) {
     return this.approvalsService.resolveRequest(id, data.status, req.user);

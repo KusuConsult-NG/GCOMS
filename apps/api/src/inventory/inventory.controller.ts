@@ -34,8 +34,19 @@ import {
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
+  /**
+   * INVENTORY_WRITE_ROLES plus PROCUREMENT, which books received goods in as
+   * stock.
+   *
+   * This was a hardcoded list predating the constant — the service-log routes
+   * below were added with it, these were not — and it omitted INVENTORY_MANAGER
+   * entirely. So the role named for this module could open /inventory (the page
+   * admits it), fill in the asset form, and receive a 403 on submit. It could
+   * already write the service logs on the same module, which is what made the
+   * omission look like an oversight rather than a policy.
+   */
   @Post()
-  @Roles('EXECUTIVE', 'PROCUREMENT', 'ADMIN')
+  @Roles(...INVENTORY_WRITE_ROLES, 'PROCUREMENT')
   createInventoryItem(
     @Body() data: CreateInventoryItemDto,
     @Request() req: AuthenticatedRequest,
@@ -49,10 +60,16 @@ export class InventoryController {
     return this.inventoryService.getInventoryItems();
   }
 
+  /**
+   * Same list, plus CLINICIAN: consuming stock at a screening is a quantity
+   * update, and that was the reason the role was here before.
+   */
   @Patch(':id')
-  @Roles('EXECUTIVE', 'PROCUREMENT', 'ADMIN', 'CLINICIAN')
+  @Roles(...INVENTORY_WRITE_ROLES, 'PROCUREMENT', 'CLINICIAN')
   updateInventoryItem(
-    @Param('id') id: string,
+    // Was untyped, so a malformed id reached Prisma and surfaced as an opaque
+    // error rather than a 400. The service-log route below already did this.
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() data: UpdateInventoryItemDto,
   ) {
     return this.inventoryService.updateInventoryItem(id, data);

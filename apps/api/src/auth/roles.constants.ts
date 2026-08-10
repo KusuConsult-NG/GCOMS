@@ -336,6 +336,15 @@ export const APPROVAL_VIEW_ROLES: Role[] = [
 ];
 export const APPROVER_ROLES: Role[] = ['EXECUTIVE', 'BOARD'];
 
+/**
+ * The decisions that resolve an approval request.
+ *
+ * Not RESOLUTION_STATUSES, which belongs to board resolutions and includes
+ * PENDING — an approval request is created PENDING and this is the set it may
+ * be moved *to*.
+ */
+export const APPROVAL_DECISIONS = ['APPROVED', 'REJECTED'] as const;
+
 /*
  * Clinical roles.
  *

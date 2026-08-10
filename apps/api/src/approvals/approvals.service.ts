@@ -1,12 +1,17 @@
 import { CreateApprovalRequestDto } from './dto/create-approval-request.dto';
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { APPROVER_ROLES, Role } from '../auth/roles.constants';
+import {
+  APPROVAL_DECISIONS,
+  APPROVER_ROLES,
+  Role,
+} from '../auth/roles.constants';
 
 @Injectable()
 export class ApprovalsService {
@@ -73,8 +78,14 @@ export class ApprovalsService {
       );
     }
     const executiveId = actor.id;
-    if (status !== 'APPROVED' && status !== 'REJECTED') {
-      throw new Error('Invalid status');
+    // The DTO already constrains this. Kept as defence in depth, because the
+    // failure it prevents is a resource left in a status nothing recognises —
+    // and as a BadRequestException rather than a plain Error, which the
+    // exception filter could only map to a 500.
+    if (!APPROVAL_DECISIONS.includes(status as 'APPROVED' | 'REJECTED')) {
+      throw new BadRequestException(
+        `status must be one of: ${APPROVAL_DECISIONS.join(', ')}`,
+      );
     }
 
     const request = await this.prisma.approvalRequest.findUnique({

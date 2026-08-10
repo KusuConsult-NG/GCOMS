@@ -1,7 +1,12 @@
 import { AssignPatientDto, CreateEncounterDto } from './dto/encounter.dto';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PhiAccessService, PhiActor } from '../phi/phi-access.service';
+import { DIAGNOSING_WRITE_ROLES, Role } from '../auth/roles.constants';
 import {
   CreateInvestigationDto,
   UpdateInvestigationDto,
@@ -14,13 +19,46 @@ export class ClinicalEncountersService {
     private phi: PhiAccessService,
   ) {}
 
-  async createEncounter(data: CreateEncounterDto, userId: string) {
+  /**
+   * Record an encounter. A prognosis is a separate act.
+   *
+   * The route admits CLINICAL_WRITE_ROLES, which includes NURSE, and it should:
+   * a nurse in a screening programme does the bulk of the work, and
+   * roles.constants warns that getting this wrong in the restrictive direction
+   * "stops a nurse doing their job and gets worked around".
+   *
+   * But the same comment reserves one thing by name — "the interpretive step: a
+   * prognosis, and the recommendation drawn from an investigation result" — to
+   * DIAGNOSING_ROLES. That was enforced on the edit route and on investigations,
+   * and not here, so the single field the policy singles out was writable at
+   * creation by the role the policy excludes.
+   *
+   * Refused rather than quietly dropped. Silently discarding it would leave the
+   * nurse believing a prognosis had been recorded and the patient's record
+   * without one, which is the failure this system keeps producing in other
+   * forms.
+   */
+  async createEncounter(
+    data: CreateEncounterDto,
+    actor: { id: string; role: string },
+  ) {
+    if (
+      data.prognosis?.trim() &&
+      !DIAGNOSING_WRITE_ROLES.includes(actor.role as Role)
+    ) {
+      throw new ForbiddenException(
+        'A prognosis is a diagnostic conclusion and may only be recorded by ' +
+          `${DIAGNOSING_WRITE_ROLES.join(', ')}. Record the encounter without ` +
+          'one; a clinician can add it.',
+      );
+    }
+
     return this.prisma.clinicalEncounter.create({
       data: {
         notes: data.notes,
         prognosis: data.prognosis,
         participantId: data.participantId,
-        clinicianId: userId,
+        clinicianId: actor.id,
       },
     });
   }

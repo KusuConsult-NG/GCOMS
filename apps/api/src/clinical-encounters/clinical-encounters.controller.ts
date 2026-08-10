@@ -49,7 +49,7 @@ export class ClinicalEncountersController {
     @Body() data: CreateEncounterDto,
     @Request() req: AuthenticatedRequest,
   ) {
-    return this.encountersService.createEncounter(data, req.user.id);
+    return this.encountersService.createEncounter(data, req.user);
   }
 
   @Get('participant/:id')

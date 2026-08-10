@@ -47,6 +47,15 @@ const ROLES = [
   ['grant-manager', 'grant_manager@gcoms.org'],
   ['project-manager', 'project_manager@gcoms.org'],
   ['inventory-manager', 'inventory_manager@gcoms.org'],
+  // The seven the seed did not create, and which therefore nothing drove. Four
+  // of them reached an empty sidebar; a sweep that skips a role cannot see that.
+  ['board', 'board@gcoms.org'],
+  ['admin', 'admin_officer@gcoms.org'],
+  ['chw', 'chw@gcoms.org'],
+  ['data-officer', 'data_officer@gcoms.org'],
+  ['document-officer', 'document_officer@gcoms.org'],
+  ['programme-manager', 'programme_manager@gcoms.org'],
+  ['research-officer', 'research_officer@gcoms.org'],
 ];
 
 const problems = [];

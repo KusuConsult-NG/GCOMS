@@ -84,6 +84,17 @@ async function main() {
     { email: 'grant_manager@gcoms.org', firstName: 'Dr. George', lastName: 'A.', role: 'GRANT_MANAGER' },
     { email: 'project_manager@gcoms.org', firstName: 'Prof. Maryam', lastName: 'B.', role: 'PROJECT_MANAGER' },
     { email: 'inventory_manager@gcoms.org', firstName: 'Samuel', lastName: 'D.', role: 'INVENTORY_MANAGER' },
+    // The seven that were missing. The comment above was right and the list did
+    // not follow it: the UI sweep signs in as every seeded role, so a role with
+    // no account is a role nothing checks — and four of these turned out to
+    // have no sidebar at all, which is precisely the failure nobody noticed.
+    { email: 'board@gcoms.org', firstName: 'Chief', lastName: 'Dung', role: 'BOARD' },
+    { email: 'admin_officer@gcoms.org', firstName: 'Blessing', lastName: 'Nanle', role: 'ADMIN' },
+    { email: 'chw@gcoms.org', firstName: 'Ladi', lastName: 'Yakubu', role: 'COMMUNITY_HEALTH_WORKER' },
+    { email: 'data_officer@gcoms.org', firstName: 'Chinelo', lastName: 'Obi', role: 'DATA_OFFICER' },
+    { email: 'document_officer@gcoms.org', firstName: 'Tanko', lastName: 'Bitrus', role: 'DOCUMENT_OFFICER' },
+    { email: 'programme_manager@gcoms.org', firstName: 'Hauwa', lastName: 'Sule', role: 'PROGRAMME_MANAGER' },
+    { email: 'research_officer@gcoms.org', firstName: 'Dr. Yohanna', lastName: 'Pwajok', role: 'RESEARCH_OFFICER' },
   ];
 
   for (const u of users) {

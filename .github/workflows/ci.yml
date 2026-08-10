@@ -247,6 +247,16 @@ jobs:
         working-directory: apps/web
         run: npm run verify:ui -- /tmp/gcoms-ui
 
+      # Text that is present, correct and unreadable is the one failure the
+      # sweep above cannot see: nothing throws, nothing is blank, and the
+      # console stays quiet. This measures every element against its real
+      # backdrop on every route in both themes, and fails on WCAG AA. It runs
+      # after the sweep so a page that is merely broken is reported as broken
+      # rather than as a contrast problem.
+      - name: Verify text contrast in both themes
+        working-directory: apps/web
+        run: npm run verify:contrast
+
       # Uploaded even on failure — a screenshot is how you see what a broken
       # page actually looked like.
       - name: Upload screenshots

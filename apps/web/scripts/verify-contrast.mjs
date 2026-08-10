@@ -256,6 +256,23 @@ if (JSON_OUT) {
   console.log(`\nfull report: ${JSON_OUT}`);
 }
 
-// Reports rather than fails: this is a measurement tool, and the number it
-// prints is only meaningful next to the one from before the change. Wire it to
-// a threshold in CI once the count is at zero.
+/*
+ * A hard gate, now that the count is zero.
+ *
+ * It started as a measurement tool, because a number is only meaningful next to
+ * the one from before the change: the first run found 109 failures over 10
+ * distinct defects, and failing on that would only have blocked every build
+ * until they were fixed. They are fixed. From here the useful question is not
+ * "how many" but "did this change add one", and that is a yes-or-no.
+ *
+ * Zero is the right threshold rather than a ratchet, for the same reason the API
+ * lints at --max-warnings 0: a budget above zero is a budget someone spends.
+ */
+if (all.length > 0) {
+  console.error(
+    `\n${all.length} element(s) below the WCAG AA contrast floor. ` +
+      'Fix the colours, or raise the tokens they resolve to — see globals.css.',
+  );
+  process.exit(1);
+}
+console.log('every measured element clears WCAG AA in both themes');

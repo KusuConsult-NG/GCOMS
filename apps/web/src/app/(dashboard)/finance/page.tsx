@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { AccessDenied } from '@/components/AccessDenied';
+import { FINANCE_PAGE_ROLES } from '@/components/pageAccess';
 
 const COST_CENTRE_CATEGORIES = [
   "5001 - Outreach Field Logistics & Fuel",
@@ -31,7 +32,7 @@ const COST_CENTRE_CATEGORIES = [
   "2002 - Tax & Pension Withholdings",
 ];
 
-const allowedRoles = ['EXECUTIVE', 'BOARD', 'SYSTEM_ADMIN', 'ADMIN', 'FINANCE'];
+const allowedRoles = FINANCE_PAGE_ROLES;
 
 function FinancePageContent() {
   const { user } = useAuthStore();

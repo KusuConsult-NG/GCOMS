@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 import { AccessDenied } from '@/components/AccessDenied';
 import type { Contract, GoodsReceivedNote, PlanItem, PurchaseRequest, Rfq, RfqQuote, Vendor } from '@/types/procurement';
 import { daysUntil, useToday } from '@/lib/useToday';
+import { PROCUREMENT_PAGE_ROLES } from '@/components/pageAccess';
 
 const TABS = ['orders', 'plan', 'vendors', 'rfq', 'grn', 'contracts'] as const;
 type Tab = (typeof TABS)[number];
@@ -20,7 +21,7 @@ const isTab = (value: string | null): value is Tab =>
  * re-run on every render. Hoisting it is what lets the dependency be declared
  * honestly instead of omitted.
  */
-const ALLOWED_ROLES = ['EXECUTIVE', 'BOARD', 'SUPER_ADMIN', 'SYSTEM_ADMIN', 'ADMIN', 'PROCUREMENT'];
+const ALLOWED_ROLES = PROCUREMENT_PAGE_ROLES;
 
 function ProcurementPageContent() {
   const { user } = useAuthStore();

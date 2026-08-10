@@ -20,6 +20,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { NAV_SECTIONS, visibleSections } from './navigation';
+import { canOpen } from './pageAccess';
 
 /** Mirrors ROLES in the API's auth/roles.constants.ts. */
 const ROLES = [
@@ -140,6 +141,51 @@ describe('visibleSections', () => {
       // empty someone's sidebar over a stray space.
       expect(titles(' finance ')).toEqual(titles('FINANCE'));
       expect(titles('Executive')).toEqual(titles('EXECUTIVE'));
+    });
+  });
+
+  describe('the sidebar agrees with the page gates', () => {
+    /*
+     * The invariant the other cases missed.
+     *
+     * Widening the audiences to match the API produced three links that led
+     * straight to "Access Denied" — /grants and /projects for PROGRAMME_MANAGER,
+     * /inventory for PROCUREMENT — because the page gates were separate arrays
+     * inside six page files and had never been widened with anything. Every
+     * assertion about the sidebar passed. Only a browser caught it.
+     *
+     * A link to a refusal is worse than no link: it tells someone they have
+     * access and then takes it away.
+     */
+    it('never offers a role a destination its page will refuse', () => {
+      const broken: string[] = [];
+      for (const role of ROLES) {
+        for (const section of visibleSections(role)) {
+          for (const item of section.items) {
+            const route = item.href.split('?')[0];
+            if (!canOpen(route, role)) broken.push(`${role} -> ${route}`);
+          }
+        }
+      }
+      expect(broken).toEqual([]);
+    });
+
+    it('does not gate a page against a role that cannot see the link either', () => {
+      // The other direction, which is merely untidy rather than broken: a page
+      // admitting a role the sidebar never offers it is dead configuration.
+      // Asserted for the roles that have a sidebar at all.
+      for (const role of ROLES) {
+        const offered = new Set(
+          visibleSections(role).flatMap((s) =>
+            s.items.map((i) => i.href.split('?')[0]),
+          ),
+        );
+        for (const route of ['/finance', '/hr', '/grants', '/projects', '/inventory']) {
+          if (canOpen(route, role) && visibleSections(role).length > 0) {
+            expect(offered.has(route)).toBe(true);
+          }
+        }
+      }
     });
   });
 

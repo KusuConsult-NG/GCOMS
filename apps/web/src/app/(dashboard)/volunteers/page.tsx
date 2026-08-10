@@ -210,7 +210,7 @@ export default function VolunteersPage() {
               <tr key={v.id} className="hover:bg-[var(--primary-surface)]">
                 <td className="p-3 font-bold text-[var(--primary)]">{v.user ? `${v.user.firstName} ${v.user.lastName}` : 'Unknown'}</td>
                 <td className="p-3">
-                  <span className="px-2 py-0.5 rounded bg-[var(--secondary)] text-white text-[10px] font-bold">
+                  <span className="px-2 py-0.5 rounded bg-[var(--secondary)] text-[var(--on-secondary)] text-[10px] font-bold">
                     {v.lga}
                   </span>
                 </td>

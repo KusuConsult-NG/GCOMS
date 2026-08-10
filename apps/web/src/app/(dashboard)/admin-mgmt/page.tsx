@@ -78,13 +78,13 @@ export default function AdminDashboard() {
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-slate-500">Loading Admin Module...</div>;
+    return <div className="p-8 text-center text-[var(--muted)]">Loading Admin Module...</div>;
   }
 
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Admin Management</h1>
+        <h1 className="text-2xl font-bold text-[var(--on-background)]">Admin Management</h1>
         <p className="text-slate-600 mt-1">Manage facility requests, maintenance, and space bookings.</p>
       </div>
 
@@ -111,7 +111,7 @@ export default function AdminDashboard() {
                 <select
                   value={requestType}
                   onChange={(e) => setRequestType(e.target.value)}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 bg-white"
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-[var(--on-background)] bg-white"
                 >
                   <option value="MAINTENANCE">Maintenance</option>
                   <option value="BOOKING">Booking</option>
@@ -126,7 +126,7 @@ export default function AdminDashboard() {
                   required
                   value={facilityName}
                   onChange={(e) => setFacilityName(e.target.value)}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900"
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-[var(--on-background)]"
                   placeholder="e.g. Mobile Clinic Unit B"
                 />
               </div>
@@ -138,7 +138,7 @@ export default function AdminDashboard() {
                   rows={4}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900"
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-[var(--on-background)]"
                   placeholder="Details of the request..."
                 />
               </div>
@@ -159,12 +159,12 @@ export default function AdminDashboard() {
             <h2 className="text-lg font-semibold text-slate-800 mb-4">Recent Facility Requests</h2>
             
             {requests.length === 0 ? (
-              <p className="text-sm text-slate-500">No requests recorded yet.</p>
+              <p className="text-sm text-[var(--muted)]">No requests recorded yet.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-100 text-sm font-medium text-slate-500">
+                    <tr className="border-b border-slate-100 text-sm font-medium text-[var(--muted)]">
                       <th className="pb-3 pr-4 font-medium">Date</th>
                       <th className="pb-3 pr-4 font-medium">Facility</th>
                       <th className="pb-3 pr-4 font-medium">Type</th>
@@ -174,12 +174,12 @@ export default function AdminDashboard() {
                   <tbody className="text-sm">
                     {requests.map((r) => (
                       <tr key={r.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors">
-                        <td className="py-4 pr-4 text-slate-500">
+                        <td className="py-4 pr-4 text-[var(--muted)]">
                           {new Date(r.createdAt).toLocaleDateString()}
                         </td>
                         <td className="py-4 pr-4">
                           <div className="font-medium text-slate-800">{r.facilityName}</div>
-                          <div className="text-xs text-slate-500 mt-0.5 truncate max-w-[200px]">{r.description}</div>
+                          <div className="text-xs text-[var(--muted)] mt-0.5 truncate max-w-[200px]">{r.description}</div>
                         </td>
                         <td className="py-4 pr-4">
                           <span className={`px-2 py-1 rounded text-[10px] font-medium ${

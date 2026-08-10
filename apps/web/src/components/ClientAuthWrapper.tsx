@@ -36,7 +36,7 @@ export function ClientAuthWrapper({ children }: { children: React.ReactNode }) {
   if (!settled || !token) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-slate-50">
-        <div className="text-slate-500">Loading...</div>
+        <div className="text-[var(--muted)]">Loading...</div>
       </div>
     );
   }

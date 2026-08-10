@@ -70,13 +70,13 @@ export default function SystemAdminDashboard() {
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-slate-500">Loading System Config...</div>;
+    return <div className="p-8 text-center text-[var(--muted)]">Loading System Config...</div>;
   }
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">System Admin Control Panel</h1>
+        <h1 className="text-2xl font-bold text-[var(--on-background)]">System Admin Control Panel</h1>
         <p className="text-slate-600 mt-1">Manage global application settings and maintenance overrides.</p>
       </div>
 
@@ -104,7 +104,7 @@ export default function SystemAdminDashboard() {
                 required
                 value={key}
                 onChange={(e) => setKey(e.target.value.toUpperCase())}
-                className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 font-mono text-sm"
+                className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-[var(--on-background)] font-mono text-sm"
                 placeholder="e.g. MAINTENANCE_MODE"
               />
             </div>
@@ -116,7 +116,7 @@ export default function SystemAdminDashboard() {
                 required
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900"
+                className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-[var(--on-background)]"
                 placeholder="e.g. true"
               />
             </div>
@@ -135,7 +135,7 @@ export default function SystemAdminDashboard() {
           <h2 className="text-lg font-semibold text-slate-800 mb-4">Active Configurations</h2>
           
           {configs.length === 0 ? (
-            <p className="text-sm text-slate-500">No custom configurations applied.</p>
+            <p className="text-sm text-[var(--muted)]">No custom configurations applied.</p>
           ) : (
             <div className="space-y-2">
               {configs.map((config) => (

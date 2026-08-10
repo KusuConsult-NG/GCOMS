@@ -25,7 +25,7 @@ interface Stats {
 const STATUS_COLORS: Record<string, string> = {
   SCHEDULED: 'bg-blue-100 text-blue-700',
   COMPLETED: 'bg-emerald-100 text-emerald-700',
-  CANCELLED: 'bg-slate-100 text-slate-500',
+  CANCELLED: 'bg-slate-100 text-[var(--muted)]',
   MISSED: 'bg-red-100 text-red-700',
 };
 
@@ -98,8 +98,8 @@ export default function FollowUpPage() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900">Follow-Up Management</h1>
-          <p className="text-slate-500 mt-1 text-sm">Track, schedule, and manage all patient follow-ups across the programme.</p>
+          <h1 className="text-3xl font-extrabold text-[var(--on-background)]">Follow-Up Management</h1>
+          <p className="text-[var(--muted)] mt-1 text-sm">Track, schedule, and manage all patient follow-ups across the programme.</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -117,11 +117,11 @@ export default function FollowUpPage() {
             { label: 'Upcoming (7d)', value: stats.upcoming, color: 'text-purple-600', bg: 'bg-purple-50' },
             { label: 'Completed', value: stats.completed, color: 'text-emerald-600', bg: 'bg-emerald-50' },
             { label: 'Missed', value: stats.missed, color: 'text-red-600', bg: 'bg-red-50' },
-            { label: 'Cancelled', value: stats.cancelled, color: 'text-slate-500', bg: 'bg-slate-50' },
+            { label: 'Cancelled', value: stats.cancelled, color: 'text-[var(--muted)]', bg: 'bg-slate-50' },
           ].map(stat => (
             <div key={stat.label} className={`${stat.bg} p-4 rounded-2xl border border-slate-100`}>
               <div className={`text-3xl font-bold ${stat.color}`}>{stat.value}</div>
-              <div className="text-xs text-slate-500 mt-1 font-medium">{stat.label}</div>
+              <div className="text-xs text-[var(--muted)] mt-1 font-medium">{stat.label}</div>
             </div>
           ))}
         </div>
@@ -202,7 +202,9 @@ export default function FollowUpPage() {
               key={tab}
               onClick={() => setActiveTab(tab as Parameters<typeof setActiveTab>[0])}
               className={`px-4 py-1.5 rounded-full text-xs font-bold capitalize transition-all ${
-                activeTab === tab ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                activeTab === tab
+                  ? 'bg-[var(--secondary)] text-[var(--on-secondary)]'
+                  : 'bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] hover:bg-[var(--surface-dim)]'
               }`}
             >
               {tab === 'missed' ? `Missed (${stats?.missed || 0})` : tab === 'upcoming' ? `Upcoming (${stats?.upcoming || 0})` : 'All Follow-ups'}
@@ -224,12 +226,12 @@ export default function FollowUpPage() {
       {/* Table */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-slate-400 text-sm">Loading follow-ups...</div>
+          <div className="p-8 text-center text-[var(--muted)] text-sm">Loading follow-ups...</div>
         ) : displayList.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 text-sm">No follow-ups found.</div>
+          <div className="p-8 text-center text-[var(--muted)] text-sm">No follow-ups found.</div>
         ) : (
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 uppercase font-semibold">
+            <thead className="bg-slate-50 text-[var(--muted)] uppercase font-semibold">
               <tr>
                 <th className="p-4">Patient</th>
                 <th className="p-4">Clinician</th>
@@ -243,17 +245,17 @@ export default function FollowUpPage() {
               {displayList.map(fu => (
                 <tr key={fu.id} className="hover:bg-slate-50">
                   <td className="p-4">
-                    <div className="font-bold text-slate-900">{fu.participant?.firstName} {fu.participant?.lastName}</div>
-                    <div className="text-slate-400 font-mono">{fu.participant?.registrationId ?? fu.participant?.nationalId ?? '—'}</div>
+                    <div className="font-bold text-[var(--on-background)]">{fu.participant?.firstName} {fu.participant?.lastName}</div>
+                    <div className="text-[var(--muted)] font-mono">{fu.participant?.registrationId ?? fu.participant?.nationalId ?? '—'}</div>
                   </td>
                   <td className="p-4">{fu.clinician?.firstName} {fu.clinician?.lastName}</td>
                   <td className="p-4 font-mono">{new Date(fu.scheduledDate).toLocaleString()}</td>
                   <td className="p-4">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${STATUS_COLORS[fu.status] || 'bg-slate-100 text-slate-500'}`}>
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${STATUS_COLORS[fu.status] || 'bg-slate-100 text-[var(--muted)]'}`}>
                       {fu.status}
                     </span>
                   </td>
-                  <td className="p-4 text-slate-400 max-w-[200px] truncate">{fu.notes || '—'}</td>
+                  <td className="p-4 text-[var(--muted)] max-w-[200px] truncate">{fu.notes || '—'}</td>
                   <td className="p-4">
                     {fu.status === 'SCHEDULED' && (
                       <div className="flex gap-1">

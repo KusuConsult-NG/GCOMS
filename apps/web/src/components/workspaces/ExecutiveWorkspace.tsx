@@ -149,7 +149,7 @@ export function ExecutiveWorkspace() {
               <h3 className="font-bold text-[var(--primary)] text-sm">Executive Approval Queue</h3>
               <div className="flex gap-1 text-xs">
                 {['ALL', 'PENDING', 'APPROVED', 'REJECTED'].map(f => (
-                  <button key={f} onClick={() => setApprovalFilter(f as Parameters<typeof setApprovalFilter>[0])} className={`px-2 py-1 rounded ${approvalFilter === f ? 'bg-[var(--secondary)] text-white' : 'bg-gray-100 text-gray-600'}`}>{f}</button>
+                  <button key={f} onClick={() => setApprovalFilter(f as Parameters<typeof setApprovalFilter>[0])} className={`px-2 py-1 rounded ${approvalFilter === f ? 'bg-[var(--secondary)] text-[var(--on-secondary)]' : 'bg-gray-100 text-gray-600'}`}>{f}</button>
                 ))}
               </div>
             </div>

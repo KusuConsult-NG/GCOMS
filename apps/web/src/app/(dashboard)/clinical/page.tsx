@@ -99,7 +99,7 @@ export default function ClinicalDashboard() {
         <h2 className="text-xl font-bold text-slate-800 mb-4">Assigned Patients</h2>
         <table className="w-full text-left">
           <thead>
-            <tr className="border-b text-sm text-slate-500">
+            <tr className="border-b text-sm text-[var(--muted)]">
               <th className="pb-2">Participant ID</th>
               <th className="pb-2">Clinician</th>
               <th className="pb-2">Status</th>
@@ -117,7 +117,7 @@ export default function ClinicalDashboard() {
             ))}
             {assignments.length === 0 && (
               <tr>
-                <td colSpan={4} className="py-4 text-center text-slate-500">No assignments found</td>
+                <td colSpan={4} className="py-4 text-center text-[var(--muted)]">No assignments found</td>
               </tr>
             )}
           </tbody>
@@ -127,7 +127,7 @@ export default function ClinicalDashboard() {
       {/* Edit History UI */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 border-l-4 border-l-yellow-400">
         <h2 className="text-xl font-bold text-slate-800 mb-2">Edit Clinical Encounter (Audit Trail Active)</h2>
-        <p className="text-sm text-slate-500 mb-4">Modifying a clinical note will permanently log the old and new data in the Audit system for compliance.</p>
+        <p className="text-sm text-[var(--muted)] mb-4">Modifying a clinical note will permanently log the old and new data in the Audit system for compliance.</p>
         <div className="space-y-4">
           <input
             type="text"

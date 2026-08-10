@@ -30,6 +30,14 @@ import { AllExceptionsFilter } from '../src/common/all-exceptions.filter';
 
 const PASSWORD = 'e2e-test-password';
 
+/**
+ * supertest types `res.body` as `any`, so an assertion against it is unchecked.
+ * `body()` is the single place the cast happens.
+ */
+function body<T>(response: { body: unknown }): T {
+  return response.body as T;
+}
+
 type Coverage = {
   lga: string;
   participants: number;
@@ -188,7 +196,9 @@ describe('GET /analytics/lga (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     app.useGlobalFilters(new AllExceptionsFilter());
     await app.init();
     http = request(app.getHttpServer());
@@ -198,7 +208,7 @@ describe('GET /analytics/lga (e2e)', () => {
         .post('/auth/login')
         .send({ email, password: PASSWORD })
         .expect(201);
-      return res.body.access_token as string;
+      return body<{ access_token: string }>(res).access_token;
     };
     execToken = await login('exec@analytics.test');
     volunteerToken = await login('volunteer@analytics.test');
@@ -215,7 +225,7 @@ describe('GET /analytics/lga (e2e)', () => {
       .get('/analytics/lga')
       .set('Authorization', `Bearer ${execToken}`)
       .expect(200);
-    return res.body as Coverage[];
+    return body<Coverage[]>(res);
   };
 
   it('refuses an unauthenticated request', async () => {
@@ -251,7 +261,9 @@ describe('GET /analytics/lga (e2e)', () => {
   it('matches a positive result whatever its casing', async () => {
     const body = await fetchCoverage();
     // 'POSITIVE' and 'Positive' both count; 'negative' does not.
-    expect(body.find((r) => r.lga === 'Barkin Ladi')?.positiveScreenings).toBe(2);
+    expect(body.find((r) => r.lga === 'Barkin Ladi')?.positiveScreenings).toBe(
+      2,
+    );
   });
 
   it('includes an LGA that has a community but no registrations', async () => {

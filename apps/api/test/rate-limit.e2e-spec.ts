@@ -19,6 +19,7 @@ import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import type { Server } from 'node:http';
 
 const EMAIL = 'ratelimit@e2e.test';
 const OTHER_EMAIL = 'bystander@e2e.test';
@@ -66,7 +67,7 @@ describe('login rate limiting (e2e)', () => {
   it('allows the first few attempts then returns 429', async () => {
     const statuses: number[] = [];
     for (let i = 0; i < LOGIN_LIMIT + 1; i++) {
-      const res = await request(app.getHttpServer())
+      const res = await request(app.getHttpServer() as Server)
         .post('/auth/login')
         .send({ email: EMAIL, password: 'wrong-password' });
       statuses.push(res.status);
@@ -80,7 +81,7 @@ describe('login rate limiting (e2e)', () => {
 
   // Otherwise an attacker could keep guessing simply by getting one right.
   it('keeps refusing even a correct password once tripped', () =>
-    request(app.getHttpServer())
+    request(app.getHttpServer() as Server)
       .post('/auth/login')
       .send({ email: EMAIL, password: PASSWORD })
       .expect(429));
@@ -88,11 +89,13 @@ describe('login rate limiting (e2e)', () => {
   // The bug this guards against: with an IP-keyed bucket and a load balancer in
   // front, one account being guessed at locked out the whole organisation.
   it('does not lock out a bystander account from the same address', () =>
-    request(app.getHttpServer())
+    request(app.getHttpServer() as Server)
       .post('/auth/login')
       .send({ email: OTHER_EMAIL, password: PASSWORD })
       .expect(201));
 
   it('leaves health probes reachable', () =>
-    request(app.getHttpServer()).get('/health').expect(200));
+    request(app.getHttpServer() as Server)
+      .get('/health')
+      .expect(200));
 });

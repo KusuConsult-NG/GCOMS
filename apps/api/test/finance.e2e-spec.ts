@@ -31,6 +31,7 @@ import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { AllExceptionsFilter } from '../src/common/all-exceptions.filter';
+import type { Server } from 'node:http';
 
 const PASSWORD = 'e2e-test-password';
 
@@ -169,7 +170,7 @@ describe('finance (e2e)', () => {
     );
     app.useGlobalFilters(new AllExceptionsFilter());
     await app.init();
-    http = request(app.getHttpServer());
+    http = request(app.getHttpServer() as Server);
 
     const login = async (email: string) => {
       const res = await http

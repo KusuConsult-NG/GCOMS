@@ -165,6 +165,11 @@ export function HrWorkspace() {
       // the user account, so this is two calls rather than local state.
       await api.post('/operations/volunteers', {
         userId: created.data.id,
+        // The spec names a phone number among what the volunteer registry
+        // captures, and the form asks for it. It had no column, so it was typed
+        // and dropped — and a field roster nobody can be reached on is most of
+        // what the roster is for.
+        phone: volunteerForm.phone || undefined,
         lga: volunteerForm.lga,
         ward: volunteerForm.ward || undefined,
         address: volunteerForm.address || undefined,
@@ -485,8 +490,12 @@ export function HrWorkspace() {
                 </div>
                 <div className="space-y-1 text-slate-700">
                   <p><strong className="text-[var(--primary)]">LGA (Mandatory):</strong> <span className="px-2 py-0.5 rounded bg-[var(--secondary)] text-[var(--on-secondary)] text-[10px] font-bold">{v.lga}</span></p>
-                  <p><strong className="text-[var(--primary)]">Ward:</strong> {v.ward}</p>
-                  <p><strong className="text-[var(--primary)]">Address:</strong> {v.address}</p>
+                  <p><strong className="text-[var(--primary)]">Ward:</strong> {v.ward || '—'}</p>
+                  {/* Collected at registration and, until now, stored nowhere.
+                      An em dash where there is nothing, rather than the blank
+                      these fields left when unset. */}
+                  <p><strong className="text-[var(--primary)]">Phone:</strong> {v.phone || '—'}</p>
+                  <p><strong className="text-[var(--primary)]">Address:</strong> {v.address || '—'}</p>
                   <p><strong className="text-[var(--primary)]">Stipend:</strong> <span className="text-[var(--risk-low-text)] font-bold font-mono">{`₦${Number(v.stipend || 0).toLocaleString()} / mo`}</span></p>
                 </div>
               </div>

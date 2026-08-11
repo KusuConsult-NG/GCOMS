@@ -405,6 +405,7 @@ export interface VolunteerProfile {
   id: string;
   userId: string;
   user?: UserSummary | null;
+  phone?: string | null;
   lga: string;
   ward?: string | null;
   address?: string | null;

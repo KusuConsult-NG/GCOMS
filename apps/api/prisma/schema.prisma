@@ -699,6 +699,11 @@ model VolunteerProfile {
   id        String   @id @default(uuid())
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// The spec names it among what the volunteer registry captures, and the
+  /// registration form asks for it. There was nowhere to put it, so it was
+  /// typed and dropped — and a field roster with no way to reach anyone on it
+  /// is most of what the roster is for.
+  phone     String?
   lga       String
   ward      String?
   address   String?

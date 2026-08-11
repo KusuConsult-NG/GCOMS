@@ -157,6 +157,7 @@ export class OperationsService {
     return this.prisma.volunteerProfile.create({
       data: {
         userId: d.userId,
+        phone: d.phone?.trim() || null,
         lga: d.lga.trim(),
         ward: d.ward?.trim() || null,
         address: d.address?.trim() || null,

@@ -86,12 +86,15 @@ export class UpdateTrainingDto {
 
 export class CreateVolunteerProfileDto {
   @IsUUID() userId: string;
+  /** Named by the spec and asked for by the form; there was no column. */
+  @IsOptional() @IsString() @MaxLength(40) phone?: string;
   @IsString() @MinLength(1) @MaxLength(120) lga: string;
   @IsOptional() @IsString() @MaxLength(120) ward?: string;
   @IsOptional() @IsString() @MaxLength(255) address?: string;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) stipend?: number;
 }
 export class UpdateVolunteerProfileDto {
+  @IsOptional() @IsString() @MaxLength(40) phone?: string;
   @IsOptional() @IsString() @MaxLength(120) lga?: string;
   @IsOptional() @IsString() @MaxLength(120) ward?: string;
   @IsOptional() @IsString() @MaxLength(255) address?: string;

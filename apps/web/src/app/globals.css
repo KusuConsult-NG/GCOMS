@@ -206,17 +206,33 @@ body {
 .dark .border-slate-200,
 .dark .border-gray-300 { border-color: var(--outline) !important; }
 
-/* Status tints: keep the hue, drop the brightness so text stays readable. */
-.dark .bg-green-100 { background-color: #12351f !important; }
-.dark .text-green-700, .dark .text-green-800 { color: #86efac !important; }
+/*
+ * Status tints: keep the hue, drop the brightness so text stays readable.
+ *
+ * Every shade in use has to be listed, and a missing one is invisible until a
+ * row with that status happens to render. `text-yellow-800` was the omission —
+ * the -700 was covered and the -800 was not — so the approval queue's PENDING
+ * badge sat at 2.02:1 against the tint behind it, and only appeared in the
+ * contrast sweep once the seed had a pending approval to draw. The other twelve
+ * below were found by diffing the shades used against the shades covered rather
+ * than by waiting for each to surface.
+ */
+.dark .bg-green-100, .dark .bg-emerald-100 { background-color: #12351f !important; }
+.dark .text-green-600, .dark .text-green-700, .dark .text-green-800,
+.dark .text-emerald-600, .dark .text-emerald-700, .dark .text-emerald-800,
+.dark .text-teal-600, .dark .text-teal-700 { color: #86efac !important; }
 .dark .bg-red-100 { background-color: #3d1310 !important; }
 .dark .text-red-600, .dark .text-red-700, .dark .text-red-800 { color: #fca5a5 !important; }
 .dark .bg-amber-100, .dark .bg-orange-100, .dark .bg-yellow-100 { background-color: #3b2a06 !important; }
-.dark .text-amber-700, .dark .text-orange-600, .dark .text-orange-800, .dark .text-yellow-700 { color: #fcd34d !important; }
+.dark .text-amber-600, .dark .text-amber-700, .dark .text-amber-800,
+.dark .text-orange-600, .dark .text-orange-700, .dark .text-orange-800,
+.dark .text-yellow-700, .dark .text-yellow-800 { color: #fcd34d !important; }
 .dark .bg-blue-100, .dark .bg-indigo-100 { background-color: #16233d !important; }
-.dark .text-blue-700, .dark .text-blue-800, .dark .text-indigo-700 { color: #93c5fd !important; }
+.dark .text-blue-600, .dark .text-blue-700, .dark .text-blue-800,
+.dark .text-indigo-700 { color: #93c5fd !important; }
 .dark .bg-purple-100 { background-color: #241a3d !important; }
-.dark .text-purple-700 { color: #c4b5fd !important; }
+.dark .text-purple-600, .dark .text-purple-700,
+.dark .text-purple-800 { color: #c4b5fd !important; }
 
 /*
  * The -50 step, which the block above did not cover. These are used as row

@@ -47,6 +47,7 @@ model User {
   volunteerTasks      VolunteerTask[]
   appointments        Appointment[]     @relation("ClinicianAppointments")
   volunteerProfile    VolunteerProfile?
+  postedJournalEntries JournalEntry[]   @relation("PostedJournalEntries")
 }
 
 model ApprovalRequest {
@@ -76,6 +77,74 @@ model FinanceTransaction {
   requestedBy   User     @relation(fields: [requestedById], references: [id])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+// Double-entry bookkeeping.
+//
+// FinanceTransaction is the requisition: an amount, a type, and an approval
+// status. It is what somebody asks for and an executive signs off, and it is
+// not an accounting record — there are no two sides to it, nothing it is posted
+// against, and nothing that could fail to balance. The finance screen called
+// itself a "Real-Time Double-Entry General Ledger" over exactly that, which
+// tells an auditor to expect a control that was not there.
+//
+// These three models are the control. An entry is a voucher; its lines are the
+// debits and credits; and a JournalEntry cannot be written unless they are
+// equal, enforced in the service inside the same transaction that writes the
+// lines. The two systems sit alongside each other: a requisition is approved,
+// and the approved figure is what gets posted.
+
+model LedgerAccount {
+  id        String   @id @default(uuid())
+  /// The cost code the finance screen has always shown — 1001, 4002, 5003.
+  code      String   @unique
+  name      String
+  /// ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE.
+  type      String
+  /// DEBIT or CREDIT: the side that increases this account. An asset grows on
+  /// the debit side, a revenue account on the credit side, and a trial balance
+  /// is only readable if each account knows which way it faces.
+  normalBalance String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lines     JournalLine[]
+}
+
+model JournalEntry {
+  id          String   @id @default(uuid())
+  /// Voucher number, assigned by the server.
+  reference   String   @unique
+  entryDate   DateTime
+  description String
+  /// Set when the entry was raised from an approved FinanceTransaction, so a
+  /// posting can be traced back to the requisition and the approval behind it.
+  sourceTransactionId String?
+  postedById  String
+  postedBy    User     @relation("PostedJournalEntries", fields: [postedById], references: [id])
+  createdAt   DateTime @default(now())
+
+  lines       JournalLine[]
+
+  @@index([entryDate])
+}
+
+model JournalLine {
+  id        String   @id @default(uuid())
+  entryId   String
+  entry     JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  accountId String
+  account   LedgerAccount @relation(fields: [accountId], references: [id])
+  /// Exactly one of these is non-zero on any line. Both columns exist rather
+  /// than one signed amount because a ledger is read as two columns, and
+  /// storing it signed means every reader has to decide which sign means what.
+  debit     Decimal  @default(0)
+  credit    Decimal  @default(0)
+  narration String?
+
+  @@index([entryId])
+  @@index([accountId])
 }
 
 model ProcurementOrder {

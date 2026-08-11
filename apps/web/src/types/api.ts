@@ -485,6 +485,59 @@ export interface ResearchProject {
   createdAt?: Timestamp;
 }
 
+/** A row in the chart of accounts. */
+export interface LedgerAccount {
+  id: string;
+  code: string;
+  name: string;
+  /** ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE. */
+  type: string;
+  /** DEBIT or CREDIT — the side this account grows on. */
+  normalBalance: string;
+  isActive: boolean;
+}
+
+export interface JournalLine {
+  id: string;
+  accountId: string;
+  account?: LedgerAccount | null;
+  debit: Money;
+  credit: Money;
+  narration?: string | null;
+}
+
+/** A posted voucher. Its lines are guaranteed to balance — see LedgerService. */
+export interface JournalEntry {
+  id: string;
+  reference: string;
+  entryDate: Timestamp;
+  description: string;
+  sourceTransactionId?: string | null;
+  postedBy?: UserSummary | null;
+  lines: JournalLine[];
+  createdAt: Timestamp;
+}
+
+export interface TrialBalanceRow {
+  accountId: string;
+  code: string;
+  name: string;
+  type: string;
+  normalBalance: string;
+  debit: number;
+  credit: number;
+  balance: number;
+}
+
+export interface TrialBalance {
+  rows: TrialBalanceRow[];
+  totalDebits: number;
+  totalCredits: number;
+  difference: number;
+  /** The claim the ledger is willing to have checked. */
+  inBalance: boolean;
+}
+
 export interface AnalyticsSummary {
   totalScreenings: number;
   positiveScreenings: number;

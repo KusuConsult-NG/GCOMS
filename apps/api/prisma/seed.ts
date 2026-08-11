@@ -1,6 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
+import {
+  ACCOUNT_TYPES,
+  NORMAL_BALANCE_BY_TYPE,
+} from '../src/auth/roles.constants';
+
+type AccountType = (typeof ACCOUNT_TYPES)[number];
 
 const prisma = new PrismaClient();
 
@@ -308,6 +314,84 @@ async function main() {
       { title: 'Clinical Governance & Oncology Standards Review', meetingDate: new Date('2025-11-20'), status: 'SCHEDULED', minutesUrl: 'https://gcoms.org/docs/agenda-clinical.pdf', organizedById: executive!.id },
     ],
   });
+
+  // 8. Chart of accounts, and one balanced opening voucher.
+  //
+  // The codes are the ones the finance screen has always shown in its "Chart of
+  // Accounts" tab, which until now posted against nothing. The classification
+  // comes from the leading digit, the same rule that tab already applied.
+  const ACCOUNTS: Array<{ code: string; name: string; type: AccountType }> = [
+    { code: '1001', name: 'Operating Cash & Bank', type: 'ASSET' },
+    { code: '1002', name: 'Petty Cash Fund', type: 'ASSET' },
+    { code: '2001', name: 'Accounts Payable & Vendor Liabilities', type: 'LIABILITY' },
+    { code: '2002', name: 'Tax & Pension Withholdings', type: 'LIABILITY' },
+    { code: '3001', name: 'Accumulated Fund', type: 'EQUITY' },
+    { code: '4001', name: 'Grant Inflow — Global Fund', type: 'REVENUE' },
+    { code: '4002', name: 'Grant Inflow — WHO Health Assistance', type: 'REVENUE' },
+    { code: '4003', name: 'Grant Inflow — USAID Global Health', type: 'REVENUE' },
+    { code: '4004', name: 'Grant Inflow — Gates Foundation', type: 'REVENUE' },
+    { code: '4005', name: 'Individual & Corporate Donations', type: 'REVENUE' },
+    { code: '5001', name: 'Outreach Field Logistics & Fuel', type: 'EXPENSE' },
+    { code: '5002', name: 'Medical Consumables & Reagents', type: 'EXPENSE' },
+    { code: '5003', name: 'Staff Salaries & Volunteer Stipends', type: 'EXPENSE' },
+    { code: '5004', name: 'Administrative & IT Infrastructure', type: 'EXPENSE' },
+    { code: '5005', name: 'Clinical Training & Capacity Workshops', type: 'EXPENSE' },
+    { code: '5006', name: 'Patient Navigation & Referral Subsidies', type: 'EXPENSE' },
+    { code: '5007', name: 'Community Mobilization & Advocacy', type: 'EXPENSE' },
+    { code: '5008', name: 'Research, Data Collection & Surveys', type: 'EXPENSE' },
+    { code: '6001', name: 'Clinical Equipment (Capital)', type: 'EXPENSE' },
+    { code: '6002', name: 'Vehicle & Mobile Clinic Assets (Capital)', type: 'EXPENSE' },
+    { code: '6003', name: 'Office Furniture & Hardware (Capital)', type: 'EXPENSE' },
+  ];
+
+  for (const account of ACCOUNTS) {
+    await prisma.ledgerAccount.upsert({
+      where: { code: account.code },
+      update: { name: account.name, type: account.type },
+      create: {
+        code: account.code,
+        name: account.name,
+        type: account.type,
+        normalBalance: NORMAL_BALANCE_BY_TYPE[account.type],
+      },
+    });
+  }
+
+  const cash = await prisma.ledgerAccount.findUniqueOrThrow({ where: { code: '1001' } });
+  const grantIncome = await prisma.ledgerAccount.findUniqueOrThrow({ where: { code: '4001' } });
+  const fuel = await prisma.ledgerAccount.findUniqueOrThrow({ where: { code: '5001' } });
+
+  // Two vouchers, both balanced, so the trial balance has something in it.
+  if ((await prisma.journalEntry.count()) === 0) {
+    await prisma.journalEntry.create({
+      data: {
+        reference: 'JV-2026-00001',
+        entryDate: new Date('2026-01-15'),
+        description: 'Global Fund tranche 1 received into the operating account',
+        postedById: finance!.id,
+        lines: {
+          create: [
+            { accountId: cash.id, debit: 50000000, narration: 'Bank credit' },
+            { accountId: grantIncome.id, credit: 50000000, narration: 'Grant income recognised' },
+          ],
+        },
+      },
+    });
+    await prisma.journalEntry.create({
+      data: {
+        reference: 'JV-2026-00002',
+        entryDate: new Date('2026-02-02'),
+        description: 'Barkin Ladi outreach vehicle fuel and logistics',
+        postedById: finance!.id,
+        lines: {
+          create: [
+            { accountId: fuel.id, debit: 4500000, narration: 'Field logistics' },
+            { accountId: cash.id, credit: 4500000, narration: 'Paid from operating account' },
+          ],
+        },
+      },
+    });
+  }
 
   console.log('✅ Database successfully seeded with full enterprise operational records!');
 

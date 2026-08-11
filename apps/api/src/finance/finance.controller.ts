@@ -25,11 +25,57 @@ import {
   UpdateReconciliationDto,
   ListReconciliationQueryDto,
 } from './dto/bank-reconciliation.dto';
+import { LedgerService } from './ledger.service';
+import { CreateJournalEntryDto } from './dto/journal-entry.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('finance')
 export class FinanceController {
-  constructor(private readonly financeService: FinanceService) {}
+  constructor(
+    private readonly financeService: FinanceService,
+    private readonly ledger: LedgerService,
+  ) {}
+
+  /*
+   * The general ledger.
+   *
+   * Reading it is FINANCE_READ_ROLES, like the summary — a board member should
+   * be able to open the books. Posting is FINANCE_WRITE_ROLES: a voucher is an
+   * accounting act, not an approval, so it deliberately does not go through the
+   * approvals queue that a requisition does.
+   */
+  @Get('accounts')
+  @Roles(...FINANCE_READ_ROLES)
+  listAccounts() {
+    return this.ledger.listAccounts();
+  }
+
+  @Get('journal')
+  @Roles(...FINANCE_READ_ROLES)
+  listJournalEntries() {
+    return this.ledger.listEntries();
+  }
+
+  @Get('journal/trial-balance')
+  @Roles(...FINANCE_READ_ROLES)
+  trialBalance() {
+    return this.ledger.trialBalance();
+  }
+
+  @Get('journal/:id')
+  @Roles(...FINANCE_READ_ROLES)
+  getJournalEntry(@Param('id', ParseUUIDPipe) id: string) {
+    return this.ledger.getEntry(id);
+  }
+
+  @Post('journal')
+  @Roles(...FINANCE_WRITE_ROLES)
+  postJournalEntry(
+    @Body() dto: CreateJournalEntryDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.ledger.postEntry(dto, req.user.id);
+  }
 
   // Was an inline role check; RolesGuard additionally admits SYSTEM_ADMIN, as
   // it does on every route.

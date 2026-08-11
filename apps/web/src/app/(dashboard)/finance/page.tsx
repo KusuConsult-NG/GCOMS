@@ -1,11 +1,17 @@
 'use client';
 
-import type { FinanceTransaction } from '@/types/api';
+import type {
+  FinanceTransaction,
+  JournalEntry,
+  LedgerAccount,
+  TrialBalance,
+} from '@/types/api';
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { approvedOnly, ledgerTotals, naira } from '@/lib/financeTotals';
+import { JournalEntryForm } from '@/components/JournalEntryForm';
 import { useAuthStore } from '@/store/authStore';
 import { AccessDenied } from '@/components/AccessDenied';
 import { FINANCE_PAGE_ROLES } from '@/components/pageAccess';
@@ -41,6 +47,12 @@ function FinancePageContent() {
 
   const [activeSubTab, setActiveSubTab] = useState<'ledger' | 'vouchers' | 'advances' | 'budgets' | 'accounts' | 'statements'>('ledger');
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
+  // The general ledger proper: vouchers with two sides, and the trial balance
+  // that proves they add up. The tab used to show FinanceTransaction rows under
+  // a "Double-Entry" heading, which is a requisition list, not a ledger.
+  const [accounts, setAccounts] = useState<LedgerAccount[]>([]);
+  const [journal, setJournal] = useState<JournalEntry[]>([]);
+  const [trialBalance, setTrialBalance] = useState<TrialBalance | null>(null);
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [voucherFilter, setVoucherFilter] = useState('ALL');
@@ -51,7 +63,6 @@ function FinancePageContent() {
   const [submitting, setSubmitting] = useState(false);
 
   // Form States
-  const [journalForm, setJournalForm] = useState({ amount: '', type: 'EXPENSE', category: COST_CENTRE_CATEGORIES[0], description: '' });
   const [reqForm, setReqForm] = useState({ vendorName: 'JUTH Reagent Supplier', amount: '', invoiceNo: '', category: COST_CENTRE_CATEGORIES[1], description: '', receiptUrl: '' });
   const [advanceForm, setAdvanceForm] = useState({ staffName: '', lgaDestination: 'Barkin Ladi LGA', amount: '', purpose: '', retirementDate: '' });
   const [inflowForm, setInflowForm] = useState({ donorName: 'Global Fund for Health', grantRef: 'GF-2026-NIG-001', amount: '', bankAccount: 'Primary Operating Bank (1001)', description: '' });
@@ -85,9 +96,25 @@ function FinancePageContent() {
     }
   };
 
+  const fetchLedger = async () => {
+    try {
+      const [a, j, tb] = await Promise.all([
+        api.get('/finance/accounts'),
+        api.get('/finance/journal'),
+        api.get('/finance/journal/trial-balance'),
+      ]);
+      setAccounts(a.data);
+      setJournal(j.data);
+      setTrialBalance(tb.data);
+    } catch (err) {
+      console.error('Failed to load the general ledger', err);
+    }
+  };
+
   useEffect(() => {
     if (user && allowedRoles.includes(user.role)) {
       fetchTransactions();
+      fetchLedger();
     }
   }, [user]);
 
@@ -96,21 +123,6 @@ function FinancePageContent() {
   }
 
   // Submit Handlers
-  const handlePostJournal = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      await api.post('/finance', journalForm);
-      setActiveModal(null);
-      setJournalForm({ amount: '', type: 'EXPENSE', category: COST_CENTRE_CATEGORIES[0], description: '' });
-      fetchTransactions();
-    } catch (err) {
-      console.error('Failed to post journal', err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const handleRaiseRequisition = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -550,69 +562,33 @@ function FinancePageContent() {
       {/* MODAL 4: POST JOURNAL */}
       {activeModal === 'journal' && (
         <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
-              <h2 className="text-base font-bold text-[var(--primary)]">Post Journal Entry</h2>
+              <div>
+                <h2 className="text-base font-bold text-[var(--primary)]">Post Journal Voucher</h2>
+                {/* This form used to ask for a type, a cost centre, one amount
+                    and a description, and post a FinanceTransaction — a
+                    requisition with a single side — under a heading that said
+                    "Double-Entry". */}
+                <p className="text-[11px] text-[var(--muted)]">
+                  Debits and credits must be equal; the voucher cannot be posted
+                  until they are.
+                </p>
+              </div>
               <button onClick={() => setActiveModal(null)} className="text-[var(--muted)] font-bold">✕</button>
             </div>
-            <form onSubmit={handlePostJournal} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-semibold text-[var(--on-background)] mb-1">Transaction Type *</label>
-                <select
-                  value={journalForm.type}
-                  onChange={e => setJournalForm({ ...journalForm, type: e.target.value })}
-                  className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs"
-                >
-                  <option value="EXPENSE">EXPENSE (Disbursement / Payment Voucher)</option>
-                  <option value="INCOME">INCOME (Grant Inflow / Donation)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block font-semibold text-[var(--on-background)] mb-1">Cost Centre Category *</label>
-                <select
-                  value={journalForm.category}
-                  onChange={e => setJournalForm({ ...journalForm, category: e.target.value })}
-                  className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs"
-                >
-                  {COST_CENTRE_CATEGORIES.map((c, idx) => (
-                    <option key={idx} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block font-semibold text-[var(--on-background)] mb-1">Amount (₦) *</label>
-                <input
-                  type="number"
-                  required
-                  value={journalForm.amount}
-                  onChange={e => setJournalForm({ ...journalForm, amount: e.target.value })}
-                  placeholder="e.g. 2500000"
-                  className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs font-mono tabular-nums"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold text-[var(--on-background)] mb-1">Line Item Description *</label>
-                <textarea
-                  required
-                  rows={2}
-                  value={journalForm.description}
-                  onChange={e => setJournalForm({ ...journalForm, description: e.target.value })}
-                  placeholder="Describe operational purpose of entry..."
-                  className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs"
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline)]">
-                <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary text-xs">Cancel</button>
-                <button type="submit" disabled={submitting} className="btn-primary text-xs disabled:opacity-50">
-                  {submitting ? 'Posting...' : 'Post Entry'}
-                </button>
-              </div>
-            </form>
+            <JournalEntryForm
+              accounts={accounts}
+              onCancel={() => setActiveModal(null)}
+              onPosted={() => {
+                setActiveModal(null);
+                fetchLedger();
+              }}
+            />
           </div>
         </div>
       )}
 
-      {/* MODAL 5: NEW BUDGET LINE */}
       {activeModal === 'budget' && (
         <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
@@ -812,68 +788,167 @@ function FinancePageContent() {
 
       {/* SUB-TAB 1: GENERAL LEDGER */}
       {activeSubTab === 'ledger' && (
-        <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
-          <div className="p-4 border-b border-[var(--outline)] flex flex-col md:flex-row justify-between items-start md:items-center gap-2 bg-[var(--background)]">
-            <div>
-              {/*
-                Called "Real-Time Double-Entry General Ledger" over a
-                single-entry table. FinanceTransaction is one row with an amount
-                and a type; there are no debit and credit legs, no accounts to
-                post them against, and nothing validating that a entry balances.
-                Double-entry is a feature this system does not have — naming it
-                one does not make the figures below any more reconciled, and it
-                tells an auditor to expect a control that is not there.
-              */}
-              <h2 className="font-bold text-[var(--primary)] text-sm">General Ledger</h2>
-              <p className="text-[11px] text-[var(--muted)]">Every posted transaction, with its approval status.</p>
+        <div className="space-y-4">
+          {/* The trial balance, first, because it is the thing a ledger is for:
+              a statement that the two columns agree, which the screen could not
+              previously make because there were no two columns. */}
+          {trialBalance && (
+            <div
+              className={`flex flex-col gap-2 rounded-lg border p-4 text-xs md:flex-row md:items-center md:justify-between ${
+                trialBalance.inBalance
+                  ? 'border-[var(--outline)] bg-[var(--surface)]'
+                  : 'border-[var(--risk-high-text)]/30 bg-[var(--risk-high-bg)]'
+              }`}
+            >
+              <div>
+                <p className="text-sm font-bold text-[var(--primary)]">Trial balance</p>
+                <p className="text-[11px] text-[var(--muted)]">
+                  Total debits against total credits across every posted voucher.
+                </p>
+              </div>
+              <div className="flex items-center gap-6 tabular-nums">
+                <span>Debits <strong>{naira(trialBalance.totalDebits)}</strong></span>
+                <span>Credits <strong>{naira(trialBalance.totalCredits)}</strong></span>
+                <span
+                  className={`rounded px-2 py-1 font-bold ${
+                    trialBalance.inBalance
+                      ? 'bg-[var(--risk-low-bg)] text-[var(--risk-low-text)]'
+                      : 'bg-[var(--risk-high-bg)] text-[var(--risk-high-text)]'
+                  }`}
+                >
+                  {trialBalance.inBalance
+                    ? 'In balance'
+                    : `Out by ${naira(Math.abs(trialBalance.difference))}`}
+                </span>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <select
-                value={filterCategory}
-                onChange={e => setFilterCategory(e.target.value)}
-                className="bg-white border border-[var(--outline)] rounded px-3 py-1.5 text-xs text-[var(--on-background)]"
-              >
-                <option value="ALL">All Transaction Types</option>
-                <option value="INCOME">INCOME Inflows Only</option>
-                <option value="EXPENSE">EXPENSE Vouchers Only</option>
-              </select>
+          )}
+
+          <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
+            <div className="p-4 border-b border-[var(--outline)] flex flex-col md:flex-row justify-between items-start md:items-center gap-2 bg-[var(--background)]">
+              <div>
+                <h2 className="font-bold text-[var(--primary)] text-sm">General Ledger</h2>
+                <p className="text-[11px] text-[var(--muted)]">
+                  Posted journal vouchers. Every one balances — an entry whose
+                  debits and credits differ is refused rather than stored.
+                </p>
+              </div>
+              <button onClick={() => setActiveModal('journal')} className="btn-primary text-xs">
+                + Post journal voucher
+              </button>
             </div>
+
+            {journal.length === 0 ? (
+              <div className="p-8 text-center text-xs text-[var(--muted)]">
+                No vouchers posted yet.
+              </div>
+            ) : (
+              <table className="w-full text-left text-xs">
+                <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
+                  <tr>
+                    <th className="p-3">Voucher</th>
+                    <th className="p-3">Date</th>
+                    <th className="p-3">Narrative</th>
+                    <th className="p-3">Account</th>
+                    <th className="p-3 text-right">Debit (₦)</th>
+                    <th className="p-3 text-right">Credit (₦)</th>
+                    <th className="p-3">Posted by</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
+                  {journal.map((entry) =>
+                    entry.lines.map((line, i) => (
+                      <tr key={line.id} className="hover:bg-[var(--primary-surface)]">
+                        <td className="p-3 font-mono font-bold text-[var(--primary)]">
+                          {i === 0 ? entry.reference : ''}
+                        </td>
+                        <td className="p-3 tabular-nums text-[var(--muted)]">
+                          {i === 0 ? new Date(entry.entryDate).toLocaleDateString() : ''}
+                        </td>
+                        <td className="p-3 text-[var(--on-surface-variant)]">
+                          {i === 0 ? entry.description : ''}
+                        </td>
+                        <td className="p-3">
+                          {line.account ? `${line.account.code} — ${line.account.name}` : '—'}
+                          {line.narration && (
+                            <span className="block text-[10px] text-[var(--muted)]">{line.narration}</span>
+                          )}
+                        </td>
+                        <td className="p-3 text-right font-mono tabular-nums">
+                          {Number(line.debit) > 0 ? Number(line.debit).toLocaleString() : ''}
+                        </td>
+                        <td className="p-3 text-right font-mono tabular-nums">
+                          {Number(line.credit) > 0 ? Number(line.credit).toLocaleString() : ''}
+                        </td>
+                        <td className="p-3 text-[var(--muted)]">
+                          {i === 0 && entry.postedBy
+                            ? `${entry.postedBy.firstName} ${entry.postedBy.lastName}`
+                            : ''}
+                        </td>
+                      </tr>
+                    )),
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
 
-          {loading ? (
-            <div className="p-8 text-center text-xs text-[var(--muted)]">Loading general ledger...</div>
-          ) : filteredTx.length === 0 ? (
-            <div className="p-8 text-center text-xs text-[var(--muted)]">No ledger entries match selected filter.</div>
-          ) : (
-            <table className="w-full text-left text-xs">
-              <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
-                <tr>
-                  <th className="p-3">Cost Code / Category</th>
-                  <th className="p-3">Description</th>
-                  <th className="p-3">Posting Type</th>
-                  <th className="p-3">Amount (₦)</th>
-                  <th className="p-3">Posted By</th>
-                  <th className="p-3">Date</th>
-                  <th className="p-3">Executive Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
-                {filteredTx.map((tx) => (
-                  <tr key={tx.id} className="hover:bg-[var(--primary-surface)]">
-                    <td className="p-3 font-bold text-[var(--primary)]">{tx.category}</td>
-                    <td className="p-3 text-[var(--on-surface-variant)]">{tx.description}</td>
-                    <td className="p-3 font-semibold">
-                      <span className={tx.type === 'INCOME' ? 'text-[var(--risk-low-text)]' : 'text-[var(--risk-high-text)]'}>{tx.type}</span>
-                    </td>
-                    <td className="p-3 font-bold font-mono tabular-nums text-[var(--primary)]">₦{Number(tx.amount).toLocaleString()}</td>
-                    <td className="p-3 text-[var(--muted)]">{tx.requestedBy ? `${tx.requestedBy.firstName} ${tx.requestedBy.lastName}` : 'System'}</td>
-                    <td className="p-3 text-[var(--muted)] tabular-nums">{new Date(tx.createdAt).toLocaleDateString()}</td>
-                    <td className="p-3"><span className="badge-low-risk">{tx.status}</span></td>
+          {/* The requisition list, which is what this tab used to be. Kept, and
+              named for what it is: an approval queue, not the ledger. */}
+          <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
+            <div className="p-4 border-b border-[var(--outline)] flex flex-col md:flex-row justify-between items-start md:items-center gap-2 bg-[var(--background)]">
+              <div>
+                <h2 className="font-bold text-[var(--primary)] text-sm">Requisitions & Approvals</h2>
+                <p className="text-[11px] text-[var(--muted)]">What has been asked for, and where each request has got to.</p>
+              </div>
+              <div className="flex gap-2">
+                <select
+                  value={filterCategory}
+                  onChange={e => setFilterCategory(e.target.value)}
+                  className="bg-white border border-[var(--outline)] rounded px-3 py-1.5 text-xs text-[var(--on-background)]"
+                >
+                  <option value="ALL">All Transaction Types</option>
+                  <option value="INCOME">INCOME Inflows Only</option>
+                  <option value="EXPENSE">EXPENSE Vouchers Only</option>
+                </select>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="p-8 text-center text-xs text-[var(--muted)]">Loading requisitions...</div>
+            ) : filteredTx.length === 0 ? (
+              <div className="p-8 text-center text-xs text-[var(--muted)]">No requisitions match selected filter.</div>
+            ) : (
+              <table className="w-full text-left text-xs">
+                <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
+                  <tr>
+                    <th className="p-3">Cost Code / Category</th>
+                    <th className="p-3">Description</th>
+                    <th className="p-3">Posting Type</th>
+                    <th className="p-3">Amount (₦)</th>
+                    <th className="p-3">Requested By</th>
+                    <th className="p-3">Date</th>
+                    <th className="p-3">Executive Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
+                  {filteredTx.map((tx) => (
+                    <tr key={tx.id} className="hover:bg-[var(--primary-surface)]">
+                      <td className="p-3 font-bold text-[var(--primary)]">{tx.category}</td>
+                      <td className="p-3 text-[var(--on-surface-variant)]">{tx.description}</td>
+                      <td className="p-3 font-semibold">
+                        <span className={tx.type === 'INCOME' ? 'text-[var(--risk-low-text)]' : 'text-[var(--risk-high-text)]'}>{tx.type}</span>
+                      </td>
+                      <td className="p-3 font-bold font-mono tabular-nums text-[var(--primary)]">₦{Number(tx.amount).toLocaleString()}</td>
+                      <td className="p-3 text-[var(--muted)]">{tx.requestedBy ? `${tx.requestedBy.firstName} ${tx.requestedBy.lastName}` : 'System'}</td>
+                      <td className="p-3 text-[var(--muted)] tabular-nums">{new Date(tx.createdAt).toLocaleDateString()}</td>
+                      <td className="p-3"><span className="badge-low-risk">{tx.status}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       )}
 

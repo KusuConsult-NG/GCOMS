@@ -560,6 +560,39 @@ export const APPROVAL_RESOURCE_TYPES = [
   'HR_LEAVE',
 ] as const;
 export const TRANSACTION_TYPES = ['INCOME', 'EXPENSE'] as const;
+
+/**
+ * The five account classifications, and which side each one grows on.
+ *
+ * The finance screen has always derived these from the cost code's first digit
+ * — 1 asset, 2 liability, 4 revenue, 5 operating expense, 6 capital — and
+ * displayed them in a "Chart of Accounts" that no ledger posted against.
+ * They are now the real account types, and `normalBalance` is what makes a
+ * trial balance readable: an asset grows on the debit side, a revenue account
+ * on the credit side, and without knowing which way an account faces its
+ * balance is just a pair of numbers.
+ */
+export const ACCOUNT_TYPES = [
+  'ASSET',
+  'LIABILITY',
+  'EQUITY',
+  'REVENUE',
+  'EXPENSE',
+] as const;
+
+export const NORMAL_BALANCES = ['DEBIT', 'CREDIT'] as const;
+
+/** Which side each classification increases on. */
+export const NORMAL_BALANCE_BY_TYPE: Record<
+  (typeof ACCOUNT_TYPES)[number],
+  (typeof NORMAL_BALANCES)[number]
+> = {
+  ASSET: 'DEBIT',
+  EXPENSE: 'DEBIT',
+  LIABILITY: 'CREDIT',
+  EQUITY: 'CREDIT',
+  REVENUE: 'CREDIT',
+};
 export const DOCUMENT_TYPES = [
   'POLICY',
   'GUIDELINE',

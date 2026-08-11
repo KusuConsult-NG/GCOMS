@@ -53,14 +53,33 @@ export class ClinicalEncountersService {
       );
     }
 
-    return this.prisma.clinicalEncounter.create({
-      data: {
-        notes: data.notes,
-        prognosis: data.prognosis,
-        cancerType: data.cancerType,
-        participantId: data.participantId,
-        clinicianId: actor.id,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const encounter = await tx.clinicalEncounter.create({
+        data: {
+          notes: data.notes,
+          prognosis: data.prognosis,
+          cancerType: data.cancerType,
+          participantId: data.participantId,
+          clinicianId: actor.id,
+        },
+      });
+
+      /*
+       * An edit to a note was audited and its creation was not, so the trail
+       * for a record began at the first change to it. Reviewing a note that had
+       * never been edited meant reading the row and taking its word for who
+       * wrote it — and `clinicianId` is a column on a mutable row.
+       */
+      await tx.auditLog.create({
+        data: {
+          action: 'CREATE_CLINICAL_NOTE',
+          newData: data.notes,
+          userId: actor.id,
+          clinicalEncounterId: encounter.id,
+        },
+      });
+
+      return encounter;
     });
   }
 

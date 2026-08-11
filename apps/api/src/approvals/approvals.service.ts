@@ -128,6 +128,38 @@ export class ApprovalsService {
         }
       }
 
+      /*
+       * The record of the decision.
+       *
+       * `approvedById` on the request says who resolved it *now* — it is a
+       * column on a mutable row, so it holds the latest value and nothing else.
+       * An approval is the act that commits money or authorises spend, and the
+       * spec asks for approval events to leave an unalterable record; nothing
+       * in this system writes to AuditLog after the fact, which is what makes
+       * it one.
+       *
+       * Written inside the transaction, so a decision that is recorded is a
+       * decision that took effect, and vice versa.
+       */
+      await tx.auditLog.create({
+        data: {
+          action: 'APPROVAL_RESOLVED',
+          oldData: JSON.stringify({
+            requestId: request.id,
+            title: request.title,
+            status: request.status,
+          }),
+          newData: JSON.stringify({
+            requestId: request.id,
+            title: request.title,
+            status,
+            resourceType: request.resourceType,
+            resourceId: request.resourceId,
+          }),
+          userId: executiveId,
+        },
+      });
+
       return updatedRequest;
     });
 

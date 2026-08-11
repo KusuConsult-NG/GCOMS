@@ -294,9 +294,16 @@ describe('clinical encounters (e2e)', () => {
         .send({ notes: 'Attempted rewrite.' })
         .expect(403);
 
+      // Scoped to EDIT rows. Creating the encounter writes a CREATE_CLINICAL_NOTE
+      // of its own — the trail used to begin at the first change to a note,
+      // so a note nobody had edited had no record of who wrote it beyond a
+      // mutable column on the row itself.
       expect(
         await prisma.auditLog.count({
-          where: { clinicalEncounterId: created.id },
+          where: {
+            clinicalEncounterId: created.id,
+            action: 'EDIT_CLINICAL_NOTE',
+          },
         }),
       ).toBe(0);
       const stored = await prisma.clinicalEncounter.findUniqueOrThrow({
@@ -311,6 +318,45 @@ describe('clinical encounters (e2e)', () => {
         .set('Authorization', `Bearer ${token.doctor}`)
         .send({ notes: 'x' })
         .expect(404);
+    });
+  });
+
+  describe('the trail an encounter leaves', () => {
+    /*
+     * The spec asks for posted transactions, clinical encounters and approval
+     * events to leave unalterable records. Nothing in this system writes to
+     * AuditLog after the fact, which is what makes it one — but only two of
+     * those three were writing to it at all, and creating a note was not among
+     * them.
+     */
+    it('records the creation, not only the edits', async () => {
+      const created = body<Encounter>(
+        await record('doctor', { notes: 'First assessment.' }).expect(201),
+      );
+      const audit = await prisma.auditLog.findFirst({
+        where: {
+          action: 'CREATE_CLINICAL_NOTE',
+          clinicalEncounterId: created.id,
+        },
+      });
+      expect(audit?.newData).toBe('First assessment.');
+      expect(audit?.userId).toBe(userId.doctor);
+    });
+
+    it('writes nothing when the encounter is refused', async () => {
+      // The 403 path must not leave a record of a note that does not exist.
+      const before = await prisma.auditLog.count({
+        where: { action: 'CREATE_CLINICAL_NOTE' },
+      });
+      await record('nurse', {
+        notes: 'Attended.',
+        prognosis: 'Likely benign.',
+      }).expect(403);
+      expect(
+        await prisma.auditLog.count({
+          where: { action: 'CREATE_CLINICAL_NOTE' },
+        }),
+      ).toBe(before);
     });
   });
 

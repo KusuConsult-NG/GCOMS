@@ -40,6 +40,26 @@ export class FinanceService {
         },
       });
 
+      // 3. The record that it was posted, and by whom.
+      //
+      // The transaction row carries `requestedById`, but it is a mutable column
+      // on a mutable row; the ledger's own history is the audit log, and a
+      // posted transaction is exactly what the spec means by an event that
+      // should leave an unalterable record.
+      await prisma.auditLog.create({
+        data: {
+          action: 'FINANCE_TRANSACTION_POSTED',
+          newData: JSON.stringify({
+            transactionId: transaction.id,
+            type: data.type,
+            category: data.category,
+            amount: String(data.amount),
+            description: data.description,
+          }),
+          userId,
+        },
+      });
+
       return transaction;
     });
 

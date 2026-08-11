@@ -347,6 +347,71 @@ describe('approvals (e2e)', () => {
     });
   });
 
+  describe('the record of the decision', () => {
+    /*
+     * An approval is the act that commits money. `approvedById` on the request
+     * says who resolved it, but it is a column on a mutable row that holds only
+     * the latest value — the spec asks for approval events to leave an
+     * unalterable record, and nothing was writing one at all.
+     *
+     * AuditLog is that record because nothing in this system updates or deletes
+     * it; the only writes are inserts, in the same transaction as the change
+     * they describe.
+     */
+    it('records who decided what, and what it was before', async () => {
+      const { approval } = await raiseSpend(210_000);
+      await http
+        .patch(`/approvals/${approval.id}`)
+        .set('Authorization', `Bearer ${token.executive}`)
+        .send({ status: 'APPROVED' })
+        .expect(200);
+
+      const audit = await prisma.auditLog.findFirst({
+        where: { action: 'APPROVAL_RESOLVED' },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(audit?.userId).toBe(userId.executive);
+      expect(audit?.oldData).toContain('PENDING');
+      expect(audit?.newData).toContain('APPROVED');
+      expect(audit?.newData).toContain(approval.id);
+      // The resource the decision acted on, so the trail leads to the money.
+      expect(audit?.newData).toContain('FINANCE');
+    });
+
+    it('records a rejection too', async () => {
+      const { approval } = await raiseSpend(220_000);
+      await http
+        .patch(`/approvals/${approval.id}`)
+        .set('Authorization', `Bearer ${token.executive}`)
+        .send({ status: 'REJECTED' })
+        .expect(200);
+      const audit = await prisma.auditLog.findFirst({
+        where: { action: 'APPROVAL_RESOLVED' },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(audit?.newData).toContain('REJECTED');
+    });
+
+    it('writes nothing when the decision is refused', async () => {
+      // A system admin pressing Approve is refused — administering the system
+      // is not authority to commit money — and a refusal is not an event.
+      const { approval } = await raiseSpend(230_000);
+      const before = await prisma.auditLog.count({
+        where: { action: 'APPROVAL_RESOLVED' },
+      });
+      await http
+        .patch(`/approvals/${approval.id}`)
+        .set('Authorization', `Bearer ${token.sysadmin}`)
+        .send({ status: 'APPROVED' })
+        .expect(403);
+      expect(
+        await prisma.auditLog.count({
+          where: { action: 'APPROVAL_RESOLVED' },
+        }),
+      ).toBe(before);
+    });
+  });
+
   describe('the decision itself', () => {
     it('refuses a status outside the permitted set with a 400, not a 500', async () => {
       const { approval } = await raiseSpend(160_000);

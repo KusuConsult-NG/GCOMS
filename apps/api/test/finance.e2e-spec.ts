@@ -386,5 +386,53 @@ describe('finance (e2e)', () => {
         })
         .expect(403);
     });
+
+    it('leaves an audit record of the posting', async () => {
+      /*
+       * `requestedById` on the transaction says who raised it, but it is a
+       * mutable column on a mutable row. The audit log is the ledger's own
+       * history — nothing in this system writes to it after the fact — and a
+       * posted transaction is exactly the event the spec asks to be recorded
+       * there. Nothing was writing one.
+       */
+      const created = await http
+        .post('/finance')
+        .set('Authorization', `Bearer ${financeToken}`)
+        .send({
+          amount: 77_000,
+          type: 'EXPENSE',
+          category: 'Reagents',
+          description: 'VIA consumables',
+        })
+        .expect(201);
+
+      const audit = await prisma.auditLog.findFirst({
+        where: { action: 'FINANCE_TRANSACTION_POSTED' },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(audit?.newData).toContain(body<Transaction>(created).id);
+      expect(audit?.newData).toContain('VIA consumables');
+    });
+
+    it('writes no audit record when the posting is refused', async () => {
+      const before = await prisma.auditLog.count({
+        where: { action: 'FINANCE_TRANSACTION_POSTED' },
+      });
+      await http
+        .post('/finance')
+        .set('Authorization', `Bearer ${volunteerToken}`)
+        .send({
+          amount: 1,
+          type: 'EXPENSE',
+          category: 'Test',
+          description: 'Test',
+        })
+        .expect(403);
+      expect(
+        await prisma.auditLog.count({
+          where: { action: 'FINANCE_TRANSACTION_POSTED' },
+        }),
+      ).toBe(before);
+    });
   });
 });

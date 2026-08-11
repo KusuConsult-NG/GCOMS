@@ -386,6 +386,10 @@ model ClinicalEncounter {
   id            String   @id @default(uuid())
   notes         String
   prognosis     String?
+  /// One of CANCER_TYPES. The encounter form required this and had nowhere to
+  /// put it: there was no column, no DTO field, and the submit handler did not
+  /// send it. Nullable because encounters recorded before it have none.
+  cancerType    String?
   participantId String
   participant   Participant @relation(fields: [participantId], references: [id])
   clinicianId   String

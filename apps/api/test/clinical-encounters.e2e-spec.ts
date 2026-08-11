@@ -42,7 +42,12 @@ function body<T>(response: { body: unknown }): T {
   return response.body as T;
 }
 
-type Encounter = { id: string; notes: string; prognosis: string | null };
+type Encounter = {
+  id: string;
+  notes: string;
+  prognosis: string | null;
+  cancerType: string | null;
+};
 
 describe('clinical encounters (e2e)', () => {
   let app: INestApplication;
@@ -187,6 +192,44 @@ describe('clinical encounters (e2e)', () => {
 
     it('refuses a volunteer entirely', async () => {
       await record('volunteer', { notes: 'Attended.' }).expect(403);
+    });
+
+    describe('the cancer classification the form requires', () => {
+      /*
+       * The encounter form marks it "Master Cancer Classification *" and
+       * requires it. It went nowhere: the submit handler did not send it, the
+       * DTO had no such field, ClinicalEncounter had no such column, and
+       * `whitelist: true` would have stripped it had the handler sent it. A
+       * clinician chose a classification, the screen said the encounter had
+       * been logged, and the record did not have one.
+       */
+      it('is stored', async () => {
+        const res = await record('doctor', {
+          notes: 'Initial assessment.',
+          cancerType: 'Breast Cancer (CBE / Mammogram)',
+        }).expect(201);
+        const stored = await prisma.clinicalEncounter.findUniqueOrThrow({
+          where: { id: body<Encounter>(res).id },
+        });
+        expect(stored.cancerType).toBe('Breast Cancer (CBE / Mammogram)');
+      });
+
+      it('refuses a classification outside the seventeen', async () => {
+        // Not merely tidiness. Two screens wrote this column with two different
+        // vocabularies — 'Cervical Cancer' and 'Cervical Cancer (VIA / Pap)' —
+        // which is why every count over it is a substring match.
+        await record('doctor', {
+          notes: 'Assessment.',
+          cancerType: 'Cervical Cancer',
+        }).expect(400);
+      });
+
+      it('is optional, because a follow-up visit need not restate it', async () => {
+        const res = await record('nurse', { notes: 'Review visit.' }).expect(
+          201,
+        );
+        expect(body<Encounter>(res).cancerType).toBeNull();
+      });
     });
 
     it('files the encounter against the clinician who recorded it', async () => {

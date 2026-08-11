@@ -5,6 +5,11 @@ import type { Participant, Screening } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import {
+  CANCER_TYPES,
+  SCREENING_RESULTS,
+  SCREENING_RESULT_LABEL,
+} from '@/lib/clinicalVocabulary';
 
 export default function ScreeningsPage() {
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -13,8 +18,10 @@ export default function ScreeningsPage() {
 
   const [formData, setFormData] = useState({
     participantId: '',
-    cancerType: 'Cervical Cancer',
-    result: 'Negative',
+    // Was 'Cervical Cancer', which is not what the clinical workspace writes
+    // into the same column, and is not a value the API accepts now.
+    cancerType: CANCER_TYPES[0] as string,
+    result: SCREENING_RESULTS[0] as string,
     riskScore: '',
   });
 
@@ -115,10 +122,11 @@ export default function ScreeningsPage() {
                 className="w-full px-3 py-2 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)]"
                 required
               >
-                <option value="Cervical Cancer">Cervical Cancer (VIA / Pap)</option>
-                <option value="Breast Cancer">Breast Cancer (CBE / Mammogram)</option>
-                <option value="Prostate Cancer">Prostate Cancer (PSA)</option>
-                <option value="Colorectal Cancer">Colorectal Cancer</option>
+                {/* All seventeen. This offered four, so a clinician screening
+                    for anything else had nowhere on this form to say so. */}
+                {CANCER_TYPES.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
               </select>
             </div>
 
@@ -131,11 +139,11 @@ export default function ScreeningsPage() {
                 className="w-full px-3 py-2 bg-white border border-[var(--outline)] rounded focus:border-[var(--secondary)] outline-none text-[var(--on-background)]"
                 required
               >
-                <option value="Negative">Negative (Normal)</option>
-                <option value="Suspicious">Suspicious (Requires Biopsy)</option>
-                <option value="Positive (VIA+)">Positive (VIA+)</option>
-                <option value="Positive (Stage 1)">Positive (Stage 1)</option>
-                <option value="Positive (Stage 2)">Positive (Stage 2)</option>
+                {SCREENING_RESULTS.map(result => (
+                  <option key={result} value={result}>
+                    {SCREENING_RESULT_LABEL[result]}
+                  </option>
+                ))}
               </select>
             </div>
 

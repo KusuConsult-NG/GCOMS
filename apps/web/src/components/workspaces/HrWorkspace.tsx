@@ -5,12 +5,7 @@ import type { Appraisal, JobOpening, LeaveRequest, StaffRecord, TrainingRecord, 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
-
-const PLATEAU_LGAS = [
-  'Barkin Ladi LGA', 'Bassa LGA', 'Bokkos LGA', 'Jos East LGA', 'Jos North LGA',
-  'Jos South LGA', 'Kanam LGA', 'Kanke LGA', 'Langtang North LGA', 'Langtang South LGA',
-  'Mangu LGA', 'Mikang LGA', 'Pankshin LGA', 'Quan\'Pan LGA', 'Riyom LGA', 'Shendam LGA', 'Wase LGA',
-];
+import { PLATEAU_LGAS } from '@/lib/clinicalVocabulary';
 
 export function HrWorkspace() {
   const searchParams = useSearchParams();

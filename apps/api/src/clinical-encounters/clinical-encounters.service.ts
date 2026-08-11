@@ -57,6 +57,7 @@ export class ClinicalEncountersService {
       data: {
         notes: data.notes,
         prognosis: data.prognosis,
+        cancerType: data.cancerType,
         participantId: data.participantId,
         clinicianId: actor.id,
       },

@@ -5,6 +5,7 @@ import type { FollowUp, PatientAssignment, Referral, Screening, SessionUser, Vit
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { CANCER_TYPES } from '@/lib/clinicalVocabulary';
 
 export function ClinicalWorkspace({ user }: { user: SessionUser }) {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'encounters' | 'vitals' | 'followups' | 'reports'>('dashboard');
@@ -61,26 +62,6 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
     notes: '',
   });
 
-  // Master Cancer Types Centrally Managed Roster
-  const cancerTypesMaster = [
-    'Cervical Cancer (VIA / Pap)',
-    'Breast Cancer (CBE / Mammogram)',
-    'Prostate Cancer (PSA)',
-    'Colorectal Cancer',
-    'Lung & Thoracic Cancer',
-    'Ovarian & Gynecologic Cancer',
-    'Liver & Hepatobiliary Cancer',
-    'Pancreatic Cancer',
-    'Skin & Melanoma',
-    'Leukemia & Lymphoma (Blood Cancers)',
-    'Pediatric & Childhood Cancers',
-    'Head & Neck Cancers',
-    'Brain & CNS Tumors',
-    'Thyroid & Endocrine Cancers',
-    'Renal / Kidney Cancers',
-    'Bladder & Urologic Cancers',
-    'Testicular Cancer',
-  ];
 
   // Hardcoded Data for Reports
   // Was a hardcoded array of four invented patients (NG-PL-101, "CIN-2",
@@ -154,6 +135,11 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
         participantId: encounterForm.participantId,
         notes: `Diagnosis: ${encounterForm.diagnosis || 'Evaluation'}. Notes: ${encounterForm.notes}. Treatment Plan: ${encounterForm.treatmentPlan}`,
         prognosis: encounterForm.prognosis,
+        // The form marks this required and it was never sent. There was no DTO
+        // field and no column either, so `whitelist: true` would have stripped
+        // it regardless: a clinician chose a classification, the screen said the
+        // encounter had been logged, and the record had none.
+        cancerType: encounterForm.cancerType,
       });
 
       await api.post('/vitals', {
@@ -380,7 +366,7 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
                   className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs"
                   required
                 >
-                  {cancerTypesMaster.map(type => (
+                  {CANCER_TYPES.map(type => (
                     <option key={type} value={type}>{type}</option>
                   ))}
                 </select>

@@ -10,26 +10,7 @@ import { MARK_SRC } from '@/lib/deployment';
 import { isRetryable } from '@/lib/offlineQueue';
 import { useOfflineRegistrations } from '@/lib/useOfflineRegistrations';
 import { useAuthStore } from '@/store/authStore';
-
-const PLATEAU_LGAS = [
-  'Barkin Ladi LGA',
-  'Bassa LGA',
-  'Bokkos LGA',
-  'Jos East LGA',
-  'Jos North LGA',
-  'Jos South LGA',
-  'Kanam LGA',
-  'Kanke LGA',
-  'Langtang North LGA',
-  'Langtang South LGA',
-  'Mangu LGA',
-  'Mikang LGA',
-  'Pankshin LGA',
-  'Quan\'Pan LGA',
-  'Riyom LGA',
-  'Shendam LGA',
-  'Wase LGA',
-];
+import { PLATEAU_LGAS } from '@/lib/clinicalVocabulary';
 
 /** The blank intake form, so a completed or queued capture can be cleared. */
 const emptyForm = {

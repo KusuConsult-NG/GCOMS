@@ -10,26 +10,7 @@ import Image from 'next/image';
 import { api } from '@/lib/api';
 import { useToday } from '@/lib/useToday';
 import { MARK_SRC } from '@/lib/deployment';
-
-const PLATEAU_LGAS = [
-  'Barkin Ladi LGA',
-  'Bassa LGA',
-  'Bokkos LGA',
-  'Jos East LGA',
-  'Jos North LGA',
-  'Jos South LGA',
-  'Kanam LGA',
-  'Kanke LGA',
-  'Langtang North LGA',
-  'Langtang South LGA',
-  'Mangu LGA',
-  'Mikang LGA',
-  'Pankshin LGA',
-  'Quan\'Pan LGA',
-  'Riyom LGA',
-  'Shendam LGA',
-  'Wase LGA',
-];
+import { PLATEAU_LGAS } from '@/lib/clinicalVocabulary';
 
 export function VolunteerWorkspace({ user }: { user: SessionUser }) {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'register' | 'outreach' | 'queue'>('dashboard');

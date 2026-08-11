@@ -4,26 +4,7 @@ import type { UserRecord, VolunteerProfile } from '@/types/api';
 
 import { api } from '@/lib/api';
 import React, { useState, useEffect } from 'react';
-
-const PLATEAU_LGAS = [
-  'Barkin Ladi LGA',
-  'Bassa LGA',
-  'Bokkos LGA',
-  'Jos East LGA',
-  'Jos North LGA',
-  'Jos South LGA',
-  'Kanam LGA',
-  'Kanke LGA',
-  'Langtang North LGA',
-  'Langtang South LGA',
-  'Mangu LGA',
-  'Mikang LGA',
-  'Pankshin LGA',
-  'Quan\'Pan LGA',
-  'Riyom LGA',
-  'Shendam LGA',
-  'Wase LGA',
-];
+import { PLATEAU_LGAS } from '@/lib/clinicalVocabulary';
 
 export default function VolunteersPage() {
   // Volunteer rosters live in VolunteerProfile. This page made no API calls at

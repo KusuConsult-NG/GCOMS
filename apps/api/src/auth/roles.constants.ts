@@ -382,6 +382,86 @@ export const REFERRAL_STATUSES = [
   'CANCELLED',
 ] as const;
 
+/**
+ * The cancer categories a screening or an encounter may be classified under.
+ *
+ * The spec calls for a staging matrix across seventeen categories, and there
+ * were two lists: the clinical workspace offered all seventeen, and the
+ * screening form offered four — so thirteen of them could not be recorded from
+ * the screen whose entire purpose is recording a screening.
+ *
+ * The two lists also disagreed on the values themselves. The workspace wrote
+ * 'Cervical Cancer (VIA / Pap)' and the screening form wrote 'Cervical Cancer'
+ * into the same column, which is why `calculateRiskScore` matches on a substring
+ * and the LGA analytics query matches with LIKE: those are defences against a
+ * column holding whichever spelling the caller happened to use. One vocabulary
+ * removes the reason for them, and old rows keep working because the substring
+ * matches are left alone.
+ */
+export const CANCER_TYPES = [
+  'Cervical Cancer (VIA / Pap)',
+  'Breast Cancer (CBE / Mammogram)',
+  'Prostate Cancer (PSA)',
+  'Colorectal Cancer',
+  'Lung & Thoracic Cancer',
+  'Ovarian & Gynecologic Cancer',
+  'Liver & Hepatobiliary Cancer',
+  'Pancreatic Cancer',
+  'Skin & Melanoma',
+  'Leukemia & Lymphoma (Blood Cancers)',
+  'Pediatric & Childhood Cancers',
+  'Head & Neck Cancers',
+  'Brain & CNS Tumors',
+  'Thyroid & Endocrine Cancers',
+  'Renal / Kidney Cancers',
+  'Bladder & Urologic Cancers',
+  'Testicular Cancer',
+] as const;
+
+/**
+ * What a screening can conclude.
+ *
+ * Every positive-case count in this system finds these with a case-insensitive
+ * substring — `LOWER(result) LIKE '%positive%'` in the LGA breakdown,
+ * `.includes('POSITIVE')` in the risk score and on the clinical dashboard. That
+ * works, and it works because the column was unconstrained. Constraining the
+ * write path means a new row cannot be spelled a way those counts miss.
+ */
+export const SCREENING_RESULTS = [
+  'Negative',
+  'Suspicious',
+  'Positive (VIA+)',
+  'Positive (Stage 1)',
+  'Positive (Stage 2)',
+] as const;
+
+/**
+ * The seventeen Local Government Areas of Plateau State.
+ *
+ * Mandatory on patient intake and on the volunteer register, and held as three
+ * separate copies in the web client with nothing to check them against. It is
+ * a fixed administrative fact, not configuration.
+ */
+export const PLATEAU_LGAS = [
+  'Barkin Ladi LGA',
+  'Bassa LGA',
+  'Bokkos LGA',
+  'Jos East LGA',
+  'Jos North LGA',
+  'Jos South LGA',
+  'Kanam LGA',
+  'Kanke LGA',
+  'Langtang North LGA',
+  'Langtang South LGA',
+  'Mangu LGA',
+  'Mikang LGA',
+  'Pankshin LGA',
+  "Quan'Pan LGA",
+  'Riyom LGA',
+  'Shendam LGA',
+  'Wase LGA',
+] as const;
+
 /*
  * Clinical roles.
  *

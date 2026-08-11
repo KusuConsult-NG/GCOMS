@@ -352,6 +352,65 @@ describe('request body validation (e2e)', () => {
     });
   });
 
+  describe('a screening is classified from a fixed vocabulary', () => {
+    /*
+     * cancerType and result were `@IsString() @MaxLength(120)`, so the column
+     * held whatever each screen sent — and two screens sent different things.
+     * The clinical workspace offered the seventeen categories the spec names;
+     * the screening form offered four, spelled differently. 'Cervical Cancer'
+     * and 'Cervical Cancer (VIA / Pap)' both meant cervical cancer, nothing
+     * could group on the column, and thirteen categories could not be recorded
+     * from the screening form at all.
+     *
+     * The result mattered more. Every positive-case figure in this system is a
+     * substring match — `LOWER(result) LIKE '%positive%'` in the LGA breakdown,
+     * `.includes('POSITIVE')` in the risk score — because the column was
+     * unconstrained. A result meaning positive and not containing the word is a
+     * case that happened and appears in no count.
+     */
+    const screen = (payload: Record<string, unknown>) =>
+      http
+        .post('/screenings')
+        .set('Authorization', as('clinician'))
+        .send({ participantId, ...payload });
+
+    it('accepts one of the seventeen categories', async () => {
+      const res = await screen({
+        cancerType: 'Cervical Cancer (VIA / Pap)',
+        result: 'Positive (VIA+)',
+      }).expect(201);
+      expect(body<{ riskScore: number }>(res).riskScore).toBeGreaterThan(0);
+    });
+
+    it('refuses the short spelling the other screen used to send', async () => {
+      await screen({
+        cancerType: 'Cervical Cancer',
+        result: 'Negative',
+      }).expect(400);
+    });
+
+    it('accepts a category the screening form could not offer', async () => {
+      // One of the thirteen. The point of the fix is that this now records.
+      await screen({
+        cancerType: 'Thyroid & Endocrine Cancers',
+        result: 'Suspicious',
+      }).expect(201);
+    });
+
+    it('refuses a result outside the vocabulary', async () => {
+      await screen({
+        cancerType: 'Colorectal Cancer',
+        result: 'Inconclusive',
+      }).expect(400);
+    });
+
+    it('leaves no row behind when it refuses', async () => {
+      const before = await prisma.screening.count();
+      await screen({ cancerType: 'Nonsense', result: 'Negative' }).expect(400);
+      expect(await prisma.screening.count()).toBe(before);
+    });
+  });
+
   describe('unknown properties are stripped', () => {
     it('ignores a field the DTO does not declare', async () => {
       // whitelist: true only bites once there is a class to whitelist against.

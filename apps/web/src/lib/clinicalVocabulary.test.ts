@@ -18,6 +18,7 @@ import { readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   CANCER_TYPES,
+  FOLLOW_UP_TYPES,
   PLATEAU_LGAS,
   SCREENING_RESULTS,
   SCREENING_RESULT_LABEL,
@@ -100,6 +101,18 @@ describe('screening results', () => {
     for (const result of SCREENING_RESULTS) {
       expect(SCREENING_RESULT_LABEL[result]).toBeTruthy();
     }
+  });
+});
+
+describe('follow-up types', () => {
+  it('match the list the API validates against', () => {
+    expect([...FOLLOW_UP_TYPES]).toEqual(apiList('FOLLOW_UP_TYPES'));
+  });
+
+  it('is not the status vocabulary', () => {
+    // FOLLOW_UP_STATUSES is what a follow-up is *in*; this is what it is *for*.
+    // Both are on the same record and neither substitutes for the other.
+    expect(FOLLOW_UP_TYPES).not.toContain('SCHEDULED');
   });
 });
 

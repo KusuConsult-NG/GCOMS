@@ -367,6 +367,23 @@ export const FOLLOW_UP_STATUSES = [
   'CANCELLED',
 ] as const;
 
+/**
+ * Why a follow-up was scheduled.
+ *
+ * The clinical workspace's follow-up form marks "Follow-Up Type *" required and
+ * offers these five. It had nowhere to go — no column, no DTO field — so the
+ * whitelist dropped it and every follow-up was recorded as an undifferentiated
+ * appointment. A biopsy result and a medication check are not the same visit,
+ * and the person working the list is the one who needs to know which it is.
+ */
+export const FOLLOW_UP_TYPES = [
+  'TREATMENT_REVIEW',
+  'POST_CRYOTHERAPY',
+  'BIOPSY_RESULT',
+  'MEDICATION_CHECK',
+  'REFERRAL_OUTCOME',
+] as const;
+
 /** Matches the comment on Appointment.status in schema.prisma. */
 export const APPOINTMENT_STATUSES = [
   'SCHEDULED',

@@ -66,6 +66,20 @@ export const SCREENING_RESULT_LABEL: Record<string, string> = {
   'Positive (Stage 2)': 'Positive (Stage 2)',
 };
 
+/**
+ * FOLLOW_UP_TYPES in the API's auth/roles.constants.ts.
+ *
+ * The scheduling form marked this required and sent it under a key no DTO
+ * declared, so every follow-up was recorded as an undifferentiated visit.
+ */
+export const FOLLOW_UP_TYPES = [
+  'TREATMENT_REVIEW',
+  'POST_CRYOTHERAPY',
+  'BIOPSY_RESULT',
+  'MEDICATION_CHECK',
+  'REFERRAL_OUTCOME',
+] as const;
+
 /** PLATEAU_LGAS in the API's auth/roles.constants.ts. */
 export const PLATEAU_LGAS = [
   'Barkin Ladi LGA',

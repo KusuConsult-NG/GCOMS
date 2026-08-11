@@ -5,7 +5,7 @@ import type { FollowUp, PatientAssignment, Referral, Screening, SessionUser, Vit
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { CANCER_TYPES } from '@/lib/clinicalVocabulary';
+import { CANCER_TYPES, FOLLOW_UP_TYPES } from '@/lib/clinicalVocabulary';
 
 export function ClinicalWorkspace({ user }: { user: SessionUser }) {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'encounters' | 'vitals' | 'followups' | 'reports'>('dashboard');
@@ -56,9 +56,8 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
   const [showFuModal, setShowFuModal] = useState(false);
   const [fuForm, setFuForm] = useState({
     participantId: '',
-    type: 'TREATMENT_REVIEW',
+    followUpType: FOLLOW_UP_TYPES[0] as string,
     scheduledDate: '',
-    assignedTo: '',
     notes: '',
   });
 
@@ -189,11 +188,18 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
   const handleFuSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      /*
+       * `type` and `assignedTo` were sent and dropped. Neither was declared on
+       * CreateFollowUpDto, so the validation whitelist removed both: the
+       * required "Follow-Up Type" was recorded nowhere, and the assigned
+       * clinician was a free-text name with no column and no way to match it to
+       * an account. The type now has a column; the assignment is the clinician
+       * recording it, which is what the API has always done.
+       */
       await api.post('/follow-ups', {
         participantId: fuForm.participantId,
-        type: fuForm.type,
+        followUpType: fuForm.followUpType,
         scheduledDate: fuForm.scheduledDate,
-        assignedTo: fuForm.assignedTo,
         notes: fuForm.notes,
       });
       setShowFuModal(false);
@@ -767,12 +773,10 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
               </div>
               <div>
                 <label className="block mb-1 font-semibold">Follow-Up Type *</label>
-                <select required value={fuForm.type} onChange={e => setFuForm({...fuForm, type: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
-                  <option value="TREATMENT_REVIEW">TREATMENT_REVIEW</option>
-                  <option value="POST_CRYOTHERAPY">POST_CRYOTHERAPY</option>
-                  <option value="BIOPSY_RESULT">BIOPSY_RESULT</option>
-                  <option value="MEDICATION_CHECK">MEDICATION_CHECK</option>
-                  <option value="REFERRAL_OUTCOME">REFERRAL_OUTCOME</option>
+                <select required value={fuForm.followUpType} onChange={e => setFuForm({...fuForm, followUpType: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs">
+                  {FOLLOW_UP_TYPES.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -780,8 +784,14 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
                 <input type="date" required value={fuForm.scheduledDate} onChange={e => setFuForm({...fuForm, scheduledDate: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
               </div>
               <div>
+                {/* Was a free-text name that was sent and discarded. A follow-up
+                    is filed against a clinician account, not a typed name, and
+                    the API files it against whoever records it. */}
                 <label className="block mb-1 font-semibold">Assigned Clinician</label>
-                <input type="text" value={fuForm.assignedTo} onChange={e => setFuForm({...fuForm, assignedTo: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" placeholder="e.g. Dr. Smith" />
+                <p className="rounded border border-[var(--outline)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--on-surface-variant)]">
+                  {user.firstName} {user.lastName} — follow-ups are filed against
+                  the clinician who schedules them.
+                </p>
               </div>
               <div>
                 <label className="block mb-1 font-semibold">Notes</label>

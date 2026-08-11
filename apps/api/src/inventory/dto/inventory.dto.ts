@@ -1,4 +1,5 @@
 import {
+  IsDateString,
   IsIn,
   IsNotEmpty,
   IsNumber,
@@ -43,6 +44,7 @@ export class CreateInventoryItemDto {
   unitPrice?: number;
 
   // Fixed-asset register. Only meaningful for equipment, hence all optional.
+  @IsDateString() @IsOptional() acquisitionDate?: string;
   @IsString() @IsOptional() @MaxLength(60) assetTag?: string;
   @IsString() @IsOptional() @MaxLength(120) serialNumber?: string;
   @IsString() @IsOptional() @MaxLength(200) currentLocation?: string;
@@ -75,6 +77,7 @@ export class UpdateInventoryItemDto {
   @IsOptional()
   unitPrice?: number;
 
+  @IsDateString() @IsOptional() acquisitionDate?: string;
   @IsString() @IsOptional() @MaxLength(60) assetTag?: string;
   @IsString() @IsOptional() @MaxLength(120) serialNumber?: string;
   @IsString() @IsOptional() @MaxLength(200) currentLocation?: string;

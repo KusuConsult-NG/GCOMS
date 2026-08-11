@@ -4,6 +4,7 @@ import type { AuditLogEntry, UserRecord } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { errorMessage } from '@/lib/errors';
 import { ROLES } from '@/lib/roles';
 import {
   PERMISSION_MODULES,
@@ -17,6 +18,9 @@ export function AdminWorkspace() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newUser, setNewUser] = useState({ firstName: '', lastName: '', email: '', role: 'ADMIN', department: '', password: 'GCOMS@2026!' });
   const [userSearch, setUserSearch] = useState('');
+  const [resetResult, setResetResult] = useState<
+    { email: string; password?: string; error?: string } | null
+  >(null);
   const [userRoleFilter, setUserRoleFilter] = useState('ALL');
   
   // The real audit trail: PHI break-glass access and role changes. This was a
@@ -104,14 +108,39 @@ export function AdminWorkspace() {
     }
   };
 
-  const handleResetPassword = async (userId: string) => {
-    if (window.confirm("Are you sure you want to reset this user's password to default?")) {
-      try {
-        await api.patch(`/users/${userId}`, { password: 'GCOMS@2026!' });
-        alert('Password reset successful');
-      } catch (err) {
-        console.error(err);
-      }
+  /**
+   * Reset a password, and show the one the server generated.
+   *
+   * This sent `{ password: 'GCOMS@2026!' }` to PATCH /users/:id, whose DTO
+   * declares only `role`, so the request was refused and the handler logged to
+   * the console — the button did nothing at all, silently, for as long as it
+   * existed. Two other things were wrong with it: the password was a fixed
+   * string readable by anyone who opened the browser sources, and it was the
+   * same one for every account it was ever used on.
+   *
+   * The server generates it now and returns it once. There is nowhere to read
+   * it back from, which is why it is shown rather than merely confirmed.
+   */
+  const handleResetPassword = async (user: UserRecord) => {
+    if (
+      !window.confirm(
+        `Reset the password for ${user.firstName} ${user.lastName} (${user.email})? ` +
+          'A new one will be generated and shown once.',
+      )
+    ) {
+      return;
+    }
+    try {
+      const res = await api.patch(`/users/${user.id}/password`, {});
+      setResetResult({
+        email: user.email,
+        password: (res.data as { temporaryPassword: string }).temporaryPassword,
+      });
+    } catch (err) {
+      setResetResult({
+        email: user.email,
+        error: errorMessage(err, 'The password could not be reset.'),
+      });
     }
   };
 
@@ -211,6 +240,43 @@ export function AdminWorkspace() {
               <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary text-xs whitespace-nowrap px-3 py-1.5">+ Create User</button>
             </div>
           </div>
+          {resetResult && (
+            <div
+              role="alert"
+              className={`flex items-start justify-between gap-4 border-b p-4 text-xs ${
+                resetResult.error
+                  ? 'border-[var(--risk-high-text)]/20 bg-[var(--risk-high-bg)] text-[var(--risk-high-text)]'
+                  : 'border-[var(--outline)] bg-[var(--surface-subtle)] text-[var(--on-background)]'
+              }`}
+            >
+              {resetResult.error ? (
+                <p className="font-semibold">
+                  {resetResult.email}: {resetResult.error}
+                </p>
+              ) : (
+                <div>
+                  <p className="font-semibold">
+                    Temporary password for {resetResult.email}
+                  </p>
+                  {/* Shown, not merely confirmed: the server hashes it on the way
+                      in and there is nowhere to read it back from. */}
+                  <p className="mt-1 font-mono text-sm select-all">
+                    {resetResult.password}
+                  </p>
+                  <p className="mt-1 text-[var(--muted)]">
+                    Copy it now — it cannot be shown again.
+                  </p>
+                </div>
+              )}
+              <button
+                onClick={() => setResetResult(null)}
+                className="font-bold text-[var(--muted)]"
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           {loading ? (
             <div className="p-8 text-center text-xs text-[var(--muted)]">Loading user roster...</div>
           ) : (
@@ -242,7 +308,7 @@ export function AdminWorkspace() {
                       </td>
                       <td className="p-3 text-right flex justify-end gap-1">
                         <button onClick={() => handleToggleStatus(u)} className="btn-secondary text-[10px] py-1 px-2">{u.isActive ? 'Deactivate' : 'Reactivate'}</button>
-                        <button onClick={() => handleResetPassword(u.id)} className="btn-secondary text-[10px] py-1 px-2">Reset Pwd</button>
+                        <button onClick={() => handleResetPassword(u)} className="btn-secondary text-[10px] py-1 px-2">Reset Pwd</button>
                       </td>
                     </tr>
                   ))}

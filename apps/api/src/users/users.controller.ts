@@ -18,6 +18,7 @@ import { Roles } from '../auth/roles.decorator';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GRANTOR_ROLES, USER_ADMIN_ROLES } from '../auth/roles.constants';
 import { PaginationQueryDto } from '../common/pagination';
 
@@ -60,6 +61,31 @@ export class UsersController {
     @Request() req: AuthenticatedRequest,
   ) {
     return this.usersService.updateRole(id, dto, {
+      id: req.user.id,
+      role: req.user.role,
+    });
+  }
+
+  /**
+   * Reset a user's password.
+   *
+   * A route of its own, for the same reason status has one: PATCH /users/:id is
+   * role-only on purpose. The administration screen used to send a password to
+   * that route and be refused, so its "Reset Pwd" button never worked.
+   *
+   * USER_ADMIN_ROLES rather than GRANTOR_ROLES — these roles can already create
+   * an account and set its password, and it is HR that fields a locked-out
+   * member of staff. Resetting a *privileged* account is narrowed to
+   * GRANTOR_ROLES inside the service.
+   */
+  @Patch(':id/password')
+  @Roles(...USER_ADMIN_ROLES)
+  async resetPassword(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ResetPasswordDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.usersService.resetPassword(id, dto, {
       id: req.user.id,
       role: req.user.role,
     });

@@ -5,6 +5,7 @@ import type { Donor, Grant, GrantMilestone, GrantProposal, ReportSchedule } from
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
+import { errorMessage } from '@/lib/errors';
 import { useAuthStore } from '@/store/authStore';
 import { AccessDenied } from '@/components/AccessDenied';
 import { GRANT_PAGE_ROLES } from '@/components/pageAccess';
@@ -24,6 +25,7 @@ function GrantsPageContent() {
     title: '', donorName: 'Global Fund for Health', amount: '', startDate: new Date().toISOString().split('T')[0], endDate: '2026-12-31',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [grantError, setGrantError] = useState('');
 
   const [donors, setDonors] = useState<Donor[]>([]);
   const [donorForm, setDonorForm] = useState({ organisation: '', country: '', type: 'BILATERAL', contactName: '', contactTitle: '', email: '', phone: '', interests: [] as string[], lastContact: '', notes: '' });
@@ -69,13 +71,27 @@ function GrantsPageContent() {
   const handleGrantSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setGrantError('');
     try {
-      await api.post('/grants', formData);
+      /*
+       * The form field is `title`; CreateGrantDto requires `grantName`. So
+       * "Register Grant Award" returned 400 on every attempt — "grantName must
+       * be a string" — and said nothing: the modal stayed open with the form
+       * still filled in, which reads as nothing having happened rather than as
+       * a refusal. No grant could be registered from this screen at all.
+       */
+      await api.post('/grants', {
+        grantName: formData.title,
+        donorName: formData.donorName,
+        amount: Number(formData.amount) || 0,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+      });
       setActiveModal(null);
       setFormData({ title: '', donorName: 'Global Fund for Health', amount: '', startDate: new Date().toISOString().split('T')[0], endDate: '2026-12-31' });
       fetchGrants();
     } catch (err) {
-      console.error('Failed to create grant', err);
+      setGrantError(errorMessage(err, 'The grant could not be registered.'));
     } finally {
       setSubmitting(false);
     }
@@ -549,6 +565,14 @@ function GrantsPageContent() {
               <button onClick={() => setActiveModal(null)} className="text-[var(--muted)] font-bold">✕</button>
             </div>
             <form onSubmit={handleGrantSubmit} className="space-y-4 text-xs">
+              {grantError && (
+                <p
+                  role="alert"
+                  className="rounded border border-[var(--risk-high-text)]/20 bg-[var(--risk-high-bg)] p-3 text-xs font-semibold text-[var(--risk-high-text)]"
+                >
+                  {grantError}
+                </p>
+              )}
               <div>
                 <label className="block font-semibold text-[var(--on-background)] mb-1">Grant Project Title *</label>
                 <input type="text" required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />

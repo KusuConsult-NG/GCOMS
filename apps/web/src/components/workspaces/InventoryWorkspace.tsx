@@ -5,6 +5,7 @@ import type { InventoryItem, ServiceLog, StockMovement } from '@/types/api';
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
+import { errorMessage } from '@/lib/errors';
 
 export function InventoryWorkspace() {
   const searchParams = useSearchParams();
@@ -14,8 +15,10 @@ export function InventoryWorkspace() {
   const [activeModal, setActiveModal] = useState<null | 'stock' | 'asset' | 'issue' | 'reorder' | 'maintenance' | 'maintenance_complete'>(null);
 
   const [formData, setFormData] = useState({
-    itemName: '', category: 'Medical Consumables', quantity: '100', unit: 'boxes', minThreshold: '20'
+    itemName: '', category: 'Medical Consumables', quantity: '100', unit: 'boxes', location: '', minThreshold: '20'
   });
+
+  const [formError, setFormError] = useState('');
   
   const [assetForm, setAssetForm] = useState({
     assetName: '', assetTag: '', category: 'MEDICAL_EQUIPMENT', serialNumber: '', acquisitionDate: '', purchaseCost: '', currentLocation: '', assignedTo: '', condition: 'GOOD'
@@ -95,13 +98,28 @@ export function InventoryWorkspace() {
   const handleStockSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setFormError('');
     try {
-      await api.post('/inventory', formData);
+      /*
+       * Every field here was a string off an <input>, and CreateInventoryItemDto
+       * wants numbers; `location` is required by the DTO and the column, and the
+       * form neither collected nor sent it. So "Add Item" returned 400 on every
+       * attempt — five validation messages — and reported nothing but a console
+       * line, leaving the modal open and filled in.
+       */
+      await api.post('/inventory', {
+        itemName: formData.itemName,
+        category: formData.category,
+        quantity: Number(formData.quantity) || 0,
+        unit: formData.unit,
+        location: formData.location,
+        minThreshold: Number(formData.minThreshold) || 0,
+      });
       setActiveModal(null);
-      setFormData({ itemName: '', category: 'Medical Consumables', quantity: '100', unit: 'boxes', minThreshold: '20' });
+      setFormData({ itemName: '', category: 'Medical Consumables', quantity: '100', unit: 'boxes', location: '', minThreshold: '20' });
       fetchInventory();
     } catch (err) {
-      console.error('Failed to add inventory item', err);
+      setFormError(errorMessage(err, 'The item could not be added.'));
     } finally {
       setSubmitting(false);
     }
@@ -110,20 +128,41 @@ export function InventoryWorkspace() {
   const handleAssetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setFormError('');
     try {
+      /*
+       * The register's own fields — tag, serial, location, assignee, condition —
+       * were sent nested under `assetDetails`, a key no DTO declares, so the
+       * validation whitelist stripped the whole object. The schema comment on
+       * these columns already records the reading half of this ("every row
+       * showed TAG-PENDING and blanks"); the writing half was still sending
+       * them nowhere. And `location` was never sent at all, so the request was
+       * a 400 regardless and no asset could be registered.
+       */
       await api.post('/inventory', {
         itemName: assetForm.assetName,
         category: `ASSET - ${assetForm.category}`,
         quantity: 1,
         unit: 'unit',
+        location: assetForm.currentLocation || 'Unassigned',
         minThreshold: 0,
-        assetDetails: assetForm
+        unitPrice: assetForm.purchaseCost
+          ? Number(assetForm.purchaseCost)
+          : undefined,
+        acquisitionDate: assetForm.acquisitionDate
+          ? new Date(assetForm.acquisitionDate).toISOString()
+          : undefined,
+        assetTag: assetForm.assetTag || undefined,
+        serialNumber: assetForm.serialNumber || undefined,
+        currentLocation: assetForm.currentLocation || undefined,
+        assignedTo: assetForm.assignedTo || undefined,
+        condition: assetForm.condition || undefined,
       });
       setActiveModal(null);
       setAssetForm({ assetName: '', assetTag: '', category: 'MEDICAL_EQUIPMENT', serialNumber: '', acquisitionDate: '', purchaseCost: '', currentLocation: '', assignedTo: '', condition: 'GOOD' });
       fetchInventory();
     } catch (err) {
-      console.error('Failed to add asset', err);
+      setFormError(errorMessage(err, 'The asset could not be registered.'));
     } finally {
       setSubmitting(false);
     }
@@ -570,6 +609,14 @@ export function InventoryWorkspace() {
               <button onClick={() => setActiveModal(null)} className="text-[var(--muted)] font-bold">✕</button>
             </div>
             <form onSubmit={handleStockSubmit} className="space-y-4 text-xs">
+              {formError && (
+                <p
+                  role="alert"
+                  className="rounded border border-[var(--risk-high-text)]/20 bg-[var(--risk-high-bg)] p-3 text-xs font-semibold text-[var(--risk-high-text)]"
+                >
+                  {formError}
+                </p>
+              )}
               <div>
                 <label className="block font-semibold text-[var(--on-background)] mb-1">Item Name *</label>
                 <input type="text" required value={formData.itemName} onChange={e => setFormData({ ...formData, itemName: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
@@ -581,6 +628,12 @@ export function InventoryWorkspace() {
                   <option value="Screening Kits">Screening Kits</option>
                   <option value="Reagents">Reagents</option>
                 </select>
+              </div>
+              <div>
+                {/* Required by the column and by the DTO, and the form did not
+                    have it — which is half of why nothing could be added. */}
+                <label className="block font-semibold text-[var(--on-background)] mb-1">Storage Location *</label>
+                <input type="text" required value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} placeholder="e.g. Jos North Central Store" className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <div>
@@ -614,6 +667,14 @@ export function InventoryWorkspace() {
               <button onClick={() => setActiveModal(null)} className="text-[var(--muted)] font-bold">✕</button>
             </div>
             <form onSubmit={handleAssetSubmit} className="space-y-4 text-xs">
+              {formError && (
+                <p
+                  role="alert"
+                  className="rounded border border-[var(--risk-high-text)]/20 bg-[var(--risk-high-bg)] p-3 text-xs font-semibold text-[var(--risk-high-text)]"
+                >
+                  {formError}
+                </p>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <label className="block font-semibold text-[var(--on-background)] mb-1">Asset Name *</label>

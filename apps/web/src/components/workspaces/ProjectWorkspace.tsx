@@ -5,6 +5,7 @@ import type { Project, ProjectTask, Risk } from '@/types/api';
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
+import { errorMessage } from '@/lib/errors';
 
 export function ProjectWorkspace() {
   const searchParams = useSearchParams();
@@ -46,6 +47,23 @@ export function ProjectWorkspace() {
       status: string;
     }>
   >([]);
+
+  /**
+   * Recorded expenditure. Same standing as change requests above: there is no
+   * table for it, so it lives in the tab and is labelled as not saved.
+   */
+  const [expenses, setExpenses] = useState<
+    Array<{
+      id: string;
+      project: string;
+      description: string;
+      amount: number;
+      date: string;
+      category: string;
+    }>
+  >([]);
+
+  const [formError, setFormError] = useState('');
 
   // Form States
   const [taskForm, setTaskForm] = useState({ title: '', projectId: '', assignee: '', dueDate: '', priority: 'MEDIUM', status: 'PENDING', description: '' });
@@ -101,13 +119,27 @@ export function ProjectWorkspace() {
   const handleProjectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setFormError('');
     try {
-      await api.post('/projects', formData);
+      /*
+       * The form field is `title`; CreateProjectDto requires `projectName`. So
+       * every attempt to initiate a project returned 400 — "projectName must be
+       * a string" — and the only trace was a console line. The modal stayed
+       * open with the form still filled in and no message, which reads as
+       * nothing having happened rather than as a failure.
+       */
+      await api.post('/projects', {
+        projectName: formData.title,
+        description: formData.description,
+        budget: Number(formData.budget) || 0,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+      });
       setActiveModal(null);
       setFormData({ title: '', budget: '', startDate: new Date().toISOString().split('T')[0], endDate: '2026-12-31', description: '' });
       fetchProjects();
     } catch (err) {
-      console.error('Failed to create project', err);
+      setFormError(errorMessage(err, 'The project could not be created.'));
     } finally {
       setSubmitting(false);
     }
@@ -174,25 +206,36 @@ export function ProjectWorkspace() {
     }
   };
 
-  const handleExpenseSubmit = async (e: React.FormEvent) => {
+  /**
+   * Project expenditure, which has no table.
+   *
+   * This posted a *Project* named `[EXPENSE] <project>` with the amount in the
+   * budget field. It failed on every attempt — the DTO wants `projectName` and
+   * this sent `title` — which is the only reason the portfolio is not full of
+   * expense rows: had it worked, every expense would have appeared as an active
+   * project, and "Active projects" is a figure on the executive dashboard.
+   *
+   * A project expense belongs in the ledger, and the ledger's write route is
+   * FINANCE-only, so a project manager cannot post one. Rather than invent a
+   * table or widen a permission, these are held in the tab and labelled as not
+   * saved — the same treatment change requests already get in this file, and
+   * honest about what the system does and does not keep.
+   */
+  const handleExpenseSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
-    try {
-      await api.post('/projects', {
-        title: `[EXPENSE] ${expenseForm.project}`,
+    setExpenses([
+      ...expenses,
+      {
+        id: `local-${expenses.length + 1}`,
+        project: expenseForm.project,
         description: expenseForm.description,
-        budget: expenseForm.amount,
-        startDate: expenseForm.date,
-        endDate: expenseForm.date
-      });
-      setActiveModal(null);
-      setExpenseForm({ project: '', description: '', amount: '', date: '', category: 'Administration' });
-      fetchProjects();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSubmitting(false);
-    }
+        amount: Number(expenseForm.amount) || 0,
+        date: expenseForm.date,
+        category: expenseForm.category,
+      },
+    ]);
+    setActiveModal(null);
+    setExpenseForm({ project: '', description: '', amount: '', date: '', category: 'Administration' });
   };
 
   const handleChangeSubmit = (e: React.FormEvent) => {
@@ -258,6 +301,17 @@ export function ProjectWorkspace() {
               <button onClick={() => setActiveModal(null)} className="text-[var(--muted)] font-bold">✕</button>
             </div>
             <form onSubmit={handleProjectSubmit} className="space-y-4 text-xs">
+              {/* A refused create used to leave the modal open with the form
+                  still filled in and nothing said, which reads as nothing
+                  having happened rather than as a failure. */}
+              {formError && (
+                <p
+                  role="alert"
+                  className="rounded border border-[var(--risk-high-text)]/20 bg-[var(--risk-high-bg)] p-3 text-xs font-semibold text-[var(--risk-high-text)]"
+                >
+                  {formError}
+                </p>
+              )}
               <div>
                 <label className="block font-semibold text-[var(--on-background)] mb-1">Project Title *</label>
                 <input type="text" required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
@@ -691,6 +745,17 @@ export function ProjectWorkspace() {
               + Record Expenditure
             </button>
           </div>
+          {/* Every project reported "Utilized (Est. 45%)" and a remaining
+              balance computed from it, for every project, always — a fabricated
+              figure in a budget table, and the 55% "remaining" alongside it was
+              the same invention stated as money still available. Utilisation is
+              now what has been recorded against the project, and nothing when
+              nothing has. */}
+          <p className="border-b border-[var(--outline)] bg-[var(--surface-subtle)] px-4 py-2 text-[11px] text-[var(--muted)]">
+            Expenditure recorded here is held in this tab only — there is no
+            project-expenditure table yet, so it is lost on reload and is not in
+            any report.
+          </p>
           {projects.length === 0 ? (
             <div className="p-8 text-center text-xs text-[var(--muted)]">No operational projects registered yet.</div>
           ) : (
@@ -699,33 +764,44 @@ export function ProjectWorkspace() {
                 <tr>
                   <th className="p-3">Project Name</th>
                   <th className="p-3">Approved Budget</th>
-                  <th className="p-3">Utilized (Est. 45%)</th>
+                  <th className="p-3">Recorded spend</th>
                   <th className="p-3">Remaining</th>
                   <th className="p-3 w-1/4">Utilization %</th>
-                  <th className="p-3">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
                 {projects.map((p) => {
                   const b = Number(p.budget) || 0;
-                  const u = b * 0.45;
-                  const r = b - u;
-                  const pct = 45;
+                  const u = expenses
+                    .filter((x) => x.project === p.projectName)
+                    .reduce((sum, x) => sum + x.amount, 0);
+                  const recorded = expenses.some((x) => x.project === p.projectName);
+                  const pct = b > 0 ? Math.round((u / b) * 100) : 0;
                   return (
                     <tr key={p.id} className="hover:bg-[var(--primary-surface)]">
                       <td className="p-3 font-bold text-[var(--primary)]">{p.projectName}</td>
                       <td className="p-3 tabular-nums">₦{b.toLocaleString()}</td>
-                      <td className="p-3 tabular-nums text-red-700">₦{u.toLocaleString()}</td>
-                      <td className="p-3 tabular-nums text-emerald-700">₦{r.toLocaleString()}</td>
-                      <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div className="bg-[var(--secondary)] h-2 rounded-full" style={{ width: `${pct}%` }}></div>
-                          </div>
-                          <span>{pct}%</span>
-                        </div>
+                      <td className="p-3 tabular-nums text-red-700">
+                        {recorded ? `₦${u.toLocaleString()}` : '—'}
                       </td>
-                      <td className="p-3"><span className="badge-low-risk">ON_TRACK</span></td>
+                      <td className="p-3 tabular-nums text-emerald-700">
+                        {recorded ? `₦${(b - u).toLocaleString()}` : '—'}
+                      </td>
+                      <td className="p-3">
+                        {recorded ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-[var(--secondary)] h-2 rounded-full"
+                                style={{ width: `${Math.min(100, pct)}%` }}
+                              ></div>
+                            </div>
+                            <span>{pct}%</span>
+                          </div>
+                        ) : (
+                          <span className="text-[var(--muted)]">Nothing recorded</span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}

@@ -204,7 +204,10 @@ model InventoryItem {
   unitPrice   Decimal?
   /// Fixed-asset register fields, for items of category EQUIPMENT/ASSET. The
   /// asset tab rendered all five off an `assetDetails` object that no endpoint
-  /// ever returned, so every row showed "TAG-PENDING" and blanks.
+  /// ever returned, so every row showed "TAG-PENDING" and blanks — and the
+  /// register form went on posting that same `assetDetails` object, which the
+  /// validation whitelist stripped, so nothing reached these columns either.
+  acquisitionDate DateTime?
   assetTag        String?  @unique
   serialNumber    String?
   currentLocation String?
@@ -430,6 +433,9 @@ model Referral {
 model FollowUp {
   id            String   @id @default(uuid())
   scheduledDate DateTime
+  /// One of FOLLOW_UP_TYPES. The scheduling form required this and had nowhere
+  /// to put it, so every follow-up was recorded as an undifferentiated visit.
+  followUpType  String?
   notes         String?
   status        String   @default("SCHEDULED")
   participantId String

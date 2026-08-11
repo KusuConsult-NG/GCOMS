@@ -5,16 +5,19 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { User } from '@prisma/client';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import {
   DEFAULT_ROLE,
   GRANTOR_ROLES,
   PRIVILEGED_ROLES,
   Role,
+  USER_ADMIN_ROLES,
 } from '../auth/roles.constants';
 import { PaginationQueryDto, paginate } from '../common/pagination';
 
@@ -30,6 +33,11 @@ export const userSelect = {
 } as const;
 
 const BCRYPT_ROUNDS = 12;
+
+/** Same shape the seed generates: long, random, and shown once. */
+function generatePassword(): string {
+  return `${randomBytes(12).toString('base64url')}Aa1!`;
+}
 
 @Injectable()
 export class UsersService {
@@ -166,6 +174,82 @@ export class UsersService {
 
       return updated;
     });
+  }
+
+  /**
+   * Resets another user's password and returns the new one, once.
+   *
+   * Who may do this is deliberately wider than updateRole and narrower than it
+   * looks. USER_ADMIN_ROLES covers it because those roles can already create an
+   * account and choose its password — withholding a reset from HR while
+   * allowing account creation would be a distinction without a difference, and
+   * it is HR that fields a locked-out member of staff.
+   *
+   * But resetting the password of a privileged account is account takeover, so
+   * that is restricted to GRANTOR_ROLES, mirroring who may hand the role out in
+   * the first place. Without it, HR could reset the executive's password and
+   * sign in as them, which is the same escalation self-registration was.
+   *
+   * Self-targeting is refused for a different reason than in updateRole: a
+   * password an administrator sets for themselves through an admin screen is
+   * not a password change, it is a way to bypass whatever a real change-password
+   * flow would ask for.
+   */
+  async resetPassword(
+    id: string,
+    dto: ResetPasswordDto,
+    actor: { id: string; role: string },
+  ) {
+    if (!USER_ADMIN_ROLES.includes(actor.role as Role)) {
+      throw new ForbiddenException(
+        `Only ${USER_ADMIN_ROLES.join(' or ')} may reset passwords`,
+      );
+    }
+
+    if (id === actor.id) {
+      throw new ForbiddenException(
+        'You cannot reset your own password from the administration screen.',
+      );
+    }
+
+    const target = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, email: true, role: true },
+    });
+    if (!target) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (
+      PRIVILEGED_ROLES.includes(target.role as Role) &&
+      !GRANTOR_ROLES.includes(actor.role as Role)
+    ) {
+      throw new ForbiddenException(
+        `Only ${GRANTOR_ROLES.join(' or ')} may reset the password of a ` +
+          `${target.role} account`,
+      );
+    }
+
+    const plain = dto.password ?? generatePassword();
+    const password = await bcrypt.hash(plain, BCRYPT_ROUNDS);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id }, data: { password } });
+      // The password itself is never written here. What is recorded is that a
+      // reset happened, to whom, and by whom — which is what an audit of a
+      // compromised account needs.
+      await tx.auditLog.create({
+        data: {
+          action: 'USER_PASSWORD_RESET',
+          newData: JSON.stringify({ userId: target.id, email: target.email }),
+          userId: actor.id,
+        },
+      });
+    });
+
+    // Returned once and never retrievable again; there is nowhere to read it
+    // back from.
+    return { id: target.id, email: target.email, temporaryPassword: plain };
   }
 
   /**

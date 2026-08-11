@@ -60,6 +60,7 @@ export class FollowUpService {
     participantId: string;
     clinicianId: string;
     scheduledDate: string;
+    followUpType?: string;
     notes?: string;
   }) {
     return this.prisma.followUp.create({
@@ -67,6 +68,7 @@ export class FollowUpService {
         participantId: data.participantId,
         clinicianId: data.clinicianId,
         scheduledDate: new Date(data.scheduledDate),
+        followUpType: data.followUpType,
         notes: data.notes,
         status: 'SCHEDULED',
       },

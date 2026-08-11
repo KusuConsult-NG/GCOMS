@@ -251,6 +251,102 @@ describe('access control (e2e)', () => {
         .expect(400));
   });
 
+  describe('password reset', () => {
+    /*
+     * There was no route for this. The administration screen's "Reset Pwd"
+     * button sent `{ password: '...' }` to PATCH /users/:id, whose DTO declares
+     * only `role`, so it was refused and the handler logged to the console —
+     * a button that did nothing at all, silently, for as long as it existed.
+     *
+     * The interesting cases here are the two escalations. Resetting a password
+     * is account takeover, so HR — which may create accounts and set their
+     * passwords — must not be able to reset an executive's, and nobody may
+     * reset their own from an administration screen.
+     */
+    it('lets an executive reset a password and returns it once', async () => {
+      const res = await http
+        .patch(`/users/${userId.volunteer}/password`)
+        .set(auth('exec'))
+        .send({})
+        .expect(200);
+      const issued = body<{ temporaryPassword: string }>(res).temporaryPassword;
+      expect(issued).toHaveLength(20);
+
+      // The point of the whole endpoint: the new password actually works and
+      // the old one does not.
+      await http
+        .post('/auth/login')
+        .send({ email: 'volunteer@e2e.test', password: issued })
+        .expect(201);
+      await http
+        .post('/auth/login')
+        .send({ email: 'volunteer@e2e.test', password: PASSWORD })
+        .expect(401);
+    });
+
+    it('records who reset whose', async () => {
+      await http
+        .patch(`/users/${userId.finance}/password`)
+        .set(auth('exec'))
+        .send({})
+        .expect(200);
+      const audit = await prisma.auditLog.findFirst({
+        where: { action: 'USER_PASSWORD_RESET', userId: userId.exec },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(audit?.newData).toContain('finance@e2e.test');
+      // Never the password itself.
+      expect(audit?.newData).not.toContain('Aa1!');
+    });
+
+    it('stops HR resetting a privileged account', async () => {
+      // HR may create accounts, so without this it could reset the executive's
+      // password and sign in as them — the same escalation self-registration
+      // was, one screen along.
+      await http
+        .patch(`/users/${userId.exec}/password`)
+        .set(auth('hr'))
+        .send({})
+        .expect(403);
+    });
+
+    it('lets HR reset an ordinary staff account', async () => {
+      await http
+        .patch(`/users/${userId.clinician}/password`)
+        .set(auth('hr'))
+        .send({})
+        .expect(200);
+    });
+
+    it('refuses a self reset', () =>
+      http
+        .patch(`/users/${userId.exec}/password`)
+        .set(auth('exec'))
+        .send({})
+        .expect(403));
+
+    it('refuses a role with no user-admin rights', () =>
+      http
+        .patch(`/users/${userId.volunteer}/password`)
+        .set(auth('finance'))
+        .send({})
+        .expect(403));
+
+    it('rejects a supplied password that is too short', () =>
+      http
+        .patch(`/users/${userId.volunteer}/password`)
+        .set(auth('exec'))
+        .send({ password: 'short' })
+        .expect(400));
+
+    it('404s a user that does not exist', () =>
+      http
+        .patch('/users/3f2504e0-4f89-11d3-9a0c-0305e82c3301/password')
+        .set(auth('exec'))
+        .send({})
+        .expect(404));
+  });
+
   describe('patient data', () => {
     it('refuses unauthenticated access', () =>
       http.get('/participants').expect(401));

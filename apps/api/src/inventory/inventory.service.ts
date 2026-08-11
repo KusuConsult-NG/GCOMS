@@ -33,6 +33,9 @@ export class InventoryService {
         location: data.location,
         minThreshold,
         unitPrice: data.unitPrice ?? null,
+        acquisitionDate: data.acquisitionDate
+          ? new Date(data.acquisitionDate)
+          : null,
         assetTag: data.assetTag?.trim() || null,
         serialNumber: data.serialNumber?.trim() || null,
         currentLocation: data.currentLocation?.trim() || null,
@@ -71,6 +74,11 @@ export class InventoryService {
         status: this.statusFor(newQuantity, minThreshold),
         ...(data.location && { location: data.location }),
         ...(data.unitPrice !== undefined && { unitPrice: data.unitPrice }),
+        ...(data.acquisitionDate !== undefined && {
+          acquisitionDate: data.acquisitionDate
+            ? new Date(data.acquisitionDate)
+            : null,
+        }),
         ...(data.assetTag !== undefined && { assetTag: data.assetTag || null }),
         ...(data.serialNumber !== undefined && {
           serialNumber: data.serialNumber || null,

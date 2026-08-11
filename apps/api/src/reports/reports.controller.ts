@@ -1,4 +1,5 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Request, UseGuards } from '@nestjs/common';
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import { ReportsService } from './reports.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -21,9 +22,10 @@ export class ReportsController {
     return this.reportsService.getExecutiveSummary();
   }
 
+  /** The identified register. Audited — see ReportsService.exportReportData. */
   @Get('export')
   @Roles('EXECUTIVE', 'SYSTEM_ADMIN', 'DATA_OFFICER')
-  async exportData() {
-    return this.reportsService.exportReportData();
+  async exportData(@Request() req: AuthenticatedRequest) {
+    return this.reportsService.exportReportData(req.user.id);
   }
 }

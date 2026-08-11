@@ -52,7 +52,21 @@ export class ReportsService {
     };
   }
 
-  async exportReportData() {
+  /**
+   * Every screening, with the participant's name and national id.
+   *
+   * This is the largest PHI disclosure the system performs — one request
+   * returns the identified register — and it left no trace. PhiAccessService
+   * writes a PHI_ACCESS_OVERRIDE row when a clinician opens a single record
+   * outside their caseload; downloading every record wrote nothing at all, so
+   * the access an audit would most want to find was the one access it could
+   * not see.
+   *
+   * The roles are unchanged: EXECUTIVE, SYSTEM_ADMIN and DATA_OFFICER are all
+   * in PHI_UNSCOPED_ROLES and may read identified records. What is added is the
+   * record that they did.
+   */
+  async exportReportData(actorId: string) {
     const screenings = await this.prisma.screening.findMany({
       include: {
         participant: {
@@ -69,6 +83,17 @@ export class ReportsService {
         },
       },
       orderBy: { createdAt: 'desc' },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        action: 'PHI_BULK_EXPORT',
+        newData: JSON.stringify({
+          screenings: screenings.length,
+          includes: ['participantName', 'nationalId', 'gender', 'result'],
+        }),
+        userId: actorId,
+      },
     });
 
     return screenings.map((s) => ({
@@ -100,10 +125,24 @@ export class ReportsService {
     });
   }
 
+  /**
+   * Approved transactions only, the same rule FinanceService.getSummary
+   * enforces and for the same reason: a report that counts a requisition
+   * nobody approved as money spent — and a refused one forever — is not a
+   * report of anything.
+   *
+   * Note this method and getParticipantReport have no route. They are reachable
+   * from nothing, which is why the rule had not been applied here; leaving a
+   * known-wrong total in place for whoever wires them up is the trap.
+   */
   async getFinancialReport() {
     const [income, expenses, grants] = await Promise.all([
-      this.prisma.financeTransaction.findMany({ where: { type: 'INCOME' } }),
-      this.prisma.financeTransaction.findMany({ where: { type: 'EXPENSE' } }),
+      this.prisma.financeTransaction.findMany({
+        where: { type: 'INCOME', status: 'APPROVED' },
+      }),
+      this.prisma.financeTransaction.findMany({
+        where: { type: 'EXPENSE', status: 'APPROVED' },
+      }),
       this.prisma.grant.findMany({
         select: { grantName: true, amount: true, status: true },
       }),

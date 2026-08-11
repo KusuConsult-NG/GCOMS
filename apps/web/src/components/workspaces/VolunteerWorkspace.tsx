@@ -3,6 +3,7 @@
 import { errorMessage } from '@/lib/errors';
 import { isRetryable, isStale } from '@/lib/offlineQueue';
 import { useOfflineRegistrations } from '@/lib/useOfflineRegistrations';
+import { PatientQrPass } from '@/components/PatientQrPass';
 import type { OutreachEvent, Participant, SessionUser } from '@/types/api';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -53,7 +54,12 @@ export function VolunteerWorkspace({ user }: { user: SessionUser }) {
 
 /**
  * The confirmation card after a field registration. Not a Participant: it also
- * holds the identity-pass id and the GPS fix taken at intake.
+ * holds the GPS fix taken at intake.
+ *
+ * `qrPassId` is gone. It was `QR-${registrationId}` — a second identifier
+ * derived from the first, printed on the pass and stored nowhere, so nothing
+ * could ever look one up by it. The pass carries the registration id, which is
+ * what every clinical record is actually keyed by.
  */
 type RegistrationConfirmation = {
   id: string;
@@ -63,7 +69,6 @@ type RegistrationConfirmation = {
   ward: string;
   address: string;
   gps: string;
-  qrPassId: string;
 };
 
   const [regSuccess, setRegSuccess] =
@@ -227,7 +232,6 @@ type RegistrationConfirmation = {
         ward: res.data.ward || '',
         address: res.data.address || '',
         gps: res.data.gpsCoordinates || '',
-        qrPassId: `QR-${registrationId}`,
       });
 
       // Only clear the form once the registration is actually saved.
@@ -423,18 +427,16 @@ type RegistrationConfirmation = {
                 </div>
               </div>
 
-              {/* SIMULATED HIGH-RES DIGITAL QR CODE */}
+              {/* The code encodes the registration id, which is what every
+                  clinical record is keyed by. It used to be a decorative SVG
+                  icon — the same picture for every patient, encoding nothing,
+                  captioned "Scan for Clinical Record". */}
               <div className="pt-2 border-t border-[var(--nav-surface-raised)] flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] text-slate-300 font-semibold">PASS ID: <span className="font-mono text-white">{regSuccess.qrPassId}</span></p>
+                  <p className="text-[10px] text-slate-300 font-semibold">PASS ID: <span className="font-mono text-white">{regSuccess.regId}</span></p>
                   <p className="text-[9px] text-[var(--secondary-container)]">Informed Consent Verified • Scan for Clinical Record</p>
                 </div>
-                <div className="bg-white p-2 rounded flex flex-col items-center justify-center border border-[var(--secondary-container)]">
-                  <svg className="w-16 h-16 text-[var(--primary)]" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M2 2h8v8H2V2zm2 2v4h4V4H4zm8-2h8v8h-8V2zm2 2v4h4V4h-4zM2 14h8v8H2v-8zm2 2v4h4v-4H4zm13-2h3v3h-3v-3zm0 5h3v3h-3v-3zm-5-5h3v8h-3v-8z"/>
-                  </svg>
-                  <span className="text-[8px] font-mono text-[var(--primary)] font-bold mt-0.5">{regSuccess.qrPassId}</span>
-                </div>
+                <PatientQrPass registrationId={regSuccess.regId} size={72} />
               </div>
 
               <div className="flex justify-end gap-2 pt-2">

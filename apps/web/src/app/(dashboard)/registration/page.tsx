@@ -11,6 +11,7 @@ import { isRetryable } from '@/lib/offlineQueue';
 import { useOfflineRegistrations } from '@/lib/useOfflineRegistrations';
 import { useAuthStore } from '@/store/authStore';
 import { PLATEAU_LGAS } from '@/lib/clinicalVocabulary';
+import { PatientQrPass } from '@/components/PatientQrPass';
 
 /** The blank intake form, so a completed or queued capture can be cleared. */
 const emptyForm = {
@@ -48,7 +49,6 @@ type RegistrationConfirmation = {
   ward: string;
   address: string;
   gps: string;
-  qrPassId: string;
   createdAt: string;
 };
 
@@ -183,7 +183,6 @@ type RegistrationConfirmation = {
         ward: res.data.ward || '',
         address: res.data.address || '',
         gps: res.data.gpsCoordinates || '',
-        qrPassId: `QR-${res.data.registrationId}`,
         createdAt: new Date().toLocaleDateString(),
       });
       // Saved, so the next patient is a new capture.
@@ -281,18 +280,16 @@ type RegistrationConfirmation = {
                 </div>
               </div>
 
-              {/* SIMULATED HIGH-RES DIGITAL QR CODE */}
+              {/* The code encodes the registration id, which is what every
+                  clinical record is keyed by. It used to be a decorative SVG
+                  icon — the same picture for every patient, encoding nothing,
+                  captioned "Scan for Clinical Record". */}
               <div className="pt-2 border-t border-[var(--nav-surface-raised)] flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] text-slate-300 font-semibold">PASS ID: <span className="font-mono text-white">{registeredPatient.qrPassId}</span></p>
+                  <p className="text-[10px] text-slate-300 font-semibold">PASS ID: <span className="font-mono text-white">{registeredPatient.registrationId}</span></p>
                   <p className="text-[9px] text-[var(--secondary-container)]">Informed Consent Verified • Scan for Clinical Record</p>
                 </div>
-                <div className="bg-white p-2 rounded flex flex-col items-center justify-center border border-[var(--secondary-container)]">
-                  <svg className="w-16 h-16 text-[var(--primary)]" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M2 2h8v8H2V2zm2 2v4h4V4H4zm8-2h8v8h-8V2zm2 2v4h4V4h-4zM2 14h8v8H2v-8zm2 2v4h4v-4H4zm13-2h3v3h-3v-3zm0 5h3v3h-3v-3zm-5-5h3v8h-3v-8z"/>
-                  </svg>
-                  <span className="text-[8px] font-mono text-[var(--primary)] font-bold mt-0.5">{registeredPatient.qrPassId}</span>
-                </div>
+                <PatientQrPass registrationId={registeredPatient.registrationId} size={72} />
               </div>
             </div>
 

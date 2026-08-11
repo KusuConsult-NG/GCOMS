@@ -17,7 +17,7 @@
  *   QUICK=1 node scripts/verify-ui.mjs     # executive + light theme only
  */
 import { chromium } from 'playwright';
-import { mkdir } from 'fs/promises';
+import { mkdir, readFile } from 'fs/promises';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:3000';
 const PASSWORD = process.env.UI_PASSWORD ?? 'Password123!';
@@ -83,6 +83,46 @@ function watch(page) {
   });
 }
 
+/**
+ * That the server is serving the build that is on disk.
+ *
+ * `next start` reads .next once and renames its process to `next-server`, so
+ * `pkill -f "next start"` misses it and a rebuild leaves an old server serving
+ * HTML that references chunk filenames no longer present. Every page then fails
+ * to hydrate, and the sweep reports a wall of "Loading chunk N failed" and
+ * MIME-type refusals that look like a CSP defect in the application.
+ *
+ * That has now cost three runs, twice being read as a real regression. So it is
+ * checked once, up front, and the run stops rather than producing findings about
+ * a build nobody is looking at.
+ */
+async function assertServerIsCurrent(page) {
+  let onDisk;
+  try {
+    onDisk = (await readFile('.next/BUILD_ID', 'utf8')).trim();
+  } catch {
+    return; // No local build to compare against (e.g. a remote BASE_URL).
+  }
+
+  await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded' });
+  const served = await page.evaluate(
+    () => window.__NEXT_DATA__?.buildId ?? null,
+  );
+  const html = await page.content();
+  const current = served
+    ? served === onDisk
+    : html.includes(onDisk) || html.includes(`/_next/static/${onDisk}/`);
+
+  if (!current) {
+    throw new Error(
+      `the server is serving a different build than .next on disk ` +
+        `(disk ${onDisk}, served ${served ?? 'unknown'}). ` +
+        `Restart it: next start renames its process to "next-server", so ` +
+        `pkill -f "next start" does not stop it — kill it by pid.`,
+    );
+  }
+}
+
 async function signIn(page, email) {
   await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded' });
   await page.evaluate(() => localStorage.clear());
@@ -127,6 +167,7 @@ async function main() {
   }
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
+  await assertServerIsCurrent(page);
   watch(page);
 
   const thin = [];

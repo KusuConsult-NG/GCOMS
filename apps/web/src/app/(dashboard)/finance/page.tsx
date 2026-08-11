@@ -315,7 +315,7 @@ function FinancePageContent() {
       {/* Sub-Tabs */}
       <div className="flex border-b border-[var(--outline)] gap-2 text-xs font-semibold overflow-x-auto">
         {[
-          { id: 'ledger', label: 'Double-Entry General Ledger' },
+          { id: 'ledger', label: 'General Ledger' },
           { id: 'budgets', label: 'Budgets' },
           { id: 'vouchers', label: 'Accounts Payable & Payment Vouchers (PV)' },
           { id: 'advances', label: 'Cash Advances & Retirement Workflow' },
@@ -552,7 +552,7 @@ function FinancePageContent() {
         <div className="fixed inset-0 bg-[var(--nav-surface)]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg border border-[var(--outline)] space-y-4">
             <div className="flex justify-between items-center border-b border-[var(--outline)] pb-3">
-              <h2 className="text-base font-bold text-[var(--primary)]">Post Double-Entry Journal Entry</h2>
+              <h2 className="text-base font-bold text-[var(--primary)]">Post Journal Entry</h2>
               <button onClick={() => setActiveModal(null)} className="text-[var(--muted)] font-bold">✕</button>
             </div>
             <form onSubmit={handlePostJournal} className="space-y-3 text-xs">
@@ -815,8 +815,17 @@ function FinancePageContent() {
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden">
           <div className="p-4 border-b border-[var(--outline)] flex flex-col md:flex-row justify-between items-start md:items-center gap-2 bg-[var(--background)]">
             <div>
-              <h2 className="font-bold text-[var(--primary)] text-sm">Real-Time Double-Entry General Ledger</h2>
-              <p className="text-[11px] text-[var(--muted)]">Complete audit trail of all posted debit and credit journal vouchers.</p>
+              {/*
+                Called "Real-Time Double-Entry General Ledger" over a
+                single-entry table. FinanceTransaction is one row with an amount
+                and a type; there are no debit and credit legs, no accounts to
+                post them against, and nothing validating that a entry balances.
+                Double-entry is a feature this system does not have — naming it
+                one does not make the figures below any more reconciled, and it
+                tells an auditor to expect a control that is not there.
+              */}
+              <h2 className="font-bold text-[var(--primary)] text-sm">General Ledger</h2>
+              <p className="text-[11px] text-[var(--muted)]">Every posted transaction, with its approval status.</p>
             </div>
             <div className="flex gap-2">
               <select

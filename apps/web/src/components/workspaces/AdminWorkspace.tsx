@@ -6,12 +6,30 @@ import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { errorMessage } from '@/lib/errors';
 import { ROLES } from '@/lib/roles';
+import { useAuthStore } from '@/store/authStore';
+import { canOpen } from '@/components/pageAccess';
 import {
   PERMISSION_MODULES,
   permissionRows,
 } from '@/components/permissionMatrix';
 
 export function AdminWorkspace() {
+  /*
+   * This workspace renders for ADMIN and SYSTEM_ADMIN, and two of its four tabs
+   * are SYSTEM_ADMIN-only on the API: /system-admin/audit-logs and
+   * /system-admin/config are EXECUTIVE and SYSTEM_ADMIN, while ADMIN holds
+   * admin operations, which is a different surface. That boundary is
+   * deliberate — administering staff is not administering the system.
+   *
+   * So an ADMIN was shown both tabs and both were broken: the audit trail was
+   * silently empty, and Global Configuration rendered the component's own
+   * hardcoded defaults as though they were the organisation's stored settings,
+   * with a Save button that would be refused too. A configuration screen
+   * showing settings that are not the settings is worse than no screen.
+   */
+  const { user } = useAuthStore();
+  const mayConfigureSystem = canOpen('/system-admin', user?.role);
+
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'audit' | 'config'>('users');
@@ -35,6 +53,8 @@ export function AdminWorkspace() {
   const [systemSettings, setSystemSettings] = useState({
     sessionTimeout: '8 hours', maxLoginAttempts: '5', passwordPolicy: 'STRONG', dataBackupFrequency: 'DAILY'
   });
+  const [configLoaded, setConfigLoaded] = useState(false);
+  const [configError, setConfigError] = useState('');
 
   /*
    * Every role the API issues, from the shared vocabulary.
@@ -65,15 +85,24 @@ export function AdminWorkspace() {
 
   useEffect(() => {
     fetchUsers();
+    if (!mayConfigureSystem) return;
     fetchAuditLogs();
 
-    api.get('/system-admin/config').then(res => {
-      if (res.data?.org) setOrgSettings(res.data.org);
-      if (res.data?.system) setSystemSettings(res.data.system);
-    }).catch(() => {
-      // keep defaults as fallback
-    });
-  }, []);
+    api
+      .get('/system-admin/config')
+      .then(res => {
+        if (res.data?.org) setOrgSettings(res.data.org);
+        if (res.data?.system) setSystemSettings(res.data.system);
+        setConfigLoaded(true);
+      })
+      .catch(err => {
+        // Was "keep defaults as fallback", which presented this component's own
+        // literals as the organisation's configuration.
+        setConfigError(
+          errorMessage(err, 'The stored configuration could not be loaded.'),
+        );
+      });
+  }, [mayConfigureSystem]);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,8 +241,13 @@ export function AdminWorkspace() {
         {[
           { id: 'users', label: 'User & Staff Roster' },
           { id: 'roles', label: 'Role & Permission Matrix' },
-          { id: 'audit', label: 'System Audit Logs' },
-          { id: 'config', label: 'Global Configuration' },
+          // Offered only to the roles the API lets read them.
+          ...(mayConfigureSystem
+            ? [
+                { id: 'audit', label: 'System Audit Logs' },
+                { id: 'config', label: 'Global Configuration' },
+              ]
+            : []),
         ].map(t => (
           <button
             key={t.id}
@@ -364,7 +398,7 @@ export function AdminWorkspace() {
         </div>
       )}
 
-      {activeTab === 'audit' && (
+      {activeTab === 'audit' && mayConfigureSystem && (
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden shadow-sm">
           <div className="p-4 border-b border-[var(--outline)] flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--background)] gap-4">
             <h2 className="font-bold text-[var(--primary)] text-sm">System Audit Logs</h2>
@@ -416,8 +450,17 @@ export function AdminWorkspace() {
         </div>
       )}
 
-      {activeTab === 'config' && (
+      {activeTab === 'config' && mayConfigureSystem && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {(configError || !configLoaded) && (
+            <p
+              role="alert"
+              className="lg:col-span-2 rounded border border-[var(--risk-high-text)]/20 bg-[var(--risk-high-bg)] p-3 text-xs font-semibold text-[var(--risk-high-text)]"
+            >
+              {configError || 'Loading the stored configuration…'} The values
+              below are defaults, not what is saved.
+            </p>
+          )}
           <div className="bg-white rounded-lg border border-[var(--outline)] p-5 shadow-sm">
             <h2 className="font-bold text-[var(--primary)] text-sm border-b border-[var(--outline)] pb-3 mb-4">Organization Settings</h2>
             <div className="space-y-4">

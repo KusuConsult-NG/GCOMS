@@ -350,6 +350,30 @@ describe('request body validation (e2e)', () => {
       // 70 / 1.7^2 = 24.2
       expect(body<{ bmi: number }>(res).bmi).toBeCloseTo(24.2, 1);
     });
+
+    it('stores the respiratory rate and the notes', async () => {
+      /*
+       * Both were on the form and neither had a column, so a clinician typed a
+       * respiratory rate — one of the five standard vital signs — was told the
+       * observations had been saved, and the record did not have one. The notes
+       * are the context that makes a reading interpretable: "taken after
+       * walking", "cuff too small".
+       */
+      const res = await post({
+        respiratoryRate: 22,
+        notes: 'Taken after walking from the waiting area.',
+      }).expect(201);
+      const stored = body<{ respiratoryRate: number; notes: string }>(res);
+      expect(stored.respiratoryRate).toBe(22);
+      expect(stored.notes).toContain('walking');
+    });
+
+    it('bounds the respiratory rate to what a patient produces', async () => {
+      await post({ respiratoryRate: 400 }).expect(400);
+      await post({ respiratoryRate: 0 }).expect(400);
+      // Severe distress, which must record.
+      await post({ respiratoryRate: 48 }).expect(201);
+    });
   });
 
   describe('a screening is classified from a fixed vocabulary', () => {

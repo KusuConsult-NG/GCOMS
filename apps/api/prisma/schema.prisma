@@ -311,11 +311,21 @@ model VitalSign {
   bpSystolic    Int?
   bpDiastolic   Int?
   pulseRate     Int?
+  /// One of the five standard vital signs. The vitals form has always asked
+  /// for it and there was nowhere to put it, so a clinician typed a
+  /// respiratory rate, was told the observations were saved, and the record
+  /// did not have one.
+  respiratoryRate Int?
   temperature   Float?
   weightKg      Float?
   heightCm      Float?
   bmi           Float?
   oxygenSat     Float?
+  /// What the clinician wrote alongside the numbers — "taken after walking",
+  /// "cuff too small", "patient distressed". Collected by the form and
+  /// discarded, which is how the context that makes a reading interpretable
+  /// was lost.
+  notes         String?
   participantId String
   participant   Participant @relation(fields: [participantId], references: [id])
   recordedAt    DateTime @default(now())

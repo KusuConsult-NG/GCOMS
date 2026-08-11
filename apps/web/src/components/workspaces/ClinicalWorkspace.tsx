@@ -39,7 +39,6 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
   const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [vitalsForm, setVitalsForm] = useState({
     participantId: '',
-    date: '',
     bpSystolic: 120,
     bpDiastolic: 80,
     pulseRate: 72,
@@ -173,6 +172,12 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
         weightKg: Number(vitalsForm.weightKg),
         heightCm: Number(vitalsForm.heightCm),
         oxygenSat: Number(vitalsForm.oxygenSat),
+        // Respiratory rate is one of the five standard vital signs and had no
+        // column, so it was typed and discarded — as were the notes, which are
+        // the context that makes a reading interpretable ("taken after
+        // walking", "cuff too small").
+        respiratoryRate: Number(vitalsForm.respRate),
+        notes: vitalsForm.notes || undefined,
       });
       setShowVitalsModal(false);
       if (vitalsForm.participantId === vitalsParticipantId) {
@@ -489,25 +494,32 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
                     <th className="p-3">Date</th>
                     <th className="p-3">BP (Sys/Dia)</th>
                     <th className="p-3">Pulse (bpm)</th>
+                    <th className="p-3">Resp (bpm)</th>
                     <th className="p-3">Temp (°C)</th>
                     <th className="p-3">Weight (kg)</th>
                     <th className="p-3">Height (cm)</th>
                     <th className="p-3">O2 Sat (%)</th>
+                    <th className="p-3">Notes</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--outline)] text-[var(--on-background)]">
                   {patientVitals.map(v => (
                     <tr key={v.id} className="hover:bg-[var(--primary-surface)]">
-                      <td className="p-3 tabular-nums">{new Date(v.createdAt).toLocaleDateString()}</td>
+                      {/* `recordedAt`. This read `createdAt`, a column
+                          VitalSign does not have, so every row of a clinical
+                          observation history showed "Invalid Date". */}
+                      <td className="p-3 tabular-nums">{new Date(v.recordedAt).toLocaleString()}</td>
                       <td className="p-3 tabular-nums font-bold">
                         {v.bpSystolic}/{v.bpDiastolic}
                         {(v.bpSystolic ?? 0) > 140 && <span className="ml-2 px-1.5 py-0.5 bg-[var(--risk-high-bg)] text-[var(--risk-high-text)] rounded text-[10px]">HIGH BP</span>}
                       </td>
                       <td className="p-3 tabular-nums">{v.pulseRate}</td>
+                      <td className="p-3 tabular-nums">{v.respiratoryRate ?? '—'}</td>
                       <td className="p-3 tabular-nums">{v.temperature}</td>
                       <td className="p-3 tabular-nums">{v.weightKg}</td>
                       <td className="p-3 tabular-nums">{v.heightCm}</td>
                       <td className="p-3 tabular-nums">{v.oxygenSat}</td>
+                      <td className="p-3 max-w-xs truncate" title={v.notes ?? ''}>{v.notes || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -708,8 +720,15 @@ export function ClinicalWorkspace({ user }: { user: SessionUser }) {
                   </select>
                 </div>
                 <div>
-                  <label className="block mb-1 font-semibold">Date & Time *</label>
-                  <input type="datetime-local" required value={vitalsForm.date} onChange={e => setVitalsForm({...vitalsForm, date: e.target.value})} className="w-full bg-white border border-[var(--outline)] rounded px-3 py-2 text-xs" />
+                  {/* Was a required datetime the form collected and never sent.
+                      VitalSign stamps recordedAt on the server; a clinician
+                      choosing a different time here changed nothing, and a
+                      back-dated observation is a clinical claim that needs a
+                      column, not a silently ignored input. */}
+                  <label className="block mb-1 font-semibold">Recorded</label>
+                  <p className="rounded border border-[var(--outline)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--on-surface-variant)]">
+                    Stamped when saved
+                  </p>
                 </div>
                 <div>
                   <label className="block mb-1 font-semibold">BP Systolic mmHg *</label>

@@ -1,5 +1,13 @@
 import { Type } from 'class-transformer';
-import { IsNumber, IsOptional, IsUUID, Max, Min } from 'class-validator';
+import {
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 /**
  * A set of clinical observations, bounded to what a living patient produces.
@@ -40,6 +48,19 @@ export class CreateVitalsDto {
   @Max(300)
   pulseRate?: number;
 
+  /**
+   * Breaths per minute. Bounded the same way as the rest: wide enough for any
+   * reading a patient can actually produce — severe bradypnoea at one end,
+   * severe distress at the other — and narrow enough that a typo does not look
+   * like a clinical finding.
+   */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(4)
+  @Max(80)
+  respiratoryRate?: number;
+
   /** Celsius. Recorded hypothermia and hyperpyrexia both sit inside this. */
   @IsOptional()
   @Type(() => Number)
@@ -75,4 +96,10 @@ export class CreateVitalsDto {
   @Min(50)
   @Max(100)
   oxygenSat?: number;
+
+  /** Free text the clinician adds alongside the numbers. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  notes?: string;
 }

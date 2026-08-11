@@ -500,12 +500,20 @@ export interface Vitals {
   bpSystolic?: number | null;
   bpDiastolic?: number | null;
   pulseRate?: number | null;
+  /** One of the five standard vital signs; the form asked and nothing stored it. */
+  respiratoryRate?: number | null;
   temperature?: number | null;
   weightKg?: number | null;
   heightCm?: number | null;
   bmi?: number | null;
   oxygenSat?: number | null;
-  createdAt: Timestamp;
+  notes?: string | null;
+  /**
+   * `recordedAt`, not `createdAt`. VitalSign has no createdAt column, and the
+   * vitals history table read one — so `new Date(undefined)` rendered "Invalid
+   * Date" in the date column of every row of a clinical observation history.
+   */
+  recordedAt: Timestamp;
 }
 
 export interface LocationRecord {

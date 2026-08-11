@@ -10,10 +10,12 @@ export class VitalsService {
     bpSystolic?: number;
     bpDiastolic?: number;
     pulseRate?: number;
+    respiratoryRate?: number;
     temperature?: number;
     weightKg?: number;
     heightCm?: number;
     oxygenSat?: number;
+    notes?: string;
   }) {
     let bmi: number | undefined;
     if (data.weightKg && data.heightCm && data.heightCm > 0) {

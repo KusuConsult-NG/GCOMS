@@ -6,10 +6,12 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import { OperationsService } from './operations.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -28,6 +30,8 @@ import {
   RECRUITMENT_ROLES,
 } from '../auth/roles.constants';
 import * as dto from './dto/operations.dto';
+import { RfqEvaluationService } from './rfq-evaluation.service';
+import { SetCriteriaDto, ScoreQuoteDto } from './dto/rfq-evaluation.dto';
 
 /** The authenticated caller, as JwtStrategy puts it on the request. */
 type Actor = { user: { id: string; role: string } };
@@ -40,7 +44,10 @@ type Actor = { user: { id: string; role: string } };
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('operations')
 export class OperationsController {
-  constructor(private readonly ops: OperationsService) {}
+  constructor(
+    private readonly ops: OperationsService,
+    private readonly evaluation: RfqEvaluationService,
+  ) {}
 
   // Recruitment
   @Get('job-openings')
@@ -255,6 +262,46 @@ export class OperationsController {
     @Body() d: dto.UpdateQuoteDto,
   ) {
     return this.ops.updateQuote(id, d);
+  }
+
+  /*
+   * Bid evaluation.
+   *
+   * The technical score used to be a number an officer typed into a box, and
+   * the recommendation a button beside it — so "automated technical scoring"
+   * was an opinion with nothing recording what it was an opinion about. These
+   * four routes are the criteria it is judged on, the marks against them, and
+   * the arithmetic that follows.
+   */
+  @Get('rfqs/:id/criteria')
+  @Roles(...PROCUREMENT_READ_ROLES)
+  listCriteria(@Param('id', ParseUUIDPipe) id: string) {
+    return this.evaluation.listCriteria(id);
+  }
+
+  @Put('rfqs/:id/criteria')
+  @Roles(...PROCUREMENT_WRITE_ROLES)
+  setCriteria(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() d: SetCriteriaDto,
+  ) {
+    return this.evaluation.setCriteria(id, d);
+  }
+
+  @Put('quotes/:id/scores')
+  @Roles(...PROCUREMENT_WRITE_ROLES)
+  scoreQuote(@Param('id', ParseUUIDPipe) id: string, @Body() d: ScoreQuoteDto) {
+    return this.evaluation.scoreQuote(id, d);
+  }
+
+  /** Computes every score and recommends the winner. */
+  @Post('rfqs/:id/evaluate')
+  @Roles(...PROCUREMENT_WRITE_ROLES)
+  evaluateRfq(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.evaluation.evaluate(id, req.user.id);
   }
 
   // Annual procurement plan

@@ -3,9 +3,10 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
+import { BidEvaluation } from '@/components/BidEvaluation';
 import { useAuthStore } from '@/store/authStore';
 import { AccessDenied } from '@/components/AccessDenied';
-import type { Contract, GoodsReceivedNote, PlanItem, PurchaseRequest, Rfq, RfqQuote, Vendor } from '@/types/procurement';
+import type { Contract, GoodsReceivedNote, PlanItem, PurchaseRequest, Rfq, Vendor } from '@/types/procurement';
 import { daysUntil, useToday } from '@/lib/useToday';
 import { PROCUREMENT_PAGE_ROLES } from '@/components/pageAccess';
 
@@ -255,18 +256,6 @@ function ProcurementPageContent() {
       console.error('Failed to record quote', err);
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  // Awarding is a transaction on the server: it demotes the other quotes and
-  // closes the RFQ. Doing it in local state here meant the award existed only
-  // in this tab, and used status strings no other part of the system knows.
-  const handleAwardQuote = async (quoteId: string) => {
-    try {
-      await api.patch(`/operations/quotes/${quoteId}`, { status: 'RECOMMENDED' });
-      await fetchRfqs();
-    } catch (err) {
-      console.error('Failed to award quote', err);
     }
   };
 
@@ -819,37 +808,11 @@ function ProcurementPageContent() {
                   setQuoteForm({ vendorId: '', price: '', warranty: '', score: '' });
                 }} className="btn-secondary text-[10px] py-1">+ Add Vendor Quote</button>
               </div>
-              <table className="w-full text-left border border-[var(--outline)] bg-white rounded">
-                <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase text-[10px]">
-                  <tr>
-                    <th className="p-2">Bidding Vendor</th>
-                    <th className="p-2">Quoted Unit Price</th>
-                    <th className="p-2">Delivery Warranty</th>
-                    <th className="p-2">Technical Score</th>
-                    <th className="p-2">Committee Status</th>
-                    <th className="p-2">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--outline)]">
-                  {rfq.quotes.map((q: RfqQuote, qIdx: number) => (
-                    <tr key={q.id ?? qIdx} className={q.status === 'RECOMMENDED' ? 'bg-emerald-50' : ''}>
-                      <td className="p-2 font-bold text-[var(--primary)]">{q.vendor?.name ?? 'Unknown vendor'} {q.status === 'RECOMMENDED' && '(WINNER)'}</td>
-                      <td className="p-2 font-mono">₦{Number(q.price).toLocaleString()} / unit</td>
-                      <td className="p-2">{q.warranty || '—'}</td>
-                      <td className={`p-2 font-bold ${Number(q.score) > 85 ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>{q.score} / 100</td>
-                      <td className="p-2"><span className={q.status === 'RECOMMENDED' ? 'badge-low-risk' : 'text-[var(--muted)]'}>{q.status}</span></td>
-                      <td className="p-2">
-                        {q.status !== 'RECOMMENDED' && (
-                          <button onClick={() => handleAwardQuote(q.id)} className="btn-primary text-[10px] py-1 px-2">Mark Winner</button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {rfq.quotes.length === 0 && (
-                    <tr><td colSpan={6} className="p-4 text-center text-gray-500">No quotes received yet.</td></tr>
-                  )}
-                </tbody>
-              </table>
+              {/* Was a "Technical Score / 100" column an officer typed into
+                  and a "Mark Winner" button beside it — so the score was an
+                  opinion with nothing recording what it judged, and the award
+                  was a separate act of will. */}
+              <BidEvaluation rfq={rfq} onEvaluated={fetchRfqs} />
             </div>
           ))}
         </div>

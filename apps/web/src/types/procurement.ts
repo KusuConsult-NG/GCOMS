@@ -24,6 +24,15 @@ export type Vendor = {
 
 export type QuoteStatus = 'SUBMITTED' | 'RECOMMENDED' | 'REJECTED';
 
+/** One evaluator's mark for one quote against one criterion. */
+export type QuoteCriterionScore = {
+  id: string;
+  quoteId: string;
+  criterionId: string;
+  score: number;
+  note: string | null;
+};
+
 export type RfqQuote = {
   id: string;
   rfqId: string;
@@ -32,8 +41,29 @@ export type RfqQuote = {
   vendor: Pick<Vendor, 'id' | 'name'> | null;
   price: string | number;
   warranty: string | null;
+  /**
+   * The technical score, 0-100 — computed from the criterion marks by the API,
+   * not typed in. It was a number an officer entered into a box, which is why
+   * nobody could see what it was a judgement about.
+   */
   score: number;
+  /** Price score: the cheapest bid scores 100, the rest in proportion. */
+  financialScore: number | null;
+  /** What the recommendation is made on. Null until the RFQ is evaluated. */
+  combinedScore: number | null;
+  evaluatedAt: string | null;
+  criterionScores?: QuoteCriterionScore[];
   status: QuoteStatus;
+};
+
+/** What an RFQ is judged on. Weights across an RFQ's criteria sum to 100. */
+export type RfqCriterion = {
+  id: string;
+  rfqId: string;
+  label: string;
+  weight: number;
+  maxScore: number;
+  position: number;
 };
 
 export type RfqStatus = 'OPEN' | 'EVALUATION' | 'COMPLETE' | 'CANCELLED';
@@ -45,6 +75,8 @@ export type Rfq = {
   description: string;
   status: RfqStatus;
   closingDate: string | null;
+  /** Share of the combined score taken from the technical marks; price is the rest. */
+  technicalWeight?: number;
   quotes: RfqQuote[];
 };
 

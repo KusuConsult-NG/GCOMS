@@ -902,10 +902,55 @@ model Rfq {
   description String
   status      String   @default("OPEN") // OPEN, EVALUATION, COMPLETE, CANCELLED
   closingDate DateTime?
+  /// Share of the combined score that comes from the technical evaluation; the
+  /// remainder comes from price. 70/30 is the usual split for goods where
+  /// quality matters more than the last few naira, and it is stored per RFQ
+  /// because that judgement belongs to the buyer, not to the code.
+  technicalWeight Int   @default(70)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   quotes      RfqQuote[]
+  criteria    RfqCriterion[]
+}
+
+/// What an RFQ is evaluated on, and how much each thing counts.
+///
+/// The bid matrix had a single "Score / 100" box that an officer typed a number
+/// into, so "automated technical scoring" was one person's opinion recorded to
+/// two significant figures with nothing behind it. These are the things being
+/// judged; the weights must sum to 100, checked when they are set.
+model RfqCriterion {
+  id        String   @id @default(uuid())
+  rfqId     String
+  rfq       Rfq      @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  label     String
+  /// Percentage points of the technical score this criterion carries.
+  weight    Int
+  /// The scale each quote is marked on for this criterion, e.g. 0-5 or 0-10.
+  maxScore  Int      @default(10)
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  scores    QuoteCriterionScore[]
+
+  @@index([rfqId])
+}
+
+/// One evaluator mark: this quote, against this criterion.
+model QuoteCriterionScore {
+  id          String   @id @default(uuid())
+  quoteId     String
+  quote       RfqQuote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  criterionId String
+  criterion   RfqCriterion @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+  score       Int
+  note        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([quoteId, criterionId])
+  @@index([quoteId])
 }
 
 model RfqQuote {
@@ -916,10 +961,21 @@ model RfqQuote {
   vendor    Vendor   @relation(fields: [vendorId], references: [id])
   price     Decimal
   warranty  String?
+  /// The technical score, 0-100. Computed from the criterion marks below by
+  /// OperationsService.evaluateRfq — it used to be typed straight in.
   score     Int      @default(0)
+  /// Price score, 0-100: the cheapest compliant quote scores 100 and the rest
+  /// in proportion. Null until the RFQ has been evaluated.
+  financialScore Int?
+  /// technicalWeight% of the technical score plus the remainder of the price
+  /// score. This is what the recommendation is made on.
+  combinedScore  Int?
+  evaluatedAt    DateTime?
   status    String   @default("SUBMITTED") // SUBMITTED, RECOMMENDED, REJECTED
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  criterionScores QuoteCriterionScore[]
 
   @@index([rfqId])
   @@unique([rfqId, vendorId])

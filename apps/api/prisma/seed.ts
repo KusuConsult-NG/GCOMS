@@ -177,11 +177,16 @@ async function main() {
     create: {
       reference: `RFQ-${year}-0001`,
       description: 'CO2 Cryotherapy Units — supply and commissioning',
-      status: 'COMPLETE',
+      // Left OPEN with its bids fully marked, so the evaluation screen has a
+      // committee decision waiting to be made. The recommendation is not
+      // seeded: it is whatever the weighted arithmetic produces when someone
+      // presses Evaluate, which is the point of the feature. Seeding a winner
+      // would be the typed-in score again, one layer down.
+      status: 'OPEN',
       closingDate: new Date(`${year}-03-14`),
     },
   });
-  await prisma.rfq.upsert({
+  const openRfq = await prisma.rfq.upsert({
     where: { reference: `RFQ-${year}-0002` },
     update: {},
     create: {
@@ -192,14 +197,35 @@ async function main() {
     },
   });
 
+  // Evaluation criteria for both RFQs. The scores below are no longer typed in:
+  // they are what the weighted marks come to, and the screen shows the working.
+  const CRITERIA = [
+    { label: 'Technical specification & compliance', weight: 40, maxScore: 10 },
+    { label: 'Delivery lead time', weight: 25, maxScore: 10 },
+    { label: 'After-sales support & warranty', weight: 20, maxScore: 10 },
+    { label: 'Vendor track record', weight: 15, maxScore: 10 },
+  ];
+  for (const rfq of [awardedRfq, openRfq]) {
+    if ((await prisma.rfqCriterion.count({ where: { rfqId: rfq.id } })) > 0) continue;
+    await prisma.rfqCriterion.createMany({
+      data: CRITERIA.map((c, position) => ({ ...c, rfqId: rfq.id, position })),
+    });
+  }
+
+  const awardedCriteria = await prisma.rfqCriterion.findMany({
+    where: { rfqId: awardedRfq.id },
+    orderBy: { position: 'asc' },
+  });
+
+  // Marks out of 10 per criterion, in the order above.
   const quoteSeeds = [
-    { vendor: 'MedPharma West Africa', price: 3125000, warranty: '2 years', score: 98, status: 'RECOMMENDED' },
-    { vendor: 'Plateau Medical Logistics', price: 3400000, warranty: '1 year', score: 85, status: 'SUBMITTED' },
+    { vendor: 'MedPharma West Africa', price: 3125000, warranty: '2 years', marks: [10, 9, 10, 9] },
+    { vendor: 'Plateau Medical Logistics', price: 3400000, warranty: '1 year', marks: [8, 9, 7, 8] },
   ];
   for (const quote of quoteSeeds) {
     const vendor = vendorsByName.get(quote.vendor);
     if (!vendor) continue;
-    await prisma.rfqQuote.upsert({
+    const created = await prisma.rfqQuote.upsert({
       where: { rfqId_vendorId: { rfqId: awardedRfq.id, vendorId: vendor.id } },
       update: {},
       create: {
@@ -207,10 +233,21 @@ async function main() {
         vendorId: vendor.id,
         price: quote.price,
         warranty: quote.warranty,
-        score: quote.score,
-        status: quote.status,
       },
     });
+    for (const [i, criterion] of awardedCriteria.entries()) {
+      await prisma.quoteCriterionScore.upsert({
+        where: {
+          quoteId_criterionId: { quoteId: created.id, criterionId: criterion.id },
+        },
+        update: {},
+        create: {
+          quoteId: created.id,
+          criterionId: criterion.id,
+          score: quote.marks[i],
+        },
+      });
+    }
   }
 
   // The annual procurement plan. No stored total: quantity x unitPrice is

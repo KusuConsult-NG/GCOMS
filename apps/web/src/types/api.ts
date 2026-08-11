@@ -51,7 +51,12 @@ export interface Participant {
   lastName: string;
   dateOfBirth: string;
   gender: string;
-  phone?: string | null;
+  /**
+   * `phoneNumber`, which is the column. This said `phone`, so any screen
+   * reading it through this type would have got undefined — the patients page
+   * only escaped it by declaring a second, correct type of its own.
+   */
+  phoneNumber?: string | null;
   nationalId?: string | null;
   address?: string | null;
   lga?: string | null;

@@ -1,12 +1,14 @@
 'use client';
 
 import type { PurchaseRequest } from '@/types/procurement';
-import type { ApprovalRequest, FinanceTransaction, Grant, InventoryItem, LgaCoverage, Project } from '@/types/api';
+import type { ApprovalRequest, Grant, InventoryItem, LgaCoverage, Project } from '@/types/api';
+import type { FinanceSummary } from '@/lib/financeTotals';
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { errorMessage } from '@/lib/errors';
+import { naira } from '@/lib/financeTotals';
 import { StatCard } from '@/components/StatCard';
 import {
   ArrowRight,
@@ -20,36 +22,79 @@ import {
   Warehouse,
 } from 'lucide-react';
 
+/**
+ * The modules this dashboard draws from. A viewer who cannot read one of them
+ * gets a refusal from the API, and the figure it feeds has to say so — see
+ * `unavailable` below.
+ */
+type Source =
+  | 'approvals'
+  | 'grants'
+  | 'projects'
+  | 'procurement'
+  | 'finance'
+  | 'inventory'
+  | 'lga';
+
 export function ExecutiveWorkspace() {
   const router = useRouter();
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   const [grants, setGrants] = useState<Grant[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [procurementOrders, setProcurementOrders] = useState<PurchaseRequest[]>([]);
-  const [financeTransactions, setFinanceTransactions] = useState<FinanceTransaction[]>([]);
+  const [finance, setFinance] = useState<FinanceSummary | null>(null);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [approvalFilter, setApprovalFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
   const [lgaCoverage, setLgaCoverage] = useState<LgaCoverage[]>([]);
   const [approvalError, setApprovalError] = useState('');
+  /**
+   * Which of the seven requests the API refused.
+   *
+   * Every one of them used to end in `.catch(() => ({ data: [] }))`, so a 403
+   * arrived on screen as an empty list — and an empty list renders as `0`. This
+   * dashboard is shown to BOARD as well as EXECUTIVE, and BOARD is not in
+   * INVENTORY_READ_ROLES, so a board member read "Low stock alerts: 0" and
+   * "Stock Health: 0%" about a warehouse they had simply not been shown.
+   *
+   * Zero and "not available to you" are different answers and a command centre
+   * is the last place to confuse them.
+   */
+  const [unavailable, setUnavailable] = useState<Set<Source>>(new Set());
 
   useEffect(() => {
+    const refused: Source[] = [];
+    const load = <T,>(source: Source, path: string, fallback: T): Promise<T> =>
+      api
+        .get(path)
+        .then((res) => (res.data ?? fallback) as T)
+        .catch(() => {
+          refused.push(source);
+          return fallback;
+        });
+
     Promise.all([
-      api.get('/approvals').catch(() => ({ data: [] })),
-      api.get('/grants').catch(() => ({ data: [] })),
-      api.get('/projects').catch(() => ({ data: [] })),
-      api.get('/procurement').catch(() => ({ data: [] })),
-      api.get('/finance').catch(() => ({ data: [] })),
-      api.get('/inventory').catch(() => ({ data: [] })),
-      api.get('/analytics/lga').catch(() => ({ data: [] })),
-    ]).then(([approvalsRes, grantsRes, projectsRes, procurementRes, financeRes, inventoryRes, lgaRes]) => {
-      setApprovals(approvalsRes.data || []);
-      setGrants(grantsRes.data || []);
-      setProjects(projectsRes.data || []);
-      setProcurementOrders(procurementRes.data || []);
-      setFinanceTransactions(financeRes.data || []);
-      setInventoryItems(inventoryRes.data || []);
-      setLgaCoverage(lgaRes.data || []);
-    }).catch(console.error);
+      load<ApprovalRequest[]>('approvals', '/approvals', []),
+      load<Grant[]>('grants', '/grants', []),
+      load<Project[]>('projects', '/projects', []),
+      load<PurchaseRequest[]>('procurement', '/procurement', []),
+      // The approved-only figures, from the service that owns the rule. The
+      // dashboard used to fetch the whole ledger and add it up itself, which
+      // counted PENDING and REJECTED rows as money moved.
+      load<FinanceSummary | null>('finance', '/finance/summary', null),
+      load<InventoryItem[]>('inventory', '/inventory', []),
+      load<LgaCoverage[]>('lga', '/analytics/lga', []),
+    ])
+      .then(([a, g, p, proc, fin, inv, lga]) => {
+        setApprovals(a);
+        setGrants(g);
+        setProjects(p);
+        setProcurementOrders(proc);
+        setFinance(fin);
+        setInventoryItems(inv);
+        setLgaCoverage(lga);
+        setUnavailable(new Set(refused));
+      })
+      .catch(console.error);
   }, []);
 
   /**
@@ -79,16 +124,18 @@ export function ExecutiveWorkspace() {
   const handleApprove = (item: ApprovalRequest) => resolve(item, 'APPROVED');
   const handleReject = (item: ApprovalRequest) => resolve(item, 'REJECTED');
 
+  /** A figure the viewer was not shown reads as an em dash, never as a number. */
+  const withheld = (source: Source) => unavailable.has(source);
+  const shown = (source: Source, value: React.ReactNode) =>
+    withheld(source) ? '—' : value;
+  const NOT_PERMITTED = 'Not available to your role';
+
   const totalGrantValue = grants.reduce((sum, g) => sum + (Number(g.amount) || 0), 0);
   const pendingProcurement = procurementOrders.filter(o => o.status === 'PENDING').length;
-  
-  const totalIncome = financeTransactions.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-  const totalExpense = financeTransactions.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-  const financialBalance = totalIncome - totalExpense;
 
   const lowStockCount = inventoryItems.filter(i => i.status === 'LOW_STOCK' || i.status === 'OUT_OF_STOCK').length;
   const pendingApprovalsCount = approvals.filter(a => a.status === 'PENDING').length;
-  
+
   const inStockCount = inventoryItems.filter(i => i.status === 'IN_STOCK').length;
   const stockHealth = inventoryItems.length ? Math.round((inStockCount / inventoryItems.length) * 100) : 0;
 
@@ -120,26 +167,47 @@ export function ExecutiveWorkspace() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <StatCard
           label="Active grant portfolio"
-          value={grants.length}
-          detail={`Total: ₦${totalGrantValue.toLocaleString()}`}
+          value={shown('grants', grants.length)}
+          detail={
+            withheld('grants') ? NOT_PERMITTED : `Total: ${naira(totalGrantValue)}`
+          }
         />
-        <StatCard label="Active projects" value={projects.length} />
-        <StatCard label="Pending procurement orders" value={pendingProcurement} />
+        <StatCard label="Active projects" value={shown('projects', projects.length)} />
         <StatCard
-          label="Financial balance"
-          value={`₦${financialBalance.toLocaleString()}`}
+          label="Pending procurement orders"
+          value={shown('procurement', pendingProcurement)}
+        />
+        {/* Approved transactions only, which is what the ledger means by a
+            balance. What is still awaiting a decision is named beside it
+            rather than folded into it. */}
+        <StatCard
+          label="Approved financial balance"
+          value={shown('finance', naira(finance?.netPosition ?? 0))}
+          detail={
+            withheld('finance')
+              ? NOT_PERMITTED
+              : finance?.awaitingApproval.count
+                ? `${naira(finance.awaitingApproval.amount)} awaiting approval (${finance.awaitingApproval.count})`
+                : 'Nothing awaiting approval'
+          }
         />
         {/* Colour here is a state, not a category: nothing is wrong until a
             count is above zero. */}
         <StatCard
           label="Low stock alerts"
-          value={lowStockCount}
-          tone={lowStockCount > 0 ? 'warning' : 'neutral'}
+          value={shown('inventory', lowStockCount)}
+          detail={withheld('inventory') ? NOT_PERMITTED : undefined}
+          tone={!withheld('inventory') && lowStockCount > 0 ? 'warning' : 'neutral'}
         />
         <StatCard
           label="Pending approvals"
-          value={pendingApprovalsCount}
-          tone={pendingApprovalsCount > 0 ? 'critical' : 'neutral'}
+          value={shown('approvals', pendingApprovalsCount)}
+          detail={withheld('approvals') ? NOT_PERMITTED : undefined}
+          tone={
+            !withheld('approvals') && pendingApprovalsCount > 0
+              ? 'critical'
+              : 'neutral'
+          }
         />
       </div>
 
@@ -183,7 +251,14 @@ export function ExecutiveWorkspace() {
                   {filteredApprovals.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="p-4 text-center text-gray-500">
-                        {approvalFilter === 'PENDING' ? 'No pending approvals. All departments are up to date.' : 'No approvals found.'}
+                        {/* "All departments are up to date" is a claim about the
+                            queue. It must not be made on behalf of a queue this
+                            viewer was never shown. */}
+                        {withheld('approvals')
+                          ? 'The approval queue is not available to your role.'
+                          : approvalFilter === 'PENDING'
+                            ? 'No pending approvals. All departments are up to date.'
+                            : 'No approvals found.'}
                       </td>
                     </tr>
                   ) : (
@@ -226,9 +301,11 @@ export function ExecutiveWorkspace() {
             </div>
             {lgaCoverage.length === 0 ? (
               /* An empty table with headers reads as "every LGA has zero". This
-                 says which of the two it is. */
+                 says which of the three it is. */
               <p className="text-xs text-[var(--muted)] py-4">
-                No registrations carry an LGA yet, so there is nothing to break down.
+                {withheld('lga')
+                  ? 'Coverage analytics are not available to your role.'
+                  : 'No registrations carry an LGA yet, so there is nothing to break down.'}
               </p>
             ) : (
               <div className="overflow-x-auto">
@@ -277,25 +354,41 @@ export function ExecutiveWorkspace() {
             <div className="grid grid-cols-1 gap-3">
               <div className="p-3 bg-[var(--background)] border border-[var(--outline)] rounded">
                 <p className="text-[10px] font-bold text-[var(--muted)] uppercase">Finance</p>
-                <div className="flex justify-between mt-1 text-xs">
-                  <span>Income: ₦{totalIncome.toLocaleString()}</span>
-                  <span>Exp: ₦{totalExpense.toLocaleString()}</span>
-                </div>
+                {withheld('finance') ? (
+                  <p className="mt-1 text-xs text-[var(--muted)]">{NOT_PERMITTED}</p>
+                ) : (
+                  <div className="flex justify-between mt-1 text-xs">
+                    {/* Approved, and labelled approved. These read "Income" and
+                        "Exp" while summing every row in the ledger. */}
+                    <span>Approved in: {naira(finance?.approvedIncome ?? 0)}</span>
+                    <span>Approved out: {naira(finance?.approvedExpense ?? 0)}</span>
+                  </div>
+                )}
               </div>
               <div className="p-3 bg-[var(--background)] border border-[var(--outline)] rounded">
                 <p className="text-[10px] font-bold text-[var(--muted)] uppercase">Grants</p>
-                <div className="flex justify-between mt-1 text-xs">
-                  <span>Active: {grants.length}</span>
-                  <span>Value: ₦{totalGrantValue.toLocaleString()}</span>
-                </div>
+                {withheld('grants') ? (
+                  <p className="mt-1 text-xs text-[var(--muted)]">{NOT_PERMITTED}</p>
+                ) : (
+                  <div className="flex justify-between mt-1 text-xs">
+                    <span>Active: {grants.length}</span>
+                    <span>Value: {naira(totalGrantValue)}</span>
+                  </div>
+                )}
               </div>
               <div className="p-3 bg-[var(--background)] border border-[var(--outline)] rounded">
                 <p className="text-[10px] font-bold text-[var(--muted)] uppercase">Projects</p>
-                <p className="mt-1 text-xs font-bold text-[var(--primary)]">Total: {projects.length}</p>
+                <p className="mt-1 text-xs font-bold text-[var(--primary)]">
+                  {withheld('projects') ? NOT_PERMITTED : `Total: ${projects.length}`}
+                </p>
               </div>
               <div className="p-3 bg-[var(--background)] border border-[var(--outline)] rounded">
                 <p className="text-[10px] font-bold text-[var(--muted)] uppercase">Inventory</p>
-                <p className="mt-1 text-xs font-bold text-[var(--primary)]">Stock Health: {stockHealth}%</p>
+                <p className="mt-1 text-xs font-bold text-[var(--primary)]">
+                  {withheld('inventory')
+                    ? NOT_PERMITTED
+                    : `Stock Health: ${stockHealth}%`}
+                </p>
               </div>
             </div>
           </div>
@@ -305,12 +398,12 @@ export function ExecutiveWorkspace() {
             <h3 className="font-bold text-[var(--primary)] text-sm border-b border-[var(--outline)] pb-2">Quick Navigation</h3>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { name: 'Finance', Icon: Banknote, link: '/finance', stat: `Bal: ₦${financialBalance.toLocaleString()}` },
-                { name: 'Procurement', Icon: Package, link: '/procurement', stat: `${pendingProcurement} pending` },
+                { name: 'Finance', Icon: Banknote, link: '/finance', stat: withheld('finance') ? '—' : `Approved bal: ${naira(finance?.netPosition ?? 0)}` },
+                { name: 'Procurement', Icon: Package, link: '/procurement', stat: withheld('procurement') ? '—' : `${pendingProcurement} pending` },
                 { name: 'HR', Icon: Users, link: '/hr', stat: 'Staff' },
-                { name: 'Grants', Icon: ScrollText, link: '/grants', stat: `${grants.length} active` },
-                { name: 'Projects', Icon: FolderKanban, link: '/projects', stat: `${projects.length} active` },
-                { name: 'Inventory', Icon: Warehouse, link: '/inventory', stat: `${stockHealth}% health` },
+                { name: 'Grants', Icon: ScrollText, link: '/grants', stat: withheld('grants') ? '—' : `${grants.length} active` },
+                { name: 'Projects', Icon: FolderKanban, link: '/projects', stat: withheld('projects') ? '—' : `${projects.length} active` },
+                { name: 'Inventory', Icon: Warehouse, link: '/inventory', stat: withheld('inventory') ? '—' : `${stockHealth}% health` },
                 { name: 'Governance', Icon: Landmark, link: '/governance', stat: 'Policies' },
                 { name: 'Clinical', Icon: HeartPulse, link: '/clinical', stat: 'Records' },
               ].map(d => (

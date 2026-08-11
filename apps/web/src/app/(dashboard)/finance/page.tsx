@@ -5,6 +5,7 @@ import type { FinanceTransaction } from '@/types/api';
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
+import { approvedOnly, ledgerTotals, naira } from '@/lib/financeTotals';
 import { useAuthStore } from '@/store/authStore';
 import { AccessDenied } from '@/components/AccessDenied';
 import { FINANCE_PAGE_ROLES } from '@/components/pageAccess';
@@ -241,13 +242,18 @@ function FinancePageContent() {
     }
   };
 
-  const totalExpense = transactions
-    .filter(t => t.type === 'EXPENSE')
-    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-
-  const totalIncome = transactions
-    .filter(t => t.type === 'INCOME')
-    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  /*
+   * Approved rows only, which is the rule FinanceService.getSummary enforces and
+   * this page did not: it summed the whole ledger, so "Net Cash Balance" counted
+   * requisitions nobody had approved and — worse, because nothing later removes
+   * them — requisitions that had been refused.
+   *
+   * The ledger table below still shows every row with its status, which is the
+   * point of a ledger. It is the totals that have to mean something.
+   */
+  const totals = ledgerTotals(transactions);
+  const totalExpense = totals.approvedExpense;
+  const totalIncome = totals.approvedIncome;
 
   const filteredTx = filterCategory === 'ALL'
     ? transactions
@@ -261,10 +267,14 @@ function FinancePageContent() {
   const remainingBudget = approvedBudgetTotal - budgetUtilized;
 
   const getStatementTxs = () => {
-    let txs = transactions;
+    // An income statement is a statement of what happened, not of what was
+    // asked for. Same rule as the scorecards, applied before the period filter.
+    let txs = approvedOnly(transactions);
     if (statementPeriod !== 'ALL') {
       const now = new Date();
-      txs = transactions.filter(t => {
+      // `txs`, not `transactions` — reassigning from the original discarded the
+      // filter above, which was harmless only while there was no filter above.
+      txs = txs.filter(t => {
         const txDate = new Date(t.createdAt);
         if (statementPeriod === 'YEAR') return txDate.getFullYear() === now.getFullYear();
         if (statementPeriod === 'QUARTER') return txDate.getFullYear() === now.getFullYear() && Math.floor(txDate.getMonth() / 3) === Math.floor(now.getMonth() / 3);
@@ -780,16 +790,23 @@ function FinancePageContent() {
           <p className="text-3xl font-bold text-[var(--primary)] mt-1 tabular-nums">₦{approvedBudgetTotal.toLocaleString()}</p>
         </div>
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Total Disbursements</span>
-          <p className="text-3xl font-bold text-[var(--risk-high-text)] mt-1 tabular-nums">₦{totalExpense.toLocaleString()}</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Approved Disbursements</span>
+          <p className="text-3xl font-bold text-[var(--risk-high-text)] mt-1 tabular-nums">{naira(totalExpense)}</p>
         </div>
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Total Grant Inflows</span>
-          <p className="text-3xl font-bold text-[var(--risk-low-text)] mt-1 tabular-nums">₦{totalIncome.toLocaleString()}</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Approved Grant Inflows</span>
+          <p className="text-3xl font-bold text-[var(--risk-low-text)] mt-1 tabular-nums">{naira(totalIncome)}</p>
         </div>
         <div className="clinical-card">
           <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Net Cash Balance</span>
-          <p className="text-3xl font-bold text-[var(--secondary)] mt-1 tabular-nums">₦{(totalIncome - totalExpense).toLocaleString()}</p>
+          <p className="text-3xl font-bold text-[var(--secondary)] mt-1 tabular-nums">{naira(totals.netPosition)}</p>
+          {/* What is not in the balance, said out loud. Silently excluding it
+              would trade one wrong impression for another. */}
+          <span className="mt-1 block text-[11px] text-[var(--muted)]">
+            {totals.awaitingApproval.count
+              ? `${naira(totals.awaitingApproval.amount)} awaiting approval (${totals.awaitingApproval.count})`
+              : 'Nothing awaiting approval'}
+          </span>
         </div>
       </div>
 

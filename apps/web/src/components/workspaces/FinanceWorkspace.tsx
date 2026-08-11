@@ -4,6 +4,7 @@ import type { FinanceTransaction, SessionUser } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { ledgerTotals, naira } from '@/lib/financeTotals';
 
 export function FinanceWorkspace({ user }: { user: SessionUser }) {
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
@@ -48,13 +49,8 @@ export function FinanceWorkspace({ user }: { user: SessionUser }) {
     }
   };
 
-  const totalExpense = transactions
-    .filter(t => t.type === 'EXPENSE')
-    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-
-  const totalIncome = transactions
-    .filter(t => t.type === 'INCOME')
-    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  // Approved rows only — the rule the API enforces in FinanceService.getSummary.
+  const totals = ledgerTotals(transactions);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -144,16 +140,21 @@ export function FinanceWorkspace({ user }: { user: SessionUser }) {
           <p className="text-3xl font-bold text-[var(--primary)] mt-1 tabular-nums">{transactions.length}</p>
         </div>
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Total Expenses</span>
-          <p className="text-3xl font-bold text-[var(--risk-high-text)] mt-1 tabular-nums">₦{totalExpense.toLocaleString()}</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Approved Expenses</span>
+          <p className="text-3xl font-bold text-[var(--risk-high-text)] mt-1 tabular-nums">{naira(totals.approvedExpense)}</p>
         </div>
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Total Income / Grants</span>
-          <p className="text-3xl font-bold text-[var(--risk-low-text)] mt-1 tabular-nums">₦{totalIncome.toLocaleString()}</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Approved Income / Grants</span>
+          <p className="text-3xl font-bold text-[var(--risk-low-text)] mt-1 tabular-nums">{naira(totals.approvedIncome)}</p>
         </div>
         <div className="clinical-card">
           <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Net Ledger Position</span>
-          <p className="text-3xl font-bold text-[var(--secondary)] mt-1 tabular-nums">₦{(totalIncome - totalExpense).toLocaleString()}</p>
+          <p className="text-3xl font-bold text-[var(--secondary)] mt-1 tabular-nums">{naira(totals.netPosition)}</p>
+          <span className="mt-1 block text-[11px] text-[var(--muted)]">
+            {totals.awaitingApproval.count
+              ? `${naira(totals.awaitingApproval.amount)} awaiting approval (${totals.awaitingApproval.count})`
+              : 'Nothing awaiting approval'}
+          </span>
         </div>
       </div>
 

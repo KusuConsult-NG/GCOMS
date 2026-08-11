@@ -21,30 +21,10 @@
 import { describe, expect, it } from 'vitest';
 import { NAV_SECTIONS, visibleSections } from './navigation';
 import { canOpen } from './pageAccess';
-
-/** Mirrors ROLES in the API's auth/roles.constants.ts. */
-const ROLES = [
-  'ADMIN',
-  'BOARD',
-  'CLINICIAN',
-  'COMMUNITY_HEALTH_WORKER',
-  'DOCTOR',
-  'NURSE',
-  'DATA_OFFICER',
-  'DOCUMENT_OFFICER',
-  'EXECUTIVE',
-  'FIELD_OFFICER',
-  'FINANCE',
-  'GRANT_MANAGER',
-  'HR',
-  'INVENTORY_MANAGER',
-  'PROCUREMENT',
-  'PROGRAMME_MANAGER',
-  'PROJECT_MANAGER',
-  'RESEARCH_OFFICER',
-  'SYSTEM_ADMIN',
-  'VOLUNTEER',
-];
+// The vocabulary, from the module that is checked against the API's own source.
+// This was a fourth hand-written copy, which meant "every role reaches
+// something" was only ever a claim about the roles someone had remembered.
+import { ROLES } from '@/lib/roles';
 
 const titles = (role: string | undefined) =>
   visibleSections(role).map((s) => s.title);

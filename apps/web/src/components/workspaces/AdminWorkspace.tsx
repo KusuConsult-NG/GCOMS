@@ -4,6 +4,11 @@ import type { AuditLogEntry, UserRecord } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { ROLES } from '@/lib/roles';
+import {
+  PERMISSION_MODULES,
+  permissionRows,
+} from '@/components/permissionMatrix';
 
 export function AdminWorkspace() {
   const [users, setUsers] = useState<UserRecord[]>([]);
@@ -27,7 +32,17 @@ export function AdminWorkspace() {
     sessionTimeout: '8 hours', maxLoginAttempts: '5', passwordPolicy: 'STRONG', dataBackupFrequency: 'DAILY'
   });
 
-  const rolesList = ['EXECUTIVE', 'BOARD', 'ADMIN', 'SYSTEM_ADMIN', 'FINANCE', 'PROCUREMENT', 'HR', 'GRANT_MANAGER', 'PROJECT_MANAGER', 'CLINICIAN', 'DOCTOR', 'NURSE', 'FIELD_OFFICER', 'VOLUNTEER', 'COMMUNITY_HEALTH_WORKER'];
+  /*
+   * Every role the API issues, from the shared vocabulary.
+   *
+   * This was a hand-written fifteen, missing DATA_OFFICER, DOCUMENT_OFFICER,
+   * INVENTORY_MANAGER, PROGRAMME_MANAGER and RESEARCH_OFFICER. Two consequences,
+   * both on this screen: an administrator could not create those accounts, and
+   * an existing one rendered with a blank role — the per-row `<select>` below
+   * takes its value from the user and had no option matching it, which is how a
+   * real inventory manager appeared in the roster as having no role at all.
+   */
+  const rolesList = ROLES;
 
 
   const fetchAuditLogs = () => {
@@ -245,38 +260,34 @@ export function AdminWorkspace() {
         <div className="bg-white rounded-lg border border-[var(--outline)] overflow-hidden shadow-sm">
           <div className="p-4 border-b border-[var(--outline)] bg-[var(--background)]">
             <h2 className="font-bold text-[var(--primary)] text-sm">Role & Permission Matrix</h2>
+            {/* Derived from the same role lists the page gates use, which mirror
+                the API's own constants. The hand-written version disagreed with
+                the API in both directions and omitted nine of the twenty roles —
+                on the screen an administrator reads before issuing an account. */}
+            <p className="text-[11px] text-[var(--muted)] mt-0.5">
+              What each role may read and write. Executive and System Admin are
+              admitted to every guarded route unconditionally.
+            </p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-[var(--surface-subtle)] text-[var(--on-surface-variant)] uppercase font-semibold border-b border-[var(--outline)]">
                 <tr>
                   <th className="p-3 border-r border-[var(--outline)]">Role</th>
-                  {['Finance', 'Procurement', 'HR', 'Grants', 'Projects', 'Inventory', 'Clinical', 'Governance', 'Executive', 'Admin'].map(m => (
-                    <th key={m} className="p-3 text-center">{m}</th>
+                  {PERMISSION_MODULES.map(m => (
+                    <th key={m.label} className="p-3 text-center">{m.label}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--outline)]">
-                {[
-                  { role: 'SYSTEM_ADMIN', p: ['YES', 'YES', 'YES', 'YES', 'YES', 'YES', 'YES', 'YES', 'YES', 'YES'] },
-                  { role: 'EXECUTIVE', p: ['YES', 'YES', 'YES', 'YES', 'YES', 'YES', 'YES', 'YES', 'YES', 'YES'] },
-                  { role: 'BOARD', p: ['VIEW', '-', '-', '-', '-', '-', '-', 'YES', 'YES', '-'] },
-                  { role: 'FINANCE', p: ['YES', '-', '-', '-', '-', '-', '-', '-', '-', '-'] },
-                  { role: 'PROCUREMENT', p: ['-', 'YES', '-', '-', '-', 'YES', '-', '-', '-', '-'] },
-                  { role: 'HR', p: ['-', '-', 'YES', '-', '-', '-', '-', '-', '-', '-'] },
-                  { role: 'GRANT_MANAGER', p: ['-', '-', '-', 'YES', '-', '-', '-', '-', '-', '-'] },
-                  { role: 'PROJECT_MANAGER', p: ['-', '-', '-', '-', 'YES', '-', '-', '-', '-', '-'] },
-                  { role: 'CLINICIAN', p: ['-', '-', '-', '-', '-', 'VIEW', 'YES', '-', '-', '-'] },
-                  { role: 'FIELD_OFFICER', p: ['-', '-', '-', '-', '-', '-', 'VIEW', '-', '-', '-'] },
-                  { role: 'VOLUNTEER', p: ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'] },
-                ].map(r => (
+                {permissionRows().map(r => (
                   <tr key={r.role} className="hover:bg-[var(--primary-surface)]">
                     <td className="p-3 font-bold text-[var(--primary)] border-r border-[var(--outline)]">{r.role}</td>
-                    {r.p.map((val, idx) => (
-                      <td key={idx} className="p-3 text-center">
-                        {val === 'YES' && <span className="badge-low-risk bg-green-100 text-green-800 text-[10px] px-1.5 py-0.5 rounded">✓ YES</span>}
+                    {r.access.map((val, idx) => (
+                      <td key={PERMISSION_MODULES[idx].label} className="p-3 text-center">
+                        {val === 'FULL' && <span className="badge-low-risk bg-green-100 text-green-800 text-[10px] px-1.5 py-0.5 rounded">✓ FULL</span>}
                         {val === 'VIEW' && <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-1.5 py-0.5 rounded">VIEW</span>}
-                        {val === '-' && <span className="text-gray-400">–</span>}
+                        {val === 'NONE' && <span className="text-gray-400">–</span>}
                       </td>
                     ))}
                   </tr>

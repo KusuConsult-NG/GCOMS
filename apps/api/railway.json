@@ -5,7 +5,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "preDeployCommand": ["npm run db:migrate"],
+    "preDeployCommand": ["npm run db:migrate", "npm run db:bootstrap"],
     "startCommand": "node dist/main",
     "healthcheckPath": "/health/ready",
     "healthcheckTimeout": 60,

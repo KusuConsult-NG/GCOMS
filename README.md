@@ -123,8 +123,14 @@ once. `/health` and `/health/ready` are the liveness and readiness probes.
 ### Railway (API and Postgres)
 
 `apps/api/railway.json` is the service configuration: it builds the existing
-Dockerfile, runs `npm run db:migrate` as a pre-deploy step, and gates the
-release on `GET /health/ready` rather than on the process merely starting.
+Dockerfile, runs `npm run db:migrate` and then `npm run db:bootstrap` as
+pre-deploy steps, and gates the release on `GET /health/ready` rather than on
+the process merely starting.
+
+No shell access is needed anywhere in this: set the variables below in the
+dashboard and deploy. The bootstrap does nothing once an account exists, so it
+is safe on every subsequent deploy — including after you remove the bootstrap
+variables again.
 
 Create the service with **Root Directory** set to `apps/api` — that is where the
 Dockerfile, the lockfile and `railway.json` live — then add a Postgres database
@@ -140,6 +146,8 @@ Variables to set on the API service:
 | `NODE_ENV` | `production` |
 | `TRUST_PROXY` | `1` |
 | `UPLOAD_DIR` | the mount path of a volume, e.g. `/var/lib/gcoms/documents` |
+| `BOOTSTRAP_ADMIN_EMAIL` | the first administrator's address. Delete it after the first sign-in |
+| `BOOTSTRAP_ADMIN_PASSWORD` | optional, ≥12 characters. Omit and one is generated into the deploy log. Delete it after the first sign-in |
 
 `PORT` is assigned by the platform and read from the environment; don't set it.
 
@@ -154,10 +162,17 @@ Two of those are easy to skip and expensive to skip:
   `DocumentRecord` rows survive, so the register goes on listing files that are
   no longer there.
 
-Then create the first administrator, once:
+The first deploy creates the administrator as part of the pre-deploy step. Set
+`BOOTSTRAP_ADMIN_PASSWORD` yourself if you would rather it not be printed: with
+the variable unset a generated password goes to the deploy log, which is fine —
+the log is account-scoped — but it stays there. Either way, delete both
+bootstrap variables once you have signed in. A password left in a platform's
+variable list is readable by everyone with dashboard access.
+
+If you do have a terminal, the same thing runs on demand:
 
 ```bash
-railway run --service api npm run db:bootstrap   # with BOOTSTRAP_ADMIN_EMAIL set
+railway run --service api npm run db:bootstrap
 ```
 
 Finally, take the service's public URL, set it as the repository variable

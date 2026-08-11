@@ -140,13 +140,36 @@ describe('bootstrapAdmin', () => {
     expect(created).toHaveLength(0);
   });
 
-  it('checks the configuration before it touches the database', async () => {
-    // A missing address should fail immediately rather than after a round trip
-    // — and must never reach `create` with a blank email.
+  it('stays quiet on an already-populated database even with nothing configured', async () => {
+    // The property that lets this be a pre-deploy step on every deploy forever:
+    // once there is an account it does nothing, and it does not care whether
+    // the bootstrap variables are still set. Removing them after the first sign
+    // -in must not start failing every subsequent deploy.
+    const { prisma, created } = fakePrisma(20);
+    await expect(bootstrapAdmin(prisma, {})).resolves.toEqual({
+      created: false,
+      reason: 'users-exist',
+      userCount: 20,
+    });
+    expect(created).toHaveLength(0);
+  });
+
+  it('refuses to leave an empty database with no way in', async () => {
+    // The opposite case, and the one that must be loud: no accounts and no
+    // configuration is a deployment that builds, goes healthy, serves a login
+    // page and admits nobody. Failing the deploy is the correct outcome.
     const { prisma, created } = fakePrisma(0);
     await expect(bootstrapAdmin(prisma, {})).rejects.toThrow(
       /BOOTSTRAP_ADMIN_EMAIL is not set/,
     );
+    expect(created).toHaveLength(0);
+  });
+
+  it('never creates an account from a configuration it rejected', async () => {
+    const { prisma, created } = fakePrisma(0);
+    await expect(
+      bootstrapAdmin(prisma, { ...env, BOOTSTRAP_ADMIN_PASSWORD: 'short' }),
+    ).rejects.toThrow(/at least 12 characters/);
     expect(created).toHaveLength(0);
   });
 

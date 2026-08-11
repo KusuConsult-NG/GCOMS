@@ -13,6 +13,11 @@ import { randomBytes } from 'crypto';
  *
  * So this creates exactly one account, with a password nobody else knows, and
  * nothing else. No sample programmes, no second role, no shared secret.
+ *
+ * It is safe to run on every deploy and is wired in as a pre-deploy step, which
+ * is what makes standing up a deployment possible without shell access: set the
+ * variables in the platform's dashboard and deploy. Once an account exists it
+ * does nothing, whether or not the variables are still set.
  */
 
 const BCRYPT_ROUNDS = 12;
@@ -83,20 +88,25 @@ export async function bootstrapAdmin(
   prisma: BootstrapPrisma,
   env: BootstrapEnv,
 ): Promise<BootstrapResult> {
-  // Read the configuration before touching the database, so a missing address
-  // fails immediately rather than after a round trip.
-  const email = resolveBootstrapEmail(env);
-  const password = resolveBootstrapPassword(env);
-
-  // Any user at all, not just this address and not just administrators. This
-  // runs on a deployment that may redeploy many times, and "there is already
-  // somebody here" is the condition that makes creating an account wrong —
-  // otherwise a redeploy after the address was renamed would quietly mint a
-  // second administrator whose password sits in the environment.
+  // The state of the database decides what happens here, not the configuration,
+  // so it is read first. That ordering is what lets this run as a pre-deploy
+  // step on every deploy forever: once there is an account it does nothing, and
+  // it does not matter whether the bootstrap variables are still set.
+  //
+  // Any user at all, not just this address and not just administrators —
+  // "somebody is already here" is the condition that makes creating an account
+  // wrong. Otherwise a redeploy after the address was renamed would quietly
+  // mint a second administrator whose password sits in the environment.
   const userCount = await prisma.user.count();
   if (userCount > 0) {
     return { created: false, reason: 'users-exist', userCount };
   }
+
+  // Empty database and nothing configured. Exiting quietly here would leave a
+  // deployment that builds, goes healthy, serves a login page and cannot be
+  // signed into by anyone — so this is the one case that must be loud.
+  const email = resolveBootstrapEmail(env);
+  const password = resolveBootstrapPassword(env);
 
   await prisma.user.create({
     data: {

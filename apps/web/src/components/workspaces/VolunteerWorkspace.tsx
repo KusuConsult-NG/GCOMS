@@ -3,7 +3,7 @@
 import { errorMessage } from '@/lib/errors';
 import { isRetryable, isStale } from '@/lib/offlineQueue';
 import { useOfflineRegistrations } from '@/lib/useOfflineRegistrations';
-import type { OutreachEvent, SessionUser } from '@/types/api';
+import type { OutreachEvent, Participant, SessionUser } from '@/types/api';
 
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
@@ -71,11 +71,42 @@ type RegistrationConfirmation = {
   const [regError, setRegError] = useState('');
   const [regSubmitting, setRegSubmitting] = useState(false);
   const [queuedNotice, setQueuedNotice] = useState('');
+  const [myParticipants, setMyParticipants] = useState<Participant[]>([]);
+
+  /*
+   * These were the literals 14 ("Daily Target: 15 (93%)") and "68 / 75", shown
+   * to a volunteer on their first day with an empty caseload. A field worker
+   * checks this card to know whether they have registered anyone today; a
+   * number that is fourteen regardless is worse than no card.
+   *
+   * The targets are gone rather than computed: 15 a day and 75 a week are
+   * policy figures with no source anywhere in this system, and inventing a
+   * denominator is what made the percentage beside them meaningless.
+   */
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfWeek = new Date(startOfToday);
+  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+
+  const registeredSince = (from: Date) =>
+    myParticipants.filter(
+      (p) => p.createdAt && new Date(p.createdAt) >= from,
+    ).length;
+
+  const todaysOutreach = outreaches.find((o) => {
+    const when = new Date(o.date);
+    return when >= startOfToday && when < new Date(startOfToday.getTime() + 86_400_000);
+  });
 
   useEffect(() => {
     api.get('/outreach')
       .then(res => setOutreaches(res.data))
       .catch(console.error);
+    // The API scopes this to what the caller may see, which for a field role is
+    // the people they registered — so it is a caseload, not the programme.
+    api.get('/participants')
+      .then(res => setMyParticipants(res.data))
+      .catch(() => setMyParticipants([]));
   }, []);
 
   /**
@@ -294,19 +325,18 @@ type RegistrationConfirmation = {
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="clinical-card">
-              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Patients Registered Today</span>
-              <p className="text-3xl font-bold text-[var(--secondary)] mt-1 tabular-nums">14</p>
-              <span className="text-[10px] text-[var(--risk-low-text)] font-semibold">Daily Target: 15 (93%)</span>
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Registered Today</span>
+              <p className="text-3xl font-bold text-[var(--secondary)] mt-1 tabular-nums">{registeredSince(startOfToday)}</p>
             </div>
             <div className="clinical-card">
-              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Weekly Intake Target</span>
-              <p className="text-3xl font-bold text-[var(--primary)] mt-1 tabular-nums">68 / 75</p>
-              <span className="text-[10px] text-[var(--secondary)] font-semibold">Weekly Target: 75</span>
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Registered This Week</span>
+              <p className="text-3xl font-bold text-[var(--primary)] mt-1 tabular-nums">{registeredSince(startOfWeek)}</p>
             </div>
             <div className="clinical-card">
-              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Assigned Outreach Drives</span>
-              <p className="text-3xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">{outreaches.length || 3}</p>
-              <span className="text-[10px] text-[var(--risk-mod-text)] font-semibold">Barkin Ladi & Jos North</span>
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Outreach Drives</span>
+              {/* Was `outreaches.length || 3`, so no drives displayed as three,
+                  captioned with two LGA names that came from nowhere. */}
+              <p className="text-3xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">{outreaches.length}</p>
             </div>
             <div className="clinical-card">
               <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Pending Sync Queue</span>
@@ -317,8 +347,14 @@ type RegistrationConfirmation = {
 
           <div className="bg-white p-5 rounded-lg border border-[var(--outline)] shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
+              {/* Named one specific campaign at one specific health centre, in
+                  fixed text, on every volunteer's screen every day. */}
               <h3 className="font-bold text-[var(--primary)] text-sm">Today&apos;s Active Outreach Campaign</h3>
-              <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">Barkin Ladi Primary Health Center • Community Cervical Screening Drive</p>
+              <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">
+                {todaysOutreach
+                  ? `${todaysOutreach.location?.name ?? 'Location not set'} • ${todaysOutreach.title}`
+                  : 'No outreach campaign is scheduled for today. Field intake still works.'}
+              </p>
             </div>
             <div className="flex gap-2 w-full md:w-auto">
               <button

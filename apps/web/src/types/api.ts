@@ -442,6 +442,43 @@ export interface ServiceLog {
 }
 
 /** GET /analytics/summary — the executive dashboard's headline counts. */
+/**
+ * `GET /reports/summary`, which is what the reports screen reads.
+ *
+ * It had no type, and the page did not use it: four KPI cards, a four-row
+ * impact breakdown with its own percentages and progress bars, and a catalogue
+ * of three published reports were all literals. The one figure that did come
+ * from the API was written `summary?.totalScreenings || 462`, so a real zero
+ * displayed as 462.
+ */
+export interface ReportsSummary {
+  generatedAt: Timestamp;
+  totalScreenings: number;
+  positiveScreenings: number;
+  totalPatients: number;
+  totalOutreaches: number;
+  totalReferrals: number;
+  activeReferrals: number;
+  totalNavigationEvents: number;
+  communitiesCovered: number;
+}
+
+/**
+ * `GET /research/projects`. This is not `Project` — the research module has its
+ * own table with a `title` and a `progress` percentage, and the research screen
+ * typed its list as the project-management `Project`, so it read `projectName`
+ * (undefined on every row, rendering a blank heading) and derived completion
+ * from `tasks` (also undefined, so every project showed 0%) while the real
+ * `progress` column, which has its own endpoint, went unread.
+ */
+export interface ResearchProject {
+  id: string;
+  title: string;
+  status: string;
+  progress: number;
+  createdAt?: Timestamp;
+}
+
 export interface AnalyticsSummary {
   totalScreenings: number;
   positiveScreenings: number;

@@ -1,20 +1,24 @@
 'use client';
 
-import type { Project } from '@/types/api';
+import type { ResearchProject } from '@/types/api';
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
-/** Share of a project's tasks that are done; 0 when it has none yet. */
-function completion(project: Project): number {
-  const tasks = project.tasks ?? [];
-  if (tasks.length === 0) return 0;
-  const done = tasks.filter((t) => t.status === 'COMPLETED').length;
-  return Math.round((done / tasks.length) * 100);
+/**
+ * A research project's own progress percentage.
+ *
+ * This used to derive completion from `project.tasks`, which belongs to the
+ * project-management `Project` and is undefined on every row here — so every
+ * research project showed 0% while `progress`, the column the API exposes a
+ * PATCH endpoint for, went unread.
+ */
+function completion(project: ResearchProject): number {
+  return Math.round(Number(project.progress) || 0);
 }
 
 export default function ResearchPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<ResearchProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [title, setTitle] = useState('');
@@ -104,17 +108,35 @@ export default function ResearchPage() {
           <span className="text-xs font-semibold text-[var(--muted)] uppercase">Active Research Projects</span>
           <p className="text-3xl font-bold text-[var(--primary)] mt-1 tabular-nums">{projects.length}</p>
         </div>
+        {/*
+          These were 1,240 survey respondents, 4 published protocols and "100%
+          Valid" IRB approvals. None of the three has a table, a column or an
+          endpoint anywhere in this system — they were literals, and "100%
+          Valid" is a compliance claim about human-subjects research made by a
+          screen with no knowledge of any approval.
+
+          A ResearchProject has a title, a status and a percent complete, which
+          is what these now report.
+        */}
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase">Survey Respondents</span>
-          <p className="text-3xl font-bold text-[var(--secondary)] mt-1 tabular-nums">1,240</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase">Completed</span>
+          <p className="text-3xl font-bold text-[var(--secondary)] mt-1 tabular-nums">
+            {projects.filter(p => (p.status || '').toUpperCase() === 'COMPLETED').length}
+          </p>
         </div>
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase">Published Protocols</span>
-          <p className="text-3xl font-bold text-[var(--risk-low-text)] mt-1 tabular-nums">4</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase">In Progress</span>
+          <p className="text-3xl font-bold text-[var(--risk-low-text)] mt-1 tabular-nums">
+            {projects.filter(p => (p.status || '').toUpperCase() !== 'COMPLETED').length}
+          </p>
         </div>
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase">IRB Approvals</span>
-          <p className="text-3xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">100% Valid</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase">Average Progress</span>
+          <p className="text-3xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">
+            {projects.length === 0
+              ? '—'
+              : `${Math.round(projects.reduce((sum, p) => sum + completion(p), 0) / projects.length)}%`}
+          </p>
         </div>
       </div>
 
@@ -132,7 +154,7 @@ export default function ResearchPage() {
             {projects.map((proj) => (
               <div key={proj.id} className="p-4 rounded border border-[var(--outline)] bg-[var(--background)] space-y-2 text-xs">
                 <div className="flex justify-between items-center">
-                  <h4 className="font-bold text-[var(--primary)] text-sm">{proj.projectName}</h4>
+                  <h4 className="font-bold text-[var(--primary)] text-sm">{proj.title}</h4>
                   {/* Derived from the project's own tasks. Every project used to
                       show a flat "40% Complete" because Project carries no
                       progress field and the fallback was a literal 40. */}

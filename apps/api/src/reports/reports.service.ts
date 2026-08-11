@@ -31,20 +31,24 @@ export class ReportsService {
       (s) => s.result && s.result.toLowerCase().includes('positive'),
     ).length;
 
+    /*
+     * `awareness` used to be `totalOutreaches * 50` with the comment "Estimated
+     * reach: 50 per outreach", and the reports screen rendered it as "Total
+     * Community Reach". Fifty is not a measurement — it is a number somebody
+     * chose — and multiplying by it turns a count of outreach events into a
+     * figure about people that no outreach event actually recorded. A report is
+     * the last place to do that, so what is returned is the count itself.
+     */
     return {
       generatedAt: new Date(),
       totalScreenings,
       positiveScreenings,
       totalPatients,
       totalOutreaches,
+      totalReferrals,
+      activeReferrals,
+      totalNavigationEvents,
       communitiesCovered,
-      reachStats: {
-        awareness: totalOutreaches * 50, // Estimated reach: 50 per outreach
-        screenings: totalScreenings,
-        navigation: totalNavigationEvents,
-        referrals: totalReferrals,
-        activeReferrals,
-      },
     };
   }
 

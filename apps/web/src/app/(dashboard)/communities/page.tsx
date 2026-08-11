@@ -150,7 +150,7 @@ export default function CommunitiesPage() {
                 <th className="p-3">Community Name</th>
                 <th className="p-3">LGA</th>
                 <th className="p-3">State</th>
-                <th className="p-3">Est. Population</th>
+                <th className="p-3">Recorded Population</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--outline)] font-medium text-[var(--on-background)]">
@@ -159,7 +159,13 @@ export default function CommunitiesPage() {
                   <td className="p-3 font-bold text-[var(--primary)]">{c.name}</td>
                   <td className="p-3 text-[var(--secondary)] font-semibold">{c.lga} LGA</td>
                   <td className="p-3 text-[var(--muted)]">{c.state}</td>
-                  <td className="p-3 font-bold font-mono tabular-nums text-[var(--primary)]">{Number(c.population || 2000).toLocaleString()}</td>
+                  {/* Was `c.population || 2000`, so every community with no
+                      recorded population showed two thousand people — under a
+                      header reading "Est. Population", which made the invented
+                      number look like an estimate somebody had made. */}
+                  <td className="p-3 font-bold font-mono tabular-nums text-[var(--primary)]">
+                    {c.population ? Number(c.population).toLocaleString() : '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -26,6 +26,32 @@ export default function NavigationPage() {
     fetchNavigationData();
   }, []);
 
+  /*
+   * These four figures were the literals 184, 42, 28 and 89% — invented
+   * numbers on a clinical screen, sitting directly above a table of real
+   * referrals, so the row that summarised the table disagreed with it in every
+   * case including the empty one. A patient-navigation caseload of 184 shown to
+   * a nurse with no referrals is not a rounding problem.
+   *
+   * They are counts of what this page already fetched. A referral this page
+   * cannot see is a referral outside the viewer's PHI scope, so these describe
+   * the caseload rather than the programme — which is what a navigation screen
+   * is for.
+   */
+  const withStatus = (...statuses: string[]) =>
+    events.filter((e) => statuses.includes((e.status || '').toUpperCase()));
+
+  const active = withStatus('PENDING', 'ACCEPTED').length;
+  const awaiting = withStatus('PENDING').length;
+  const completed = withStatus('COMPLETED').length;
+  const cancelled = withStatus('CANCELLED').length;
+  // Cancelled referrals are not failures to complete; excluding them is the
+  // difference between a completion rate and a proportion of everything.
+  const resolvable = events.length - cancelled;
+  const completionRate = resolvable > 0
+    ? Math.round((completed / resolvable) * 100)
+    : null;
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -43,19 +69,27 @@ export default function NavigationPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="clinical-card">
           <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Under Active Navigation</span>
-          <p className="text-3xl font-bold text-[var(--primary)] mt-1 tabular-nums">184</p>
+          <p className="text-3xl font-bold text-[var(--primary)] mt-1 tabular-nums">{active}</p>
         </div>
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Appointments Scheduled</span>
-          <p className="text-3xl font-bold text-[var(--secondary)] mt-1 tabular-nums">42</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Awaiting Acceptance</span>
+          <p className="text-3xl font-bold text-[var(--secondary)] mt-1 tabular-nums">{awaiting}</p>
         </div>
         <div className="clinical-card">
-          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Tertiary Hospital Referrals</span>
-          <p className="text-3xl font-bold text-[var(--risk-low-text)] mt-1 tabular-nums">28</p>
+          <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Referrals On Record</span>
+          <p className="text-3xl font-bold text-[var(--risk-low-text)] mt-1 tabular-nums">{events.length}</p>
         </div>
         <div className="clinical-card">
           <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Completion Rate</span>
-          <p className="text-3xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">89%</p>
+          {/* Nothing to divide is not 0%, and it is certainly not 89%. */}
+          <p className="text-3xl font-bold text-[var(--risk-mod-text)] mt-1 tabular-nums">
+            {completionRate === null ? '—' : `${completionRate}%`}
+          </p>
+          <span className="text-[11px] text-[var(--muted)]">
+            {completionRate === null
+              ? 'No referrals to complete yet'
+              : `${completed} of ${resolvable} completed`}
+          </span>
         </div>
       </div>
 
